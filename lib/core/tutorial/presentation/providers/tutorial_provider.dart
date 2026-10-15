@@ -10,6 +10,7 @@ import '../steps/chords_tutorial_steps.dart';
 import '../steps/gestures_tutorial_steps.dart';
 import '../steps/home_tutorial_steps.dart';
 import '../steps/library_tutorial_steps.dart';
+import '../steps/offline_tutorial_steps.dart';
 import '../steps/playlists_tutorial_steps.dart';
 import '../steps/profile_tutorial_steps.dart';
 import '../steps/reader_tutorial_steps.dart';
@@ -35,6 +36,7 @@ class TutorialController {
       RoutePaths.chords => true,
       RoutePaths.gestos => true,
       RoutePaths.audio => true,
+      RoutePaths.offline => true,
       _ => false,
     };
   }
@@ -54,6 +56,7 @@ class TutorialController {
       RoutePaths.chords => buildChordsTutorialSteps(context),
       RoutePaths.gestos => buildGesturesTutorialSteps(context),
       RoutePaths.audio => buildAudioTutorialSteps(context),
+      RoutePaths.offline => buildOfflineTutorialSteps(context),
       _ => const [],
     };
   }

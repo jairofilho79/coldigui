@@ -14,7 +14,7 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 void main() {
   group('TutorialController', () {
-    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords, gestos e audio', () {
+    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords, gestos, audio e offline', () {
       final controller = TutorialController();
       expect(controller.hasTutorialFor(RoutePaths.home), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.playlists), isTrue);
@@ -24,6 +24,7 @@ void main() {
       expect(controller.hasTutorialFor(RoutePaths.chords), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.gestos), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.audio), isTrue);
+      expect(controller.hasTutorialFor(RoutePaths.offline), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -213,6 +214,30 @@ void main() {
                 expect(steps[3].items.first.targetId, 'audio-transport-controls');
                 expect(steps[4].items.first.targetId, 'audio-flag-list');
                 expect(steps[5].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets('stepsForRoute retorna passos do Armazenamento Offline com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps =
+                    controller.stepsForRoute(context, RoutePaths.offline);
+                expect(steps.length, 5);
+                expect(steps[0].items.first.targetId, 'offline-status-lines');
+                expect(steps[1].items.first.targetId, 'offline-search-bar');
+                expect(steps[2].items.first.targetId, 'offline-kinds-selection');
+                expect(steps[3].items.first.targetId, 'offline-download-actions');
+                expect(steps[4].items.first.targetId, 'app-info-button');
                 return const SizedBox();
               },
             ),
@@ -1203,6 +1228,116 @@ void main() {
       expect(find.text('Marcadores de Estudo'), findsOneWidget);
 
       // Passo 6: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'toque no botão (i) na tela do Armazenamento Offline dispara o tutorial e navega pelos passos',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: RoutePaths.offline,
+        routes: [
+          GoRoute(
+            path: RoutePaths.offline,
+            builder: (context, state) {
+              final tutorial = ProviderScope.containerOf(context)
+                  .read(tutorialControllerProvider);
+
+              return SpotlightGuidePortal(
+                controller: tutorial.portalController,
+                autoStart: false,
+                onFinish: () => tutorial.resetTutorialState(),
+                child: Scaffold(
+                  appBar: const PlpcgPrimaryAppBar(),
+                  body: Column(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'offline-status-lines',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Offline Status Lines'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'offline-search-bar',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Offline Search Bar'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'offline-kinds-selection',
+                        child: const SizedBox(
+                          height: 120,
+                          child: Text('Mock Offline Kinds Selection'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'offline-download-actions',
+                        child: const SizedBox(
+                          height: 60,
+                          child: Text('Mock Offline Download Actions'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Encontra o botão (i)
+      final infoButtonFinder = find.byIcon(Icons.info_outline);
+      expect(infoButtonFinder, findsOneWidget);
+
+      // Toca no botão (i)
+      await tester.tap(infoButtonFinder);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Status e Uso de Disco
+      expect(find.text('Status e Uso de Disco'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Pesquisa de Materiais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pesquisa de Materiais'), findsOneWidget);
+
+      // Passo 3: Seleção de Formatos
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Seleção de Formatos'), findsOneWidget);
+
+      // Passo 4: Baixar e Gerenciar Espaço
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Baixar e Gerenciar Espaço'), findsOneWidget);
+
+      // Passo 5: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda & Tutoriais'), findsOneWidget);

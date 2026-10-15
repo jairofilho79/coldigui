@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../../core/l10n/failure_message.dart';
 import '../../../../../core/theme/app_typography.dart';
@@ -185,31 +186,34 @@ class _StatusLines extends ConsumerWidget {
     final hintStyle = AppTypography.body.copyWith(
       color: AppColors.title.withValues(alpha: 0.75),
     );
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(catalog, style: hintStyle),
-              const SizedBox(height: 4),
-              Text(_diskUsage(), style: hintStyle),
-            ],
+    return SpotlightGuideTarget(
+      id: 'offline-status-lines',
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(catalog, style: hintStyle),
+                const SizedBox(height: 4),
+                Text(_diskUsage(), style: hintStyle),
+              ],
+            ),
           ),
-        ),
-        if (sync.isSyncing || cacheStatus.isRefreshing)
-          const SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-        else
-          TextButton.icon(
-            onPressed: busy ? null : () => unawaited(_refresh(context, ref)),
-            icon: const Icon(Icons.refresh, size: 18),
-            label: Text(l10n.offlineRefreshStats),
-          ),
-      ],
+          if (sync.isSyncing || cacheStatus.isRefreshing)
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            TextButton.icon(
+              onPressed: busy ? null : () => unawaited(_refresh(context, ref)),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: Text(l10n.offlineRefreshStats),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -646,222 +650,238 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 2, bottom: 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Pesquisar tipo de material...',
-                    hintStyle: AppTypography.hint(),
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            tooltip: 'Limpar pesquisa',
-                            onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                                _searchQuery = '';
-                              });
-                            },
-                          )
-                        : null,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
-                    ),
-                    filled: true,
-                    fillColor: AppColors.card,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                        color: AppColors.title.withValues(alpha: 0.2),
+        SpotlightGuideTarget(
+          id: 'offline-search-bar',
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Pesquisar tipo de material...',
+                      hintStyle: AppTypography.hint(),
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              tooltip: 'Limpar pesquisa',
+                              onPressed: () {
+                                setState(() {
+                                  _searchController.clear();
+                                  _searchQuery = '';
+                                });
+                              },
+                            )
+                          : null,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 9,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.card,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppColors.title.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppColors.title.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          color: AppColors.gold,
+                          width: 1.5,
+                        ),
                       ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                        color: AppColors.title.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(
-                        color: AppColors.gold,
-                        width: 1.5,
-                      ),
-                    ),
+                    style: AppTypography.body.copyWith(fontSize: 13.5),
+                    onChanged: (val) {
+                      setState(() {
+                        _searchQuery = val;
+                      });
+                    },
                   ),
-                  style: AppTypography.body.copyWith(fontSize: 13.5),
-                  onChanged: (val) {
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  selected: _filterOnlyMatches,
+                  label: const Text('Filtrar'),
+                  avatar: Icon(
+                    _filterOnlyMatches
+                        ? Icons.filter_alt
+                        : Icons.filter_alt_outlined,
+                    size: 16,
+                    color: _filterOnlyMatches
+                        ? AppColors.title
+                        : AppColors.title.withValues(alpha: 0.7),
+                  ),
+                  selectedColor: AppColors.gold.withValues(alpha: 0.25),
+                  checkmarkColor: AppColors.title,
+                  labelStyle: AppTypography.label.copyWith(
+                    fontSize: 12,
+                    fontWeight:
+                        _filterOnlyMatches ? FontWeight.w700 : FontWeight.w500,
+                    color: AppColors.title,
+                  ),
+                  side: BorderSide(
+                    color: _filterOnlyMatches
+                        ? AppColors.gold
+                        : AppColors.title.withValues(alpha: 0.25),
+                    width: _filterOnlyMatches ? 1.5 : 1.0,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  onSelected: (selected) {
                     setState(() {
-                      _searchQuery = val;
+                      _filterOnlyMatches = selected;
                     });
                   },
                 ),
-              ),
-              const SizedBox(width: 8),
-              FilterChip(
-                selected: _filterOnlyMatches,
-                label: const Text('Filtrar'),
-                avatar: Icon(
-                  _filterOnlyMatches
-                      ? Icons.filter_alt
-                      : Icons.filter_alt_outlined,
-                  size: 16,
-                  color: _filterOnlyMatches
-                      ? AppColors.title
-                      : AppColors.title.withValues(alpha: 0.7),
+              ],
+            ),
+          ),
+        ),
+        SpotlightGuideTarget(
+          id: 'offline-kinds-selection',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (widget.signedIn) ...[
+                OfflineClassHeader(
+                  label: widget.l10n.offlineColdigomFavoriteKinds,
+                  count: displayedFavorites.length,
                 ),
-                selectedColor: AppColors.gold.withValues(alpha: 0.25),
-                checkmarkColor: AppColors.title,
-                labelStyle: AppTypography.label.copyWith(
-                  fontSize: 12,
-                  fontWeight:
-                      _filterOnlyMatches ? FontWeight.w700 : FontWeight.w500,
-                  color: AppColors.title,
+                if (displayedFavorites.isEmpty)
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                    child: Text(
+                      _filterOnlyMatches && hasQuery
+                          ? 'Nenhum favorito encontrado para esta pesquisa'
+                          : widget.l10n.offlineColdigomNoFavorites,
+                      style: AppTypography.hint(),
+                    ),
+                  )
+                else
+                  Wrap(
+                    alignment: WrapAlignment.start,
+                    crossAxisAlignment: WrapCrossAlignment.start,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final unit in displayedFavorites)
+                        ..._renderUnit(
+                          unit: unit,
+                          selection: selection,
+                          enabled: canInteract,
+                          isHighlighted:
+                              hasQuery && _unitMatches(unit, _searchQuery),
+                          onToggle: toggleKind,
+                          onToggleType: toggleKindType,
+                          onToggleFamilyType: toggleFamilyType,
+                        ),
+                    ],
+                  ),
+                const SizedBox(height: 12),
+                if (displayedOtherSections.isNotEmpty) ...[
+                  _buildOtherKindsButton(
+                    totalCount: totalOtherCount,
+                    isExpanded: isOtherExpanded,
+                    onToggle: () {
+                      setState(() {
+                        _otherKindsExpanded = !_otherKindsExpanded;
+                      });
+                    },
+                  ),
+                  if (isOtherExpanded) ...[
+                    const SizedBox(height: 10),
+                    for (final section in displayedOtherSections) ...[
+                      if (taxonomy.classes.isNotEmpty)
+                        OfflineClassHeader(
+                          label: section.label ??
+                              widget.l10n.materialKindOtherClass,
+                          count: section.count,
+                        ),
+                      Wrap(
+                        alignment: WrapAlignment.start,
+                        crossAxisAlignment: WrapCrossAlignment.start,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final unit in section.units)
+                            ..._renderUnit(
+                              unit: unit,
+                              selection: selection,
+                              enabled: canInteract,
+                              isHighlighted:
+                                  hasQuery && _unitMatches(unit, _searchQuery),
+                              onToggle: toggleKind,
+                              onToggleType: toggleKindType,
+                              onToggleFamilyType: toggleFamilyType,
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                  ],
+                ],
+              ] else ...[
+                _sectionLabel(widget.l10n.offlineKindsAll),
+                for (final section in displayedOtherSections) ...[
+                  if (taxonomy.classes.isNotEmpty)
+                    OfflineClassHeader(
+                      label:
+                          section.label ?? widget.l10n.materialKindOtherClass,
+                      count: section.count,
+                    ),
+                  Wrap(
+                    alignment: WrapAlignment.start,
+                    crossAxisAlignment: WrapCrossAlignment.start,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final unit in section.units)
+                        ..._renderUnit(
+                          unit: unit,
+                          selection: selection,
+                          enabled: canInteract,
+                          isHighlighted:
+                              hasQuery && _unitMatches(unit, _searchQuery),
+                          onToggle: toggleKind,
+                          onToggleType: toggleKindType,
+                          onToggleFamilyType: toggleFamilyType,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ],
+              if (_filterOnlyMatches &&
+                  hasQuery &&
+                  displayedFavorites.isEmpty &&
+                  displayedOtherSections.isEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'Nenhum tipo de material encontrado para "$_searchQuery"',
+                      style: AppTypography.hint(),
+                    ),
+                  ),
                 ),
-                side: BorderSide(
-                  color: _filterOnlyMatches
-                      ? AppColors.gold
-                      : AppColors.title.withValues(alpha: 0.25),
-                  width: _filterOnlyMatches ? 1.5 : 1.0,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                onSelected: (selected) {
-                  setState(() {
-                    _filterOnlyMatches = selected;
-                  });
-                },
-              ),
+              ],
             ],
           ),
         ),
-        if (widget.signedIn) ...[
-          OfflineClassHeader(
-            label: widget.l10n.offlineColdigomFavoriteKinds,
-            count: displayedFavorites.length,
-          ),
-          if (displayedFavorites.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-              child: Text(
-                _filterOnlyMatches && hasQuery
-                    ? 'Nenhum favorito encontrado para esta pesquisa'
-                    : widget.l10n.offlineColdigomNoFavorites,
-                style: AppTypography.hint(),
-              ),
-            )
-          else
-            Wrap(
-              alignment: WrapAlignment.start,
-              crossAxisAlignment: WrapCrossAlignment.start,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final unit in displayedFavorites)
-                  ..._renderUnit(
-                    unit: unit,
-                    selection: selection,
-                    enabled: canInteract,
-                    isHighlighted: hasQuery && _unitMatches(unit, _searchQuery),
-                    onToggle: toggleKind,
-                    onToggleType: toggleKindType,
-                    onToggleFamilyType: toggleFamilyType,
-                  ),
-              ],
-            ),
-          const SizedBox(height: 12),
-          if (displayedOtherSections.isNotEmpty) ...[
-            _buildOtherKindsButton(
-              totalCount: totalOtherCount,
-              isExpanded: isOtherExpanded,
-              onToggle: () {
-                setState(() {
-                  _otherKindsExpanded = !_otherKindsExpanded;
-                });
-              },
-            ),
-            if (isOtherExpanded) ...[
-              const SizedBox(height: 10),
-              for (final section in displayedOtherSections) ...[
-                if (taxonomy.classes.isNotEmpty)
-                  OfflineClassHeader(
-                    label: section.label ?? widget.l10n.materialKindOtherClass,
-                    count: section.count,
-                  ),
-                Wrap(
-                  alignment: WrapAlignment.start,
-                  crossAxisAlignment: WrapCrossAlignment.start,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final unit in section.units)
-                      ..._renderUnit(
-                        unit: unit,
-                        selection: selection,
-                        enabled: canInteract,
-                        isHighlighted:
-                            hasQuery && _unitMatches(unit, _searchQuery),
-                        onToggle: toggleKind,
-                        onToggleType: toggleKindType,
-                        onToggleFamilyType: toggleFamilyType,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-              ],
-            ],
-          ],
-        ] else ...[
-          _sectionLabel(widget.l10n.offlineKindsAll),
-          for (final section in displayedOtherSections) ...[
-            if (taxonomy.classes.isNotEmpty)
-              OfflineClassHeader(
-                label: section.label ?? widget.l10n.materialKindOtherClass,
-                count: section.count,
-              ),
-            Wrap(
-              alignment: WrapAlignment.start,
-              crossAxisAlignment: WrapCrossAlignment.start,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final unit in section.units)
-                  ..._renderUnit(
-                    unit: unit,
-                    selection: selection,
-                    enabled: canInteract,
-                    isHighlighted: hasQuery && _unitMatches(unit, _searchQuery),
-                    onToggle: toggleKind,
-                    onToggleType: toggleKindType,
-                    onToggleFamilyType: toggleFamilyType,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-          ],
-        ],
-        if (_filterOnlyMatches &&
-            hasQuery &&
-            displayedFavorites.isEmpty &&
-            displayedOtherSections.isEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                'Nenhum tipo de material encontrado para "$_searchQuery"',
-                style: AppTypography.hint(),
-              ),
-            ),
-          ),
-        ],
         const SizedBox(height: 12),
         if (widget.download.isActive && widget.download.progress != null) ...[
           if (widget.download.progress!.kindId.isNotEmpty) ...[
@@ -884,93 +904,101 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
           ),
           const SizedBox(height: 12),
         ],
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton(
-                onPressed:
-                    widget.busy ||
-                        widget.download.isActive ||
-                        widget.download.removing ||
-                        selection.isEmpty
-                    ? null
-                    : () => unawaited(
-                        _start(
-                          context,
-                          ref,
-                          effectiveKindIds,
-                          selection,
-                          pendingBytes,
-                          estimated,
-                          taxonomy: taxonomy,
-                        ),
-                      ),
-                child: Text(
-                  widget.l10n.offlineColdigomDownloadSelected(
-                    coldigomSizeLabel(pendingBytes, estimated: estimated),
-                  ),
-                ),
-              ),
-            ),
-            if (widget.download.isActive) ...[
-              const SizedBox(width: 12),
-              OutlinedButton(
-                onPressed: widget.download.isRunning
-                    ? ref.read(offlineColdigomDownloadProvider.notifier).stop
-                    : null,
-                child: Text(
-                  widget.download.status ==
-                          OfflineColdigomDownloadStatus.cancelling
-                      ? widget.l10n.offlineStoppingDownload
-                      : widget.l10n.offlineColdigomStop,
-                ),
-              ),
-            ],
-          ],
-        ),
-        if (!widget.download.isActive &&
-            result != null &&
-            (result.cancelled || result.hasFailures)) ...[
-          const SizedBox(height: 6),
-          Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
+        SpotlightGuideTarget(
+          id: 'offline-download-actions',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                _resultStatusText(widget.l10n, widget.download),
-                style: AppTypography.hint(),
-              ),
-              TextButton(
-                onPressed: widget.busy ||
-                        selection.isEmpty ||
-                        widget.download.removing
-                    ? null
-                    : () => unawaited(
-                        _start(
-                          context,
-                          ref,
-                          effectiveKindIds,
-                          selection,
-                          pendingBytes,
-                          estimated,
-                          taxonomy: taxonomy,
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton(
+                      onPressed:
+                          widget.busy ||
+                              widget.download.isActive ||
+                              widget.download.removing ||
+                              selection.isEmpty
+                          ? null
+                          : () => unawaited(
+                              _start(
+                                context,
+                                ref,
+                                effectiveKindIds,
+                                selection,
+                                pendingBytes,
+                                estimated,
+                                taxonomy: taxonomy,
+                              ),
+                            ),
+                      child: Text(
+                        widget.l10n.offlineColdigomDownloadSelected(
+                          coldigomSizeLabel(pendingBytes, estimated: estimated),
                         ),
                       ),
-                child: Text(widget.l10n.offlineColdigomRetry),
+                    ),
+                  ),
+                  if (widget.download.isActive) ...[
+                    const SizedBox(width: 12),
+                    OutlinedButton(
+                      onPressed: widget.download.isRunning
+                          ? ref.read(offlineColdigomDownloadProvider.notifier).stop
+                          : null,
+                      child: Text(
+                        widget.download.status ==
+                                OfflineColdigomDownloadStatus.cancelling
+                            ? widget.l10n.offlineStoppingDownload
+                            : widget.l10n.offlineColdigomStop,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (!widget.download.isActive &&
+                  result != null &&
+                  (result.cancelled || result.hasFailures)) ...[
+                const SizedBox(height: 6),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      _resultStatusText(widget.l10n, widget.download),
+                      style: AppTypography.hint(),
+                    ),
+                    TextButton(
+                      onPressed: widget.busy ||
+                              selection.isEmpty ||
+                              widget.download.removing
+                          ? null
+                          : () => unawaited(
+                              _start(
+                                context,
+                                ref,
+                                effectiveKindIds,
+                                selection,
+                                pendingBytes,
+                                estimated,
+                                taxonomy: taxonomy,
+                              ),
+                            ),
+                      child: Text(widget.l10n.offlineColdigomRetry),
+                    ),
+                  ],
+                ),
+              ],
+              Align(
+                alignment: Alignment.center,
+                child: TextButton(
+                  onPressed: widget.busy ||
+                          widget.download.isActive ||
+                          widget.download.removing
+                      ? null
+                      : () => unawaited(_remove(context, ref)),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.title),
+                  child: Text(widget.l10n.offlineColdigomRemove),
+                ),
               ),
             ],
-          ),
-        ],
-        Align(
-          alignment: Alignment.center,
-          child: TextButton(
-            onPressed: widget.busy ||
-                    widget.download.isActive ||
-                    widget.download.removing
-                ? null
-                : () => unawaited(_remove(context, ref)),
-            style: TextButton.styleFrom(foregroundColor: AppColors.title),
-            child: Text(widget.l10n.offlineColdigomRemove),
           ),
         ),
       ],
