@@ -181,14 +181,14 @@ StatefulShellBranch _branchFor(AppTab tab, FeatureFlags flags) {
                 queryParams: safeQueryParameters(state.uri),
               ),
             ),
-            GoRoute(
-              path: 'louvor/:id',
-              builder: (context, state) => PraiseScreen(
-                id: state.pathParameters['id'] ?? '',
-                queryParams: safeQueryParameters(state.uri),
-              ),
-            ),
           ],
+        ),
+        GoRoute(
+          path: RoutePaths.praise,
+          builder: (context, state) => PraiseScreen(
+            id: state.pathParameters['id'] ?? '',
+            queryParams: safeQueryParameters(state.uri),
+          ),
         ),
       ],
     ),

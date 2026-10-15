@@ -1,12 +1,22 @@
 import 'package:coldigui/core/constants/app_tabs.dart';
 import 'package:coldigui/core/constants/feature_flags.dart';
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/feature_flags_provider.dart';
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/app_router.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
+import 'package:coldigui/features/catalog/presentation/pages/praise_screen.dart';
+import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
+import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers/coldigom_catalog_test_helpers.dart';
+import '../../support/fakes/fake_isar.dart';
 
 /// E6 — `appRouterProvider` monta suas `StatefulShellBranch` a partir de
 /// `appTabsFor(featureFlagsProvider)`. Usa `router.configuration.findMatch`
@@ -77,6 +87,53 @@ void main() {
         router.configuration.findMatch(Uri.parse(RoutePaths.library)).isError,
         isFalse,
       );
+    });
+
+    test('/louvor/:id é registrada como rota direta da branch Home', () {
+      final router = buildRouter(const FeatureFlags());
+
+      final match = router.configuration.findMatch(
+        Uri.parse('/louvor/4d1'),
+      );
+
+      expect(match.isError, isFalse);
+      expect(match.uri.path, '/louvor/4d1');
+
+      final shellMatch = match.matches.single as ShellRouteMatch;
+      expect(shellMatch.matches.length, 1);
+      expect(shellMatch.matches.single.matchedLocation, '/louvor/4d1');
+    });
+
+    testWidgets('ao navegar para /louvor/:id, PraiseScreen é exibida sem HomeScreen', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          featureFlagsProvider.overrideWithValue(const FeatureFlags()),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          isarStatusProvider.overrideWithValue(IsarStatus.available),
+          isarInitializerProvider.overrideWith((ref) async => FakeIsar()),
+          ...catalogIndexOverrides(ColdigomSearchIndex.empty),
+        ],
+      );
+      addTearDown(container.dispose);
+      final router = container.read(appRouterProvider);
+      router.go('/louvor/4d1');
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(PraiseScreen), findsOneWidget);
+      expect(find.byType(HomeScreen), findsNothing);
     });
 
     testWidgets('/social (aba antiga) redireciona para /listas/publicas', (
