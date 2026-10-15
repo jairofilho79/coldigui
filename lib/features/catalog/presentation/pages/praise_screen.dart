@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/routing/route_paths.dart';
@@ -292,19 +293,25 @@ class _PraiseScreenState extends ConsumerState<PraiseScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildPraiseHeader(group, l10n),
+                      SpotlightGuideTarget(
+                        id: 'praise-header',
+                        child: _buildPraiseHeader(group, l10n),
+                      ),
                       if (relatedPraises.length > 1) ...[
                         const SizedBox(height: 12),
-                        RelatedPraisesBar(
-                          praises: relatedPraises,
-                          selectedPraise: group,
-                          l10n: l10n,
-                          onSelected: (target) {
-                            if (target.groupId == group.groupId) return;
-                            final nextId =
-                                target.coldigomMeta?.shortId ?? target.groupId;
-                            context.go(RoutePaths.praiseFor(nextId));
-                          },
+                        SpotlightGuideTarget(
+                          id: 'praise-related-bar',
+                          child: RelatedPraisesBar(
+                            praises: relatedPraises,
+                            selectedPraise: group,
+                            l10n: l10n,
+                            onSelected: (target) {
+                              if (target.groupId == group.groupId) return;
+                              final nextId =
+                                  target.coldigomMeta?.shortId ?? target.groupId;
+                              context.go(RoutePaths.praiseFor(nextId));
+                            },
+                          ),
                         ),
                       ],
                       if (isWide) ...[
@@ -328,17 +335,23 @@ class _PraiseScreenState extends ConsumerState<PraiseScreen> {
                           children: [
                             Expanded(
                               flex: 5,
-                              child: _buildLyricsSection(
-                                lyricsText: lyricsText,
-                                fontSize: effectiveFontSize,
-                                l10n: l10n,
-                                group: group,
+                              child: SpotlightGuideTarget(
+                                id: 'praise-lyrics-section',
+                                child: _buildLyricsSection(
+                                  lyricsText: lyricsText,
+                                  fontSize: effectiveFontSize,
+                                  l10n: l10n,
+                                  group: group,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 24),
                             Expanded(
                               flex: 5,
-                              child: _buildMaterialsSection(group, l10n),
+                              child: SpotlightGuideTarget(
+                                id: 'praise-materials-section',
+                                child: _buildMaterialsSection(group, l10n),
+                              ),
                             ),
                           ],
                         ),
@@ -346,11 +359,14 @@ class _PraiseScreenState extends ConsumerState<PraiseScreen> {
                         if ((meta != null && meta.hasAnyField) ||
                             lyricsText.isNotEmpty) ...[
                           const SizedBox(height: 16),
-                          ColdigomMetaBlock(
-                            meta: meta,
-                            lyricsText: lyricsText,
-                            onOpenLyrics: () => _handleOpenLyricsReader(group),
-                            l10n: l10n,
+                          SpotlightGuideTarget(
+                            id: 'praise-lyrics-section',
+                            child: ColdigomMetaBlock(
+                              meta: meta,
+                              lyricsText: lyricsText,
+                              onOpenLyrics: () => _handleOpenLyricsReader(group),
+                              l10n: l10n,
+                            ),
                           ),
                         ],
                         const SizedBox(height: 16),
@@ -360,7 +376,10 @@ class _PraiseScreenState extends ConsumerState<PraiseScreen> {
                           thickness: 1.5,
                         ),
                         const SizedBox(height: 20),
-                        _buildMaterialsSection(group, l10n),
+                        SpotlightGuideTarget(
+                          id: 'praise-materials-section',
+                          child: _buildMaterialsSection(group, l10n),
+                        ),
                       ],
                     ],
                   ),

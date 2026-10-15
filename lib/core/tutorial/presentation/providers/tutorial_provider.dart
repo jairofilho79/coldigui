@@ -13,6 +13,7 @@ import '../steps/library_tutorial_steps.dart';
 import '../steps/lyrics_tutorial_steps.dart';
 import '../steps/offline_tutorial_steps.dart';
 import '../steps/playlists_tutorial_steps.dart';
+import '../steps/praise_tutorial_steps.dart';
 import '../steps/profile_tutorial_steps.dart';
 import '../steps/reader_tutorial_steps.dart';
 
@@ -39,6 +40,8 @@ class TutorialController {
       RoutePaths.audio => true,
       RoutePaths.offline => true,
       RoutePaths.lyrics => true,
+      RoutePaths.praise => true,
+      final p when p.startsWith('/louvor/') => true,
       _ => false,
     };
   }
@@ -60,6 +63,9 @@ class TutorialController {
       RoutePaths.audio => buildAudioTutorialSteps(context),
       RoutePaths.offline => buildOfflineTutorialSteps(context),
       RoutePaths.lyrics => buildLyricsTutorialSteps(context),
+      RoutePaths.praise => buildPraiseTutorialSteps(context),
+      final p when p.startsWith('/louvor/') =>
+        buildPraiseTutorialSteps(context),
       _ => const [],
     };
   }
