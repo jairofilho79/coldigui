@@ -12,6 +12,7 @@ import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
 import '../../../pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
+import 'app_shortcuts_dialog.dart';
 
 /// Pedido de foco no campo de busca da Home (C1).
 ///
@@ -148,6 +149,7 @@ void _showReaderActionError(BuildContext context) {
 /// | Tecla | Efeito |
 /// | --- | --- |
 /// | `Ctrl+K` / `Cmd+K` / `/` | vai para a Home e foca a busca |
+/// | `?` | abre a Central de Atalhos de Teclado |
 /// | `Espaço` | play/pause (fora do leitor PDF, que consome a tecla) |
 /// | `Ctrl+Espaço` / `Cmd+Espaço` | play/pause também dentro do leitor |
 /// | `J` / `L` | ±10 s no áudio (mesma guarda de foco do Espaço) — C12 |
@@ -233,6 +235,18 @@ class AppShortcuts extends ConsumerWidget {
     }
 
     if (keyboardFocusIsInsideTextField()) return KeyEventResult.ignored;
+
+    // Atalho '?' abre a Central de Atalhos (Shift + '/' ou tecla '?' dedicada)
+    if (key == LogicalKeyboardKey.question ||
+        e.character == '?' ||
+        (key == LogicalKeyboardKey.slash && pressed.isShiftPressed)) {
+      if (commandModifier) return KeyEventResult.ignored;
+      if (!_modalIsOpenAbove(context)) {
+        showAppShortcutsDialog(context);
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
 
     if (key == LogicalKeyboardKey.slash ||
         key == LogicalKeyboardKey.numpadDivide) {
