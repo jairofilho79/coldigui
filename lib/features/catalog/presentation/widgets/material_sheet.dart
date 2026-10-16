@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/tutorial/presentation/providers/tutorial_provider.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/presentation/utils/related_praises_swapper.dart';
@@ -105,11 +107,31 @@ class MaterialSheet extends ConsumerStatefulWidget {
 
 class _MaterialSheetState extends ConsumerState<MaterialSheet> {
   late LouvorGroup _currentGroup;
+  final SpotlightGuidePortalController _portalController =
+      SpotlightGuidePortalController();
 
   @override
   void initState() {
     super.initState();
     _currentGroup = widget.group;
+    try {
+      ref
+          .read(tutorialControllerProvider)
+          .pushPortalController(_portalController);
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    try {
+      if (_portalController.isShowing) {
+        _portalController.hide();
+      }
+      ref
+          .read(tutorialControllerProvider)
+          .popPortalController(_portalController);
+    } catch (_) {}
+    super.dispose();
   }
 
   void _handleTap(CatalogMaterial material) {
@@ -149,80 +171,89 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     final index = ref.watch(coldigomSearchIndexProvider);
     final relatedPraises = resolveRelatedPraisesForGroup(group, index);
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: maxHeight),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 48,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.gold,
-                  borderRadius: BorderRadius.circular(2),
+    return SpotlightGuidePortal(
+      controller: _portalController,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 48,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.gold,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _SheetHeader(
-              group: group,
-              l10n: l10n,
-            ),
-            if (relatedPraises.length > 1) ...[
-              const SizedBox(height: 12),
-              RelatedPraisesBar(
-                praises: relatedPraises,
-                selectedPraise: group,
-                l10n: l10n,
-                onSelected: (target) async {
-                  if (target.groupId == group.groupId) return;
-                  final effectiveKey = widget.currentEntryKey;
-                  if (!widget.canAddToPlaylist && effectiveKey != null) {
-                    await swapToRelatedPraise(
-                      ref: ref,
-                      context: context,
-                      targetGroup: target,
-                      currentEntryKey: effectiveKey,
-                      currentMaterialId: widget.currentMaterialId,
-                      allMembers: relatedPraises,
-                    );
-                  }
-                  if (mounted) {
-                    setState(() {
-                      _currentGroup = ref
-                          .read(catalogMaterialLookupProvider)
-                          .withPraiseMeta(target);
-                    });
-                  }
-                },
-              ),
-            ],
-            if ((meta != null && meta.hasAnyField) || lyricsText.isNotEmpty) ...[
               const SizedBox(height: 16),
-              ColdigomMetaBlock(
-                meta: meta,
-                lyricsText: lyricsText,
-                onOpenLyrics: _handleOpenLyrics,
+              _SheetHeader(
+                group: group,
                 l10n: l10n,
               ),
-            ],
-            const SizedBox(height: 12),
-            const Divider(color: AppColors.gold, height: 1, thickness: 1.5),
-            const SizedBox(height: 8),
-            Expanded(
-              child: PraiseMaterialsView(
-                group: group,
-                canAddToPlaylist: widget.canAddToPlaylist,
-                initialKind: widget.initialKind,
-                onMaterialSelected: (m) async => _handleTap(m),
-                currentMaterialId: widget.currentMaterialId,
+              if (relatedPraises.length > 1) ...[
+                const SizedBox(height: 12),
+                SpotlightGuideTarget(
+                  id: 'material-sheet-related',
+                  child: RelatedPraisesBar(
+                    praises: relatedPraises,
+                    selectedPraise: group,
+                    l10n: l10n,
+                    onSelected: (target) async {
+                      if (target.groupId == group.groupId) return;
+                      final effectiveKey = widget.currentEntryKey;
+                      if (!widget.canAddToPlaylist && effectiveKey != null) {
+                        await swapToRelatedPraise(
+                          ref: ref,
+                          context: context,
+                          targetGroup: target,
+                          currentEntryKey: effectiveKey,
+                          currentMaterialId: widget.currentMaterialId,
+                          allMembers: relatedPraises,
+                        );
+                      }
+                      if (mounted) {
+                        setState(() {
+                          _currentGroup = ref
+                              .read(catalogMaterialLookupProvider)
+                              .withPraiseMeta(target);
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
+              if ((meta != null && meta.hasAnyField) || lyricsText.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                SpotlightGuideTarget(
+                  id: 'material-sheet-meta',
+                  child: ColdigomMetaBlock(
+                    meta: meta,
+                    lyricsText: lyricsText,
+                    onOpenLyrics: _handleOpenLyrics,
+                    l10n: l10n,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              const Divider(color: AppColors.gold, height: 1, thickness: 1.5),
+              const SizedBox(height: 8),
+              Expanded(
+                child: PraiseMaterialsView(
+                  group: group,
+                  canAddToPlaylist: widget.canAddToPlaylist,
+                  initialKind: widget.initialKind,
+                  onMaterialSelected: (m) async => _handleTap(m),
+                  currentMaterialId: widget.currentMaterialId,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -297,24 +328,50 @@ class _SheetHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        IconButton(
-          tooltip: l10n.contributeReportTooltip,
-          onPressed: () {
-            openContribute(
-              context,
-              target: ContributionTarget(
-                source: ContributionSource.coldigom,
-                praiseId: group.groupId,
-              ),
-            );
-            Navigator.of(context).pop();
-          },
-          icon: const Icon(Icons.handshake_outlined, color: AppColors.title),
-          style: IconButton.styleFrom(
-            padding: EdgeInsets.zero,
-            minimumSize: const Size(44, 44),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
+        SpotlightGuideTarget(
+          id: 'material-sheet-contribute',
+          child: IconButton(
+            tooltip: l10n.contributeReportTooltip,
+            onPressed: () {
+              openContribute(
+                context,
+                target: ContributionTarget(
+                  source: ContributionSource.coldigom,
+                  praiseId: group.groupId,
+                ),
+              );
+              Navigator.of(context).pop();
+            },
+            icon: const Icon(Icons.handshake_outlined, color: AppColors.title),
+            style: IconButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(44, 44),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        SpotlightGuideTarget(
+          id: 'material-sheet-info',
+          child: IconButton(
+            tooltip: 'Como usar este seletor',
+            onPressed: () {
+              try {
+                final container =
+                    ProviderScope.containerOf(context, listen: false);
+                container
+                    .read(tutorialControllerProvider)
+                    .startMaterialSheetTutorial(context);
+              } catch (_) {}
+            },
+            icon: const Icon(Icons.info_outline, color: AppColors.title),
+            style: IconButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(44, 44),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
           ),
         ),
         const SizedBox(width: 8),

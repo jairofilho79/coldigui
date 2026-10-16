@@ -32,6 +32,7 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 // ---------------------------------------------------------------- fixtures
 
@@ -1276,5 +1277,54 @@ void main() {
         expect(navigatedRoute, '/louvor/g1');
       },
     );
+  });
+
+  group('tutorial no MaterialSheet', () {
+    testWidgets('contém os alvos de tutorial e toque no botão info dispara o tutorial', (tester) async {
+      final testGroup = LouvorGroup.fromLouvores(
+        [_pdf(categoria: 'Partitura', pdfId: 'p1')],
+        chordMaterials: [_chord('Cifra 1', 'k1')],
+      ).first;
+
+      await _pumpSheet(
+        tester,
+        group: testGroup,
+        overrides: [
+          chordSongProvider.overrideWith((ref, r2Key) async => song),
+        ],
+      );
+
+      expect(find.byIcon(Icons.info_outline), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is SpotlightGuideTarget && w.id == 'material-sheet-info',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is SpotlightGuideTarget && w.id == 'material-sheet-contribute',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is SpotlightGuideTarget && w.id == 'material-sheet-tabs',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is SpotlightGuideTarget && w.id == 'material-sheet-add-playlist',
+        ),
+        findsOneWidget,
+      );
+
+      // Toque no botão de info inicia o tutorial
+      await tester.tap(find.byIcon(Icons.info_outline));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Formatos Disponíveis'), findsOneWidget);
+    });
   });
 }

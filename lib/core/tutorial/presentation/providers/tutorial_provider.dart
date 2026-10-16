@@ -16,6 +16,7 @@ import '../steps/home_tutorial_steps.dart';
 import '../steps/library_tutorial_steps.dart';
 import '../steps/live_room_tutorial_steps.dart';
 import '../steps/lyrics_tutorial_steps.dart';
+import '../steps/material_sheet_tutorial_steps.dart';
 import '../steps/my_contributions_tutorial_steps.dart';
 import '../steps/offline_tutorial_steps.dart';
 import '../steps/playlists_tutorial_steps.dart';
@@ -70,6 +71,7 @@ class TutorialController {
       RoutePaths.contribute => true,
       RoutePaths.liveRoom => true,
       RoutePaths.contributionDetail => true,
+      'modal:material-sheet' => true,
       final p when p.startsWith('/ao-vivo/') => true,
       final p when p.startsWith('/louvor/') => true,
       final p when p.startsWith('/contribuicoes/') => true,
@@ -108,6 +110,8 @@ class TutorialController {
         buildLiveRoomTutorialSteps(context),
       RoutePaths.contributionDetail =>
         buildContributionDetailTutorialSteps(context),
+      'modal:material-sheet' =>
+        buildMaterialSheetTutorialSteps(context),
       final p when p.startsWith('/ao-vivo/') =>
         buildLiveRoomTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
@@ -129,6 +133,21 @@ class TutorialController {
     }
 
     portalController.showSteps(steps);
+  }
+
+  /// Executa uma lista arbitrária de passos de tutorial no portal ativo.
+  void showSteps(List<SpotlightGuideStep> steps) {
+    if (steps.isEmpty) return;
+    if (portalController.isShowing) {
+      hide();
+      return;
+    }
+    portalController.showSteps(steps);
+  }
+
+  /// Inicia o tutorial do seletor de materiais ([MaterialSheet]).
+  void startMaterialSheetTutorial(BuildContext context) {
+    showSteps(buildMaterialSheetTutorialSteps(context));
   }
 
   /// Restaura qualquer estado alterado durante a apresentação do tutorial.

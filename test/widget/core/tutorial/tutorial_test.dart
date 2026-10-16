@@ -37,6 +37,7 @@ void main() {
       expect(controller.hasTutorialFor('/ao-vivo/k7x2m9q'), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.contributionDetail), isTrue);
       expect(controller.hasTutorialFor('/contribuicoes/k7x2m9q'), isTrue);
+      expect(controller.hasTutorialFor('modal:material-sheet'), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -500,6 +501,34 @@ void main() {
                   '/contribuicoes/contrib-456',
                 );
                 expect(stepsDynamic.length, 7);
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos do Seletor de Formatos (MaterialSheet) com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  'modal:material-sheet',
+                );
+                expect(steps.length, 6);
+                expect(steps[0].items.first.targetId, 'material-sheet-tabs');
+                expect(steps[1].items.first.targetId, 'material-sheet-add-playlist');
+                expect(steps[2].items.first.targetId, 'material-sheet-meta');
+                expect(steps[3].items.first.targetId, 'material-sheet-related');
+                expect(steps[4].items.first.targetId, 'material-sheet-contribute');
+                expect(steps[5].items.first.targetId, 'material-sheet-info');
                 return const SizedBox();
               },
             ),
@@ -2535,6 +2564,101 @@ void main() {
       await tester.tap(find.text('Concluir'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'navega por todos os passos do tutorial do Seletor de Formatos (MaterialSheet)',
+        (tester) async {
+      late ProviderContainer container;
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container = ProviderContainer(),
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final tutorial = container.read(tutorialControllerProvider);
+
+                return SpotlightGuidePortal(
+                  controller: tutorial.portalController,
+                  autoStart: false,
+                  onFinish: () => tutorial.resetTutorialState(),
+                  child: Scaffold(
+                    body: Column(
+                      children: [
+                        SpotlightGuideTarget(
+                          id: 'material-sheet-tabs',
+                          child: const SizedBox(height: 40, child: Text('Abas')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'material-sheet-add-playlist',
+                          child: const SizedBox(height: 40, child: Text('+ Adicionar')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'material-sheet-meta',
+                          child: const SizedBox(height: 40, child: Text('Metadados')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'material-sheet-related',
+                          child: const SizedBox(height: 40, child: Text('Relacionados')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'material-sheet-contribute',
+                          child: const SizedBox(height: 40, child: Text('Contribuir')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'material-sheet-info',
+                          child: const SizedBox(height: 40, child: Text('Info')),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      final tutorial = container.read(tutorialControllerProvider);
+      final context = tester.element(find.byType(Scaffold));
+
+      tutorial.startMaterialSheetTutorial(context);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Formatos Disponíveis
+      expect(find.text('Formatos Disponíveis'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Adicionar ao Repertório
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Adicionar ao Repertório'), findsOneWidget);
+
+      // Passo 3: Metadados e Letra
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Metadados e Letra'), findsOneWidget);
+
+      // Passo 4: Versões Relacionadas
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Versões Relacionadas'), findsOneWidget);
+
+      // Passo 5: Sugerir Melhoria
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sugerir Melhoria'), findsOneWidget);
+
+      // Passo 6: Ajuda deste Seletor
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda deste Seletor'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda deste Seletor'), findsNothing);
     });
   });
 }

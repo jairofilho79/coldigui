@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/network/connectivity_stream_provider.dart';
@@ -142,10 +143,30 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
     String? subtitle,
     bool enabled = true,
     bool shaded = false,
+    bool targetAdd = false,
   }) {
     final showAdd =
         widget.canAddToPlaylist && canAddMaterialToPlaylist(material);
     final isAdded = activeMaterialIds.contains(material.id);
+    final trailingButton = showAdd
+        ? MaterialAddTrailing(
+            isAdded: isAdded,
+            isAdding: _addingId == material.id,
+            removeTooltip: l10n.materialRemoveTooltip,
+            onAdd: () => _handleAdd(material),
+            onRemove: () => _handleRemove(material),
+          )
+        : null;
+
+    final effectiveTrailing = trailingButton == null
+        ? null
+        : (targetAdd
+            ? SpotlightGuideTarget(
+                id: 'material-sheet-add-playlist',
+                child: trailingButton,
+              )
+            : trailingButton);
+
     return ListTile(
       enabled: enabled,
       tileColor: shaded ? const Color(0x0A6A2F2F) : null,
@@ -168,15 +189,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
                 color: AppColors.textDark.withValues(alpha: 0.7),
               ),
             ),
-      trailing: showAdd
-          ? MaterialAddTrailing(
-              isAdded: isAdded,
-              isAdding: _addingId == material.id,
-              removeTooltip: l10n.materialRemoveTooltip,
-              onAdd: () => _handleAdd(material),
-              onRemove: () => _handleRemove(material),
-            )
-          : null,
+      trailing: effectiveTrailing,
       onTap: () => _handleTap(material),
     );
   }
@@ -215,6 +228,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
     final availability = ref.watch(materialAvailabilityMapProvider);
 
     var tileIndex = 0;
+    var hasTargetedAdd = false;
     Widget tileFor(
       CatalogMaterial material, {
       required Color iconColor,
@@ -228,6 +242,12 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
         l10n: l10n,
       );
       final isShaded = (tileIndex++).isOdd;
+      final showAdd =
+          widget.canAddToPlaylist && canAddMaterialToPlaylist(material);
+      final isFirstAdd = showAdd && !hasTargetedAdd;
+      if (isFirstAdd) {
+        hasTargetedAdd = true;
+      }
       return _materialTile(
         material: material,
         icon: icon,
@@ -237,6 +257,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
         enabled: state.enabled,
         subtitle: state.subtitle ?? subtitle,
         shaded: isShaded,
+        targetAdd: isFirstAdd,
       );
     }
 
@@ -378,19 +399,22 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
           ),
         ],
         if (showSegments) ...[
-          _KindSegmentBar(
-            labels: [for (final kind in kinds) _kindLabel(l10n, kind)],
-            selectedIndex: kinds.indexOf(selectedKind),
-            onSelected: (index) {
-              final tappedKind = kinds[index];
-              final materials = materialsForKind(tappedKind);
-              if (materials.length == 1) {
-                _selectedKind = tappedKind;
-                _handleTap(materials.first);
-              } else {
-                setState(() => _selectedKind = tappedKind);
-              }
-            },
+          SpotlightGuideTarget(
+            id: 'material-sheet-tabs',
+            child: _KindSegmentBar(
+              labels: [for (final kind in kinds) _kindLabel(l10n, kind)],
+              selectedIndex: kinds.indexOf(selectedKind),
+              onSelected: (index) {
+                final tappedKind = kinds[index];
+                final materials = materialsForKind(tappedKind);
+                if (materials.length == 1) {
+                  _selectedKind = tappedKind;
+                  _handleTap(materials.first);
+                } else {
+                  setState(() => _selectedKind = tappedKind);
+                }
+              },
+            ),
           ),
           const SizedBox(height: 8),
         ],
