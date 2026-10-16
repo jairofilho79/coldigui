@@ -7,8 +7,11 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:spotlight_guide/spotlight_guide.dart';
+
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/routing/route_paths.dart';
+import '../../../../core/tutorial/presentation/providers/tutorial_provider.dart';
 import '../../../../core/theme/app_buttons.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
@@ -61,7 +64,26 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
         ? _leader(context, state, l10n)
         : _consumer(context, state, l10n);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.liveRoom)),
+      appBar: AppBar(
+        title: Text(l10n.liveRoom),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Como usar esta tela',
+            onPressed: () {
+              try {
+                final container =
+                    ProviderScope.containerOf(context, listen: false);
+                container
+                    .read(tutorialControllerProvider)
+                    .startTutorialForRoute(context, RoutePaths.liveRoom);
+              } catch (_) {
+                // Em testes unitários sem ProviderScope, no-op seguro.
+              }
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -213,69 +235,85 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          Center(
-            child: QrImageView(
-              data: url,
-              size: 200,
-              backgroundColor: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SelectableText(url, textAlign: TextAlign.center, style: _bodyStyle),
-          const SizedBox(height: 16),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                style: AppButtons.onDarkSecondary,
-                icon: const Icon(Icons.copy),
-                label: Text(l10n.liveCopyLink),
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: url));
-                  if (context.mounted) {
-                    showAppSnackbar(context, l10n.liveLinkCopied);
-                  }
-                },
-              ),
-              OutlinedButton.icon(
-                style: AppButtons.onDarkSecondary,
-                icon: Icon(Icons.adaptive.share),
-                label: Text(l10n.liveShareLink),
-                onPressed: () => SharePlus.instance.share(
-                  ShareParams(
-                    text: url,
-                    sharePositionOrigin:
-                        sharePositionOriginFromContextOrFallback(context),
+          SpotlightGuideTarget(
+            id: 'live-room-qr',
+            child: Column(
+              children: [
+                Center(
+                  child: QrImageView(
+                    data: url,
+                    size: 200,
+                    backgroundColor: Colors.white,
                   ),
                 ),
-              ),
-              OutlinedButton(
-                style: AppButtons.onDarkSecondary,
-                onPressed: _busy
-                    ? null
-                    : () => unawaited(_regenerate(context, l10n)),
-                child: Text(l10n.liveRegenerateLink),
-              ),
-            ],
+                const SizedBox(height: 12),
+                SelectableText(url, textAlign: TextAlign.center, style: _bodyStyle),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SpotlightGuideTarget(
+            id: 'live-room-actions',
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  style: AppButtons.onDarkSecondary,
+                  icon: const Icon(Icons.copy),
+                  label: Text(l10n.liveCopyLink),
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: url));
+                    if (context.mounted) {
+                      showAppSnackbar(context, l10n.liveLinkCopied);
+                    }
+                  },
+                ),
+                OutlinedButton.icon(
+                  style: AppButtons.onDarkSecondary,
+                  icon: Icon(Icons.adaptive.share),
+                  label: Text(l10n.liveShareLink),
+                  onPressed: () => SharePlus.instance.share(
+                    ShareParams(
+                      text: url,
+                      sharePositionOrigin:
+                          sharePositionOriginFromContextOrFallback(context),
+                    ),
+                  ),
+                ),
+                OutlinedButton(
+                  style: AppButtons.onDarkSecondary,
+                  onPressed: _busy
+                      ? null
+                      : () => unawaited(_regenerate(context, l10n)),
+                  child: Text(l10n.liveRegenerateLink),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
-          Text(
-            l10n.liveViewers(state.viewers),
-            textAlign: TextAlign.center,
-            style: AppTypography.body.copyWith(color: AppColors.gold),
+          SpotlightGuideTarget(
+            id: 'live-room-viewers',
+            child: Text(
+              l10n.liveViewers(state.viewers),
+              textAlign: TextAlign.center,
+              style: AppTypography.body.copyWith(color: AppColors.gold),
+            ),
           ),
           const SizedBox(height: 16),
           if (state.isLeading)
-            OutlinedButton.icon(
-              style: AppButtons.onDarkPrimary,
-              icon: const Icon(Icons.stop),
-              label: Text(l10n.liveEnd),
-              onPressed: () async {
-                await controller.endLive();
-                if (context.mounted) context.go(RoutePaths.playlists);
-              },
+            SpotlightGuideTarget(
+              id: 'live-room-end-button',
+              child: OutlinedButton.icon(
+                style: AppButtons.onDarkPrimary,
+                icon: const Icon(Icons.stop),
+                label: Text(l10n.liveEnd),
+                onPressed: () async {
+                  await controller.endLive();
+                  if (context.mounted) context.go(RoutePaths.playlists);
+                },
+              ),
             ),
         ],
       ),
@@ -338,29 +376,35 @@ class _Message extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (spinner)
-          const CircularProgressIndicator(color: AppColors.gold)
-        else if (icon != null)
-          Icon(icon, size: 48, color: AppColors.gold),
-        const SizedBox(height: 16),
-        Text(title, style: _titleStyle, textAlign: TextAlign.center),
-        if (body != null) ...[
-          const SizedBox(height: 8),
-          Text(body!, style: _bodyStyle, textAlign: TextAlign.center),
+    return SpotlightGuideTarget(
+      id: 'live-room-status-card',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (spinner)
+            const CircularProgressIndicator(color: AppColors.gold)
+          else if (icon != null)
+            Icon(icon, size: 48, color: AppColors.gold),
+          const SizedBox(height: 16),
+          Text(title, style: _titleStyle, textAlign: TextAlign.center),
+          if (body != null) ...[
+            const SizedBox(height: 8),
+            Text(body!, style: _bodyStyle, textAlign: TextAlign.center),
+          ],
+          if (actions.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            SpotlightGuideTarget(
+              id: 'live-room-consumer-actions',
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: actions,
+              ),
+            ),
+          ],
         ],
-        if (actions.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: actions,
-          ),
-        ],
-      ],
+      ),
     );
   }
 }

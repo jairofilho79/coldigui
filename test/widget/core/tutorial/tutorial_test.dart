@@ -14,7 +14,7 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 void main() {
   group('TutorialController', () {
-    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords, gestos, audio, offline, lyrics, praise, about, favoriteMaterialKinds, myContributions, publicPlaylists e contribute', () {
+    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords, gestos, audio, offline, lyrics, praise, about, favoriteMaterialKinds, myContributions, publicPlaylists, contribute e liveRoom', () {
       final controller = TutorialController();
       expect(controller.hasTutorialFor(RoutePaths.home), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.playlists), isTrue);
@@ -33,6 +33,8 @@ void main() {
       expect(controller.hasTutorialFor(RoutePaths.myContributions), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.publicPlaylists), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.contribute), isTrue);
+      expect(controller.hasTutorialFor(RoutePaths.liveRoom), isTrue);
+      expect(controller.hasTutorialFor('/ao-vivo/k7x2m9q'), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -426,6 +428,41 @@ void main() {
                 expect(steps[3].items.first.targetId, 'contribute-attachments');
                 expect(steps[4].items.first.targetId, 'contribute-submit-button');
                 expect(steps[5].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos da tela de Sala ao Vivo com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  RoutePaths.liveRoom,
+                );
+                expect(steps.length, 7);
+                expect(steps[0].items.first.targetId, 'live-room-qr');
+                expect(steps[1].items.first.targetId, 'live-room-actions');
+                expect(steps[2].items.first.targetId, 'live-room-viewers');
+                expect(steps[3].items.first.targetId, 'live-room-end-button');
+                expect(steps[4].items.first.targetId, 'live-room-status-card');
+                expect(steps[5].items.first.targetId, 'live-room-consumer-actions');
+                expect(steps[6].items.first.targetId, 'app-info-button');
+
+                final stepsDynamic = controller.stepsForRoute(
+                  context,
+                  '/ao-vivo/k7x2m9q',
+                );
+                expect(stepsDynamic.length, 7);
                 return const SizedBox();
               },
             ),
@@ -2217,6 +2254,112 @@ void main() {
       expect(find.text('Envio da Contribuição'), findsOneWidget);
 
       // Passo 6: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'toque no botão (i) na tela de Sala ao Vivo dispara o tutorial e navega pelos passos',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: '/ao-vivo/k7x2m9q',
+        routes: [
+          GoRoute(
+            path: '/ao-vivo/:code',
+            builder: (context, state) {
+              final tutorialNotifier =
+                  ProviderScope.containerOf(context).read(tutorialControllerProvider);
+
+              return SpotlightGuidePortal(
+                controller: tutorialNotifier.portalController,
+                child: Scaffold(
+                  appBar: const PlpcgPrimaryAppBar(),
+                  body: ListView(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'live-room-qr',
+                        child: const SizedBox(
+                          height: 100,
+                          child: Text('QR Code'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'live-room-actions',
+                        child: const SizedBox(
+                          height: 50,
+                          child: Text('Share Actions'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'live-room-viewers',
+                        child: const SizedBox(
+                          height: 30,
+                          child: Text('Viewers count'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'live-room-end-button',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('End live button'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final infoButtonFinder = find.byIcon(Icons.info_outline);
+      expect(infoButtonFinder, findsOneWidget);
+
+      await tester.tap(infoButtonFinder);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Código e QR Code da Sala
+      expect(find.text('Código e QR Code da Sala'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Compartilhar e Gerenciar
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Compartilhar e Gerenciar'), findsOneWidget);
+
+      // Passo 3: Participantes Conectados
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Participantes Conectados'), findsOneWidget);
+
+      // Passo 4: Finalizar Transmissão
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Finalizar Transmissão'), findsOneWidget);
+
+      // Passo 5: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
