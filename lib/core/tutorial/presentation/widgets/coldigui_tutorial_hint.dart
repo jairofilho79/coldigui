@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../theme/color_extensions.dart';
+import '../providers/tutorial_preferences_provider.dart';
 
 /// Layer customizada que força a limpeza transparente do furo do alvo via
 /// [BlendMode.clear] (saveLayer) em vez de [Path.combine], garantindo que o
@@ -48,12 +50,16 @@ class ColdiguiTutorialHint extends StatelessWidget {
     required this.title,
     required this.message,
     this.showSkipButton = true,
+    this.showDismissForeverButton = true,
+    this.onDismissForever,
   });
 
   final SpotlightGuideStepContext guide;
   final String title;
   final String message;
   final bool showSkipButton;
+  final bool showDismissForeverButton;
+  final VoidCallback? onDismissForever;
 
   static List<InlineSpan> _parseMarkdown(String text) {
     final spans = <InlineSpan>[];
@@ -155,8 +161,35 @@ class ColdiguiTutorialHint extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
+                  if (showDismissForeverButton)
+                    TextButton(
+                      key: const ValueKey('tutorial-hint-dismiss-forever'),
+                      onPressed: () {
+                        onDismissForever?.call();
+                        try {
+                          final container =
+                              ProviderScope.containerOf(context, listen: false);
+                          container
+                              .read(tutorialPreferencesProvider.notifier)
+                              .setDismissAll(true);
+                        } catch (_) {}
+                        guide.finish();
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor:
+                            AppColors.textLight.withValues(alpha: 0.65),
+                        textStyle: const TextStyle(fontSize: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      child: const Text('Não mostrar novamente'),
+                    ),
                   if (showSkipButton)
                     TextButton(
+                      key: const ValueKey('tutorial-hint-skip'),
                       onPressed: guide.finish,
                       style: TextButton.styleFrom(
                         foregroundColor:
@@ -172,6 +205,7 @@ class ColdiguiTutorialHint extends StatelessWidget {
                     ),
                   if (!guide.isFirst)
                     TextButton(
+                      key: const ValueKey('tutorial-hint-previous'),
                       onPressed: guide.previous,
                       style: TextButton.styleFrom(
                         foregroundColor:
@@ -186,6 +220,7 @@ class ColdiguiTutorialHint extends StatelessWidget {
                       child: const Text('Voltar'),
                     ),
                   FilledButton(
+                    key: const ValueKey('tutorial-hint-next'),
                     onPressed: isLast ? guide.finish : guide.next,
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.gold,
@@ -204,6 +239,7 @@ class ColdiguiTutorialHint extends StatelessWidget {
                   ),
                 ],
               ),
+
             ],
           ),
         ),

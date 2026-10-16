@@ -5,6 +5,7 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/url_sync_navigation.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/core/tutorial/presentation/providers/tutorial_provider.dart';
 import 'package:coldigui/core/utils/home_url_builder.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/features/app_shell/presentation/widgets/app_shortcuts.dart';
@@ -131,7 +132,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         .setImmediate(widget.initialSearchQuery);
     _hydrateFilters();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _urlSyncEnabled = true;
+      if (mounted) {
+        _urlSyncEnabled = true;
+        ref.read(tutorialControllerProvider).maybeAutoStartTutorial(
+          context,
+          RoutePaths.home,
+        );
+      }
     });
   }
 

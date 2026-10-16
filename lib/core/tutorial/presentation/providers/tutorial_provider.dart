@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
+import 'tutorial_preferences_provider.dart';
 import '../../../../features/catalog/presentation/providers/catalog_filters_provider.dart';
 import '../../../../features/catalog/presentation/widgets/filters_panel.dart';
 import '../../../routing/route_paths.dart';
@@ -224,6 +225,45 @@ class TutorialController {
   /// Inicia o tutorial da Central de Atalhos de Teclado ([AppShortcutsDialog]).
   void startAppShortcutsTutorial(BuildContext context) {
     showSteps(buildAppShortcutsTutorialSteps(context));
+  }
+
+  /// Inicia o tutorial da rota especificada de forma suave caso as preferências
+  /// do usuário permitam (primeiro acesso e sem opção "Não mostrar novamente").
+  ///
+  /// Requer um [SpotlightGuidePortal] ancestral na árvore, garantindo isolamento gracioso
+  /// em testes unitários que montam telas sem o shell.
+  void maybeAutoStartTutorial(
+    BuildContext context,
+    String routePath, {
+    Duration delay = const Duration(milliseconds: 500),
+    bool forceAllowedRoute = false,
+  }) {
+    final autoTriggerEnabled =
+        _ref?.read(tutorialAutoTriggerEnabledProvider) ?? true;
+    if (!autoTriggerEnabled) return;
+
+    final prefsState = _ref?.read(tutorialPreferencesProvider);
+    if (prefsState != null &&
+        !prefsState.shouldAutoTrigger(
+          routePath,
+          forceAllowedRoute: forceAllowedRoute,
+        )) {
+      return;
+    }
+
+    if (!hasTutorialFor(routePath)) return;
+
+    final portal = context.findAncestorWidgetOfExactType<SpotlightGuidePortal>();
+    if (portal == null) return;
+
+    // Registra como visto para não enfileirar duplicatas no mesmo ciclo
+    _ref?.read(tutorialPreferencesProvider.notifier).markSeen(routePath);
+
+    Future.delayed(delay, () {
+      if (!context.mounted) return;
+      if (portalController.isShowing) return;
+      startTutorialForRoute(context, routePath);
+    });
   }
 
   /// Restaura qualquer estado alterado durante a apresentação do tutorial.

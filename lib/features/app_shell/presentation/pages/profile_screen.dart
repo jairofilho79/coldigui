@@ -13,6 +13,7 @@ import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/create_username_dialog.dart';
 import '../../../auth/presentation/widgets/google_sign_in_button.dart';
 import '../../../contributions/presentation/utils/open_contribute.dart';
+import '../../../../core/tutorial/presentation/providers/tutorial_preferences_provider.dart';
 import '../widgets/app_shortcuts_dialog.dart';
 
 /// Hub do Perfil — login Google, Biblioteca, Offline e Sobre.
@@ -133,12 +134,87 @@ class ProfileScreen extends ConsumerWidget {
               title: 'Sobre',
               onTap: () => goToShellDestination(context, RoutePaths.about),
             ),
+            const SizedBox(height: 10),
+            _ProfilePageTile(
+              key: const ValueKey('profile-reset-tutorials-tile'),
+              icon: Icons.restart_alt,
+              title: 'Redefinir Tutoriais',
+              onTap: () => _showResetTutorialsDialog(context, ref),
+            ),
           ],
         ),
       ),
     );
   }
+
+  Future<void> _showResetTutorialsDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.background,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.gold, width: 1.5),
+        ),
+        title: const Text(
+          'Redefinir Tutoriais',
+          style: TextStyle(
+            color: AppColors.gold,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text(
+          'Deseja redefinir todos os tutoriais? Os guias de introdução voltarão a ser exibidos automaticamente ao acessar as telas do aplicativo.',
+          style: TextStyle(
+            color: AppColors.textLight,
+            fontSize: 14,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('reset-tutorials-cancel-button'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.textLight),
+            ),
+          ),
+          FilledButton(
+            key: const ValueKey('reset-tutorials-confirm-button'),
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.gold,
+              foregroundColor: AppColors.background,
+            ),
+            child: const Text(
+              'Redefinir',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await ref.read(tutorialPreferencesProvider.notifier).resetAll();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tutoriais redefinidos com sucesso!'),
+            backgroundColor: AppColors.background,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
 }
+
 
 class _AccountPanel extends StatelessWidget {
   const _AccountPanel({required this.child});
@@ -289,6 +365,7 @@ class _SignedInHeader extends ConsumerWidget {
 
 class _ProfilePageTile extends StatelessWidget {
   const _ProfilePageTile({
+    super.key,
     required this.icon,
     required this.title,
     required this.onTap,

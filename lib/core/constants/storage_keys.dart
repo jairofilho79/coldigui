@@ -84,4 +84,11 @@ abstract final class StorageKeys {
 
   /// Velocidade do autoscroll no leitor de letras `/letra` (`int` 1–15).
   static const String lyricsAutoscrollSpeed = 'lyricsAutoscrollSpeed';
+
+  /// Prefixo para tutoriais de rotas/modais já visualizados (`tutorial_seen_<route>`).
+  static const String tutorialSeenPrefix = 'tutorial_seen_';
+
+  /// Flag booleana que desativa a exibição automática de tutoriais ("Não mostrar novamente").
+  static const String tutorialDismissAll = 'tutorial_dismiss_all';
 }
+

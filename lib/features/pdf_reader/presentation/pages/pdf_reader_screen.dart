@@ -15,6 +15,7 @@ import 'package:coldigui/features/offline/data/providers/offline_providers.dart'
 import 'package:coldigui/core/routing/reading_navigation.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/shell_navigation.dart';
+import 'package:coldigui/core/tutorial/presentation/providers/tutorial_provider.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
 import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_providers.dart';
@@ -104,6 +105,10 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(readerRouteParamsProvider.notifier).update(widget.queryParams);
+      ref.read(tutorialControllerProvider).maybeAutoStartTutorial(
+        context,
+        RoutePaths.reader,
+      );
     });
   }
 

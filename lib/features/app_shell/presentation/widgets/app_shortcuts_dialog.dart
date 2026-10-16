@@ -365,7 +365,7 @@ class _AppShortcutsDialogState extends State<AppShortcutsDialog> {
                   SpotlightGuideTarget(
                     id: 'shortcuts-categories-tabs',
                     child: Container(
-                      color: AppColors.btnBackground.withOpacity(0.5),
+                      color: AppColors.btnBackground.withValues(alpha: 0.5),
                       child: const TabBar(
                         isScrollable: true,
                         labelColor: AppColors.goldLight,
@@ -496,8 +496,8 @@ class _ShortcutList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: items.length,
-      separatorBuilder: (_, __) => Divider(
-        color: AppColors.gold.withOpacity(0.2),
+      separatorBuilder: (_, _) => Divider(
+        color: AppColors.gold.withValues(alpha: 0.2),
         height: 1,
       ),
       itemBuilder: (context, index) {
