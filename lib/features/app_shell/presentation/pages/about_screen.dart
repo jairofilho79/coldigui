@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/color_extensions.dart';
 import '../widgets/about_info_card.dart';
+import '../widgets/app_shortcuts_dialog.dart';
 
 /// UC-14 — Tela Sobre ([RoutePaths.about]): Quem somos e Objetivo da aplicação.
 ///
@@ -44,20 +47,89 @@ class AboutScreen extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: _maxContentWidth),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          children: const [
-            SpotlightGuideTarget(
+          children: [
+            const SpotlightGuideTarget(
               id: 'about-who-we-are',
               child: AboutInfoCard(
                 title: 'Quem somos',
                 paragraphs: [_quemSomosBody],
               ),
             ),
-            SizedBox(height: 16),
-            SpotlightGuideTarget(
+            const SizedBox(height: 16),
+            const SpotlightGuideTarget(
               id: 'about-mission',
               child: AboutInfoCard(
                 title: 'Objetivo',
                 paragraphs: [_objetivoParagraph1, _objetivoParagraph2],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SpotlightGuideTarget(
+              id: 'about-shortcuts-card',
+              child: Material(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  onTap: () => showAppShortcutsDialog(context),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.background, width: 1.5),
+                      boxShadow: AppColors.shadowMd,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.gold, width: 1),
+                          ),
+                          child: const Icon(
+                            Icons.keyboard_outlined,
+                            color: AppColors.goldLight,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Atalhos de Teclado',
+                                style: TextStyle(
+                                  fontFamily: AppTypography.garamondFamily,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18,
+                                  letterSpacing: 0.3,
+                                  color: AppColors.title,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Consulte os comandos rápidos de alta produtividade para Desktop e Web.',
+                                style: TextStyle(
+                                  fontFamily: AppTypography.sansFamily,
+                                  fontSize: 13,
+                                  color: AppColors.textDark,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right,
+                          color: AppColors.title,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ],

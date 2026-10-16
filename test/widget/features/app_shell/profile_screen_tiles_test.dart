@@ -32,11 +32,23 @@ void main() {
 
     final biblioteca = tester.getTopLeft(find.text('Biblioteca'));
     final offline = tester.getTopLeft(find.text('Offline'));
+    final atalhos = tester.getTopLeft(find.text('Atalhos de Teclado'));
     final sobre = tester.getTopLeft(find.text('Sobre'));
 
     expect(biblioteca.dy, lessThan(offline.dy));
-    expect(offline.dy, lessThan(sobre.dy));
+    expect(offline.dy, lessThan(atalhos.dy));
+    expect(atalhos.dy, lessThan(sobre.dy));
     expect(find.byIcon(Icons.library_books), findsOneWidget);
+    expect(find.byIcon(Icons.keyboard_outlined), findsOneWidget);
     expect(find.text('Listas'), findsNothing);
+
+    // Toque em Atalhos de Teclado abre o diálogo
+    await tester.tap(find.text('Atalhos de Teclado'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(
+      find.text('Comandos rápidos de produtividade para Desktop e Web'),
+      findsOneWidget,
+    );
   });
 }

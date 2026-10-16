@@ -13,6 +13,7 @@ import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/create_username_dialog.dart';
 import '../../../auth/presentation/widgets/google_sign_in_button.dart';
 import '../../../contributions/presentation/utils/open_contribute.dart';
+import '../widgets/app_shortcuts_dialog.dart';
 
 /// Hub do Perfil — login Google, Biblioteca, Offline e Sobre.
 class ProfileScreen extends ConsumerWidget {
@@ -115,6 +116,15 @@ class ProfileScreen extends ConsumerWidget {
                 icon: Icons.cloud_download,
                 title: 'Offline',
                 onTap: () => goToShellDestination(context, RoutePaths.offline),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SpotlightGuideTarget(
+              id: 'profile-shortcuts-tile',
+              child: _ProfilePageTile(
+                icon: Icons.keyboard_outlined,
+                title: 'Atalhos de Teclado',
+                onTap: () => showAppShortcutsDialog(context),
               ),
             ),
             const SizedBox(height: 10),
