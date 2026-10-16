@@ -63,6 +63,11 @@ abstract final class RoutePaths {
   /// «Minhas contribuições» — histórico dos envios do usuário.
   static const String myContributions = '/contribuicoes';
 
+  /// Detalhes de uma contribuição ([ContributionDetailScreen]) — sub-rota de [myContributions].
+  static const String contributionDetail = '/contribuicoes/:id';
+
+  static String contributionDetailFor(String id) => '/contribuicoes/$id';
+
   /// Página de detalhes do louvor ([PraiseScreen]) — filha da branch Home.
   /// Suporta `:id` como `shortId` (ex: `0a1`) ou `praiseId` (UUID).
   static const String praise = '/louvor/:id';

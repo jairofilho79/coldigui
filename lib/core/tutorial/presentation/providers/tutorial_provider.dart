@@ -8,6 +8,7 @@ import '../../../routing/route_paths.dart';
 import '../steps/about_tutorial_steps.dart';
 import '../steps/audio_tutorial_steps.dart';
 import '../steps/chords_tutorial_steps.dart';
+import '../steps/contribution_detail_tutorial_steps.dart';
 import '../steps/contribute_tutorial_steps.dart';
 import '../steps/favorite_material_kinds_tutorial_steps.dart';
 import '../steps/gestures_tutorial_steps.dart';
@@ -68,8 +69,10 @@ class TutorialController {
       RoutePaths.publicPlaylists => true,
       RoutePaths.contribute => true,
       RoutePaths.liveRoom => true,
+      RoutePaths.contributionDetail => true,
       final p when p.startsWith('/ao-vivo/') => true,
       final p when p.startsWith('/louvor/') => true,
+      final p when p.startsWith('/contribuicoes/') => true,
       _ => false,
     };
   }
@@ -103,10 +106,14 @@ class TutorialController {
         buildContributeTutorialSteps(context),
       RoutePaths.liveRoom =>
         buildLiveRoomTutorialSteps(context),
+      RoutePaths.contributionDetail =>
+        buildContributionDetailTutorialSteps(context),
       final p when p.startsWith('/ao-vivo/') =>
         buildLiveRoomTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
         buildPraiseTutorialSteps(context),
+      final p when p.startsWith('/contribuicoes/') =>
+        buildContributionDetailTutorialSteps(context),
       _ => const [],
     };
   }

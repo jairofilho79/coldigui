@@ -35,6 +35,8 @@ void main() {
       expect(controller.hasTutorialFor(RoutePaths.contribute), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.liveRoom), isTrue);
       expect(controller.hasTutorialFor('/ao-vivo/k7x2m9q'), isTrue);
+      expect(controller.hasTutorialFor(RoutePaths.contributionDetail), isTrue);
+      expect(controller.hasTutorialFor('/contribuicoes/k7x2m9q'), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -461,6 +463,41 @@ void main() {
                 final stepsDynamic = controller.stepsForRoute(
                   context,
                   '/ao-vivo/k7x2m9q',
+                );
+                expect(stepsDynamic.length, 7);
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos da tela de Detalhes da Contribuição com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  RoutePaths.contributionDetail,
+                );
+                expect(steps.length, 7);
+                expect(steps[0].items.first.targetId, 'contribution-detail-header');
+                expect(steps[1].items.first.targetId, 'contribution-detail-kind');
+                expect(steps[2].items.first.targetId, 'contribution-detail-body');
+                expect(steps[3].items.first.targetId, 'contribution-detail-diff');
+                expect(steps[4].items.first.targetId, 'contribution-detail-files');
+                expect(steps[5].items.first.targetId, 'contribution-detail-decision');
+                expect(steps[6].items.first.targetId, 'app-info-button');
+
+                final stepsDynamic = controller.stepsForRoute(
+                  context,
+                  '/contribuicoes/contrib-456',
                 );
                 expect(stepsDynamic.length, 7);
                 return const SizedBox();
@@ -2360,6 +2397,136 @@ void main() {
       expect(find.text('Finalizar Transmissão'), findsOneWidget);
 
       // Passo 5: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'toque no botão (i) na tela de Detalhes da Contribuição dispara o tutorial e navega pelos passos',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: '/contribuicoes/test-id-123',
+        routes: [
+          GoRoute(
+            path: '/contribuicoes/:id',
+            builder: (context, state) {
+              final tutorialNotifier =
+                  ProviderScope.containerOf(context).read(tutorialControllerProvider);
+
+              return SpotlightGuidePortal(
+                controller: tutorialNotifier.portalController,
+                child: Scaffold(
+                  appBar: const PlpcgPrimaryAppBar(),
+                  body: ListView(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'contribution-detail-header',
+                        child: const SizedBox(
+                          height: 40,
+                          child: Text('Header'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'contribution-detail-kind',
+                        child: const SizedBox(
+                          height: 20,
+                          child: Text('Kind'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'contribution-detail-body',
+                        child: const SizedBox(
+                          height: 60,
+                          child: Text('Body'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'contribution-detail-diff',
+                        child: const SizedBox(
+                          height: 30,
+                          child: Text('Diff'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'contribution-detail-files',
+                        child: const SizedBox(
+                          height: 40,
+                          child: Text('Files'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'contribution-detail-decision',
+                        child: const SizedBox(
+                          height: 40,
+                          child: Text('Decision'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final infoButtonFinder = find.byIcon(Icons.info_outline);
+      expect(infoButtonFinder, findsOneWidget);
+
+      await tester.tap(infoButtonFinder);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Título e Estado do Envio
+      expect(find.text('Título e Estado do Envio'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Tipo de Contribuição
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tipo de Contribuição'), findsOneWidget);
+
+      // Passo 3: Descrição e Observações
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Descrição e Observações'), findsOneWidget);
+
+      // Passo 4: Campos Alterados
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Campos Alterados'), findsOneWidget);
+
+      // Passo 5: Arquivos e Verificação Antivírus
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Arquivos e Verificação Antivírus'), findsOneWidget);
+
+      // Passo 6: Parecer da Moderação
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Parecer da Moderação'), findsOneWidget);
+
+      // Passo 7: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda & Tutoriais'), findsOneWidget);

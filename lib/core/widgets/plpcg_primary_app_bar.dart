@@ -46,6 +46,8 @@ class PlpcgPrimaryAppBar extends StatelessWidget
       RoutePaths.contribute ||
       RoutePaths.myContributions ||
       RoutePaths.favoriteMaterialKinds => RoutePaths.profile,
+      String p when p.startsWith('/contribuicoes/') =>
+        RoutePaths.myContributions,
       _ => null,
     };
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
@@ -64,38 +65,50 @@ class _DetailBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Text(
-                c.title,
-                style: AppTypography.headline.copyWith(
-                  color: AppColors.textLight,
+        SpotlightGuideTarget(
+          id: 'contribution-detail-header',
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  c.title,
+                  style: AppTypography.headline.copyWith(
+                    color: AppColors.textLight,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            ContributionStatusChip(status: c.status),
-          ],
+              const SizedBox(width: 8),
+              ContributionStatusChip(status: c.status),
+            ],
+          ),
         ),
         const SizedBox(height: 4),
-        Text(
-          contributionKindLabel(l10n, c.kind),
-          style: AppTypography.body.copyWith(
-            color: AppColors.textLight.withValues(alpha: 0.7),
+        SpotlightGuideTarget(
+          id: 'contribution-detail-kind',
+          child: Text(
+            contributionKindLabel(l10n, c.kind),
+            style: AppTypography.body.copyWith(
+              color: AppColors.textLight.withValues(alpha: 0.7),
+            ),
           ),
         ),
         const SizedBox(height: 16),
-        Text(
-          c.body,
-          style: AppTypography.body.copyWith(color: AppColors.textLight),
+        SpotlightGuideTarget(
+          id: 'contribution-detail-body',
+          child: Text(
+            c.body,
+            style: AppTypography.body.copyWith(color: AppColors.textLight),
+          ),
         ),
         if (metadataLine != null) ...[
           const SizedBox(height: 16),
-          Text(
-            metadataLine,
-            style: AppTypography.body.copyWith(color: AppColors.textLight),
+          SpotlightGuideTarget(
+            id: 'contribution-detail-diff',
+            child: Text(
+              metadataLine,
+              style: AppTypography.body.copyWith(color: AppColors.textLight),
+            ),
           ),
         ],
         if (c.links.isNotEmpty) ...[
@@ -114,31 +127,51 @@ class _DetailBody extends StatelessWidget {
         ],
         if (c.files.isNotEmpty) ...[
           const SizedBox(height: 16),
-          Text(
-            l10n.contributionFilesTitle,
-            style: AppTypography.headline.copyWith(color: AppColors.textLight),
-          ),
-          const SizedBox(height: 8),
-          for (final file in c.files)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                '${file.originalName} · ${formatCompactBytes(file.size)} · '
-                '${_scanLabel(l10n, file.scanStatus)}',
-                style: AppTypography.body.copyWith(color: AppColors.textLight),
-              ),
+          SpotlightGuideTarget(
+            id: 'contribution-detail-files',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.contributionFilesTitle,
+                  style:
+                      AppTypography.headline.copyWith(color: AppColors.textLight),
+                ),
+                const SizedBox(height: 8),
+                for (final file in c.files)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      '${file.originalName} · ${formatCompactBytes(file.size)} · '
+                      '${_scanLabel(l10n, file.scanStatus)}',
+                      style:
+                          AppTypography.body.copyWith(color: AppColors.textLight),
+                    ),
+                  ),
+              ],
             ),
+          ),
         ],
         if (c.decisionNote != null) ...[
           const SizedBox(height: 16),
-          Text(
-            l10n.contributionDecisionNote,
-            style: AppTypography.headline.copyWith(color: AppColors.textLight),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            c.decisionNote!,
-            style: AppTypography.body.copyWith(color: AppColors.textLight),
+          SpotlightGuideTarget(
+            id: 'contribution-detail-decision',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.contributionDecisionNote,
+                  style:
+                      AppTypography.headline.copyWith(color: AppColors.textLight),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  c.decisionNote!,
+                  style:
+                      AppTypography.body.copyWith(color: AppColors.textLight),
+                ),
+              ],
+            ),
           ),
         ],
       ],

@@ -54,6 +54,12 @@ void main() {
         GoRoute(
           path: RoutePaths.myContributions,
           builder: (_, _) => page('Minhas'),
+          routes: [
+            GoRoute(
+              path: ':id',
+              builder: (_, _) => page('Detalhe'),
+            ),
+          ],
         ),
       ],
     );
@@ -118,5 +124,17 @@ void main() {
 
     expect(find.text('Pesquisar'), findsOneWidget);
     expect(find.text('Letra'), findsNothing);
+  });
+
+  testWidgets('em /contribuicoes/:id a seta volta para /contribuicoes',
+      (tester) async {
+    await pump(tester, '/contribuicoes/abc');
+    expect(find.text('Detalhe'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Minhas'), findsOneWidget);
+    expect(find.text('Detalhe'), findsNothing);
   });
 }
