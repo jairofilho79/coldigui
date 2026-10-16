@@ -79,6 +79,7 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
       itemBuilder: (context, index) {
         final item = items[index];
         final highlighted = index == focusedIndex;
+        final isFirst = index == 0;
 
         return ReorderableDragStartListener(
           // Chave por **ocorrência**: o mesmo louvor duas vezes na lista são
@@ -105,6 +106,9 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
               child: CarouselLouvorChip(
                 item: item,
                 showDragHandle: true,
+                dragHandleTargetId: isFirst ? 'active-list-reorder' : null,
+                bodyTargetId: isFirst ? 'active-list-jump' : null,
+                removeTargetId: isFirst ? 'active-list-remove' : null,
                 onTap: widget.onOpen == null ? null : () => _handleTap(item),
                 onRemove: () => _handleRemove(item),
               ),

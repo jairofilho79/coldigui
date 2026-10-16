@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../helpers/coldigom_catalog_test_helpers.dart';
 
@@ -204,5 +205,49 @@ void main() {
         .map((w) => w.key)
         .toList();
     expect(keys, [const ValueKey('a'), const ValueKey('b')]);
+  });
+
+  testWidgets('contém os alvos de tutorial e toque no botão info dispara o tutorial', (tester) async {
+    await tester.pumpWidget(buildSubject(editor: FakeActiveEditor(entries)));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.info_outline), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is SpotlightGuideTarget && w.id == 'active-list-info',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is SpotlightGuideTarget && w.id == 'active-list-clear',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is SpotlightGuideTarget && w.id == 'active-list-reorder',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is SpotlightGuideTarget && w.id == 'active-list-jump',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is SpotlightGuideTarget && w.id == 'active-list-remove',
+      ),
+      findsOneWidget,
+    );
+
+    // Toque no botão de info inicia o tutorial
+    await tester.tap(find.byIcon(Icons.info_outline));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Reordenar Repertório'), findsOneWidget);
   });
 }

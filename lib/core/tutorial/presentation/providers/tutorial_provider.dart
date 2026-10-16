@@ -7,6 +7,7 @@ import '../../../../features/catalog/presentation/widgets/filters_panel.dart';
 import '../../../routing/route_paths.dart';
 import '../steps/about_tutorial_steps.dart';
 import '../steps/audio_tutorial_steps.dart';
+import '../steps/carousel_selection_tutorial_steps.dart';
 import '../steps/chords_tutorial_steps.dart';
 import '../steps/contribution_detail_tutorial_steps.dart';
 import '../steps/contribute_tutorial_steps.dart';
@@ -72,6 +73,7 @@ class TutorialController {
       RoutePaths.liveRoom => true,
       RoutePaths.contributionDetail => true,
       'modal:material-sheet' => true,
+      'modal:carousel-selection' => true,
       final p when p.startsWith('/ao-vivo/') => true,
       final p when p.startsWith('/louvor/') => true,
       final p when p.startsWith('/contribuicoes/') => true,
@@ -112,6 +114,8 @@ class TutorialController {
         buildContributionDetailTutorialSteps(context),
       'modal:material-sheet' =>
         buildMaterialSheetTutorialSteps(context),
+      'modal:carousel-selection' =>
+        buildCarouselSelectionTutorialSteps(context),
       final p when p.startsWith('/ao-vivo/') =>
         buildLiveRoomTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
@@ -148,6 +152,11 @@ class TutorialController {
   /// Inicia o tutorial do seletor de materiais ([MaterialSheet]).
   void startMaterialSheetTutorial(BuildContext context) {
     showSteps(buildMaterialSheetTutorialSteps(context));
+  }
+
+  /// Inicia o tutorial do gerenciador da lista ativa ([CarouselSelectionSheet]).
+  void startCarouselSelectionTutorial(BuildContext context) {
+    showSteps(buildCarouselSelectionTutorialSteps(context));
   }
 
   /// Restaura qualquer estado alterado durante a apresentação do tutorial.

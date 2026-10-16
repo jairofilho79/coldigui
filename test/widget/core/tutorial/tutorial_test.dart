@@ -38,6 +38,7 @@ void main() {
       expect(controller.hasTutorialFor(RoutePaths.contributionDetail), isTrue);
       expect(controller.hasTutorialFor('/contribuicoes/k7x2m9q'), isTrue);
       expect(controller.hasTutorialFor('modal:material-sheet'), isTrue);
+      expect(controller.hasTutorialFor('modal:carousel-selection'), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -529,6 +530,33 @@ void main() {
                 expect(steps[3].items.first.targetId, 'material-sheet-related');
                 expect(steps[4].items.first.targetId, 'material-sheet-contribute');
                 expect(steps[5].items.first.targetId, 'material-sheet-info');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos do Gerenciador da Lista Ativa (CarouselSelectionSheet) com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  'modal:carousel-selection',
+                );
+                expect(steps.length, 5);
+                expect(steps[0].items.first.targetId, 'active-list-reorder');
+                expect(steps[1].items.first.targetId, 'active-list-jump');
+                expect(steps[2].items.first.targetId, 'active-list-remove');
+                expect(steps[3].items.first.targetId, 'active-list-clear');
+                expect(steps[4].items.first.targetId, 'active-list-info');
                 return const SizedBox();
               },
             ),
@@ -2659,6 +2687,92 @@ void main() {
       await tester.tap(find.text('Concluir'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda deste Seletor'), findsNothing);
+    });
+
+    testWidgets(
+        'navega por todos os passos do tutorial do Gerenciador da Lista Ativa (CarouselSelectionSheet)',
+        (tester) async {
+      late ProviderContainer container;
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container = ProviderContainer(),
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final tutorial = container.read(tutorialControllerProvider);
+
+                return SpotlightGuidePortal(
+                  controller: tutorial.portalController,
+                  autoStart: false,
+                  onFinish: () => tutorial.resetTutorialState(),
+                  child: Scaffold(
+                    body: Column(
+                      children: [
+                        SpotlightGuideTarget(
+                          id: 'active-list-reorder',
+                          child: const SizedBox(height: 40, child: Text('Reordenar')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'active-list-jump',
+                          child: const SizedBox(height: 40, child: Text('Navegar')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'active-list-remove',
+                          child: const SizedBox(height: 40, child: Text('Remover')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'active-list-clear',
+                          child: const SizedBox(height: 40, child: Text('Limpar')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'active-list-info',
+                          child: const SizedBox(height: 40, child: Text('Info')),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      final tutorial = container.read(tutorialControllerProvider);
+      final context = tester.element(find.byType(Scaffold));
+
+      tutorial.startCarouselSelectionTutorial(context);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Reordenar Repertório
+      expect(find.text('Reordenar Repertório'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Navegação Rápida
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Navegação Rápida'), findsOneWidget);
+
+      // Passo 3: Remover da Seleção
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Remover da Seleção'), findsOneWidget);
+
+      // Passo 4: Limpar ou Reiniciar Lista
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Limpar ou Reiniciar Lista'), findsOneWidget);
+
+      // Passo 5: Ajuda da Lista Ativa
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda da Lista Ativa'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda da Lista Ativa'), findsNothing);
     });
   });
 }
