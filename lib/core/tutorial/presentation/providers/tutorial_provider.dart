@@ -6,6 +6,7 @@ import '../../../../features/catalog/presentation/providers/catalog_filters_prov
 import '../../../../features/catalog/presentation/widgets/filters_panel.dart';
 import '../../../routing/route_paths.dart';
 import '../steps/about_tutorial_steps.dart';
+import '../steps/app_shortcuts_tutorial_steps.dart';
 import '../steps/audio_tutorial_steps.dart';
 import '../steps/carousel_selection_tutorial_steps.dart';
 import '../steps/chords_tutorial_steps.dart';
@@ -84,6 +85,7 @@ class TutorialController {
       'modal:playlist-share' => true,
       'modal:publish-playlist' => true,
       'modal:join-live-room' => true,
+      'modal:app-shortcuts' => true,
       final p when p.startsWith('/ao-vivo/') => true,
       final p when p.startsWith('/louvor/') => true,
       final p when p.startsWith('/contribuicoes/') => true,
@@ -140,6 +142,8 @@ class TutorialController {
         buildPublishPlaylistTutorialSteps(context),
       'modal:join-live-room' =>
         buildJoinLiveRoomTutorialSteps(context),
+      'modal:app-shortcuts' =>
+        buildAppShortcutsTutorialSteps(context),
       final p when p.startsWith('/ao-vivo/') =>
         buildLiveRoomTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
@@ -215,6 +219,11 @@ class TutorialController {
   /// Inicia o tutorial do diálogo de entrada em sala ao vivo ([JoinLiveRoomDialog]).
   void startJoinLiveRoomTutorial(BuildContext context) {
     showSteps(buildJoinLiveRoomTutorialSteps(context));
+  }
+
+  /// Inicia o tutorial da Central de Atalhos de Teclado ([AppShortcutsDialog]).
+  void startAppShortcutsTutorial(BuildContext context) {
+    showSteps(buildAppShortcutsTutorialSteps(context));
   }
 
   /// Restaura qualquer estado alterado durante a apresentação do tutorial.

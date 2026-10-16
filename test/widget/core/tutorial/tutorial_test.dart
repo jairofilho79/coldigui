@@ -50,6 +50,7 @@ void main() {
       expect(controller.hasTutorialFor('modal:playlist-share'), isTrue);
       expect(controller.hasTutorialFor('modal:publish-playlist'), isTrue);
       expect(controller.hasTutorialFor('modal:join-live-room'), isTrue);
+      expect(controller.hasTutorialFor('modal:app-shortcuts'), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -728,6 +729,32 @@ void main() {
                 expect(steps[1].items.first.targetId, 'join-live-paste');
                 expect(steps[2].items.first.targetId, 'join-live-confirm');
                 expect(steps[3].items.first.targetId, 'join-live-info');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos da Central de Atalhos (AppShortcutsDialog) com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  'modal:app-shortcuts',
+                );
+                expect(steps.length, 4);
+                expect(steps[0].items.first.targetId, 'shortcuts-categories-tabs');
+                expect(steps[1].items.first.targetId, 'shortcuts-list-items');
+                expect(steps[2].items.first.targetId, 'shortcuts-footer-tip');
+                expect(steps[3].items.first.targetId, 'shortcuts-info-button');
                 return const SizedBox();
               },
             ),
@@ -3479,6 +3506,84 @@ void main() {
       await tester.tap(find.text('Concluir'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda da Sala ao Vivo'), findsNothing);
+    });
+
+    testWidgets(
+        'navega por todos os passos do tutorial da Central de Atalhos (AppShortcutsDialog)',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final tutorial = container.read(tutorialControllerProvider);
+
+                return SpotlightGuidePortal(
+                  controller: tutorial.portalController,
+                  autoStart: false,
+                  onFinish: () => tutorial.resetTutorialState(),
+                  child: Scaffold(
+                    body: Column(
+                      children: [
+                        SpotlightGuideTarget(
+                          id: 'shortcuts-categories-tabs',
+                          child: const SizedBox(height: 40, child: Text('Tabs')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'shortcuts-list-items',
+                          child: const SizedBox(height: 40, child: Text('Items')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'shortcuts-footer-tip',
+                          child: const SizedBox(height: 40, child: Text('Footer')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'shortcuts-info-button',
+                          child: const SizedBox(height: 40, child: Text('Info')),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      final tutorial = container.read(tutorialControllerProvider);
+      final context = tester.element(find.byType(Scaffold));
+
+      tutorial.startAppShortcutsTutorial(context);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Categorias de Atalhos
+      expect(find.text('Categorias de Atalhos'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Comandos de Alta Produtividade
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Comandos de Alta Produtividade'), findsOneWidget);
+
+      // Passo 3: Acesso Rápido com a Tecla ?
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Acesso Rápido com a Tecla ?'), findsOneWidget);
+
+      // Passo 4: Ajuda da Central de Atalhos
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda da Central de Atalhos'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda da Central de Atalhos'), findsNothing);
     });
   });
 }

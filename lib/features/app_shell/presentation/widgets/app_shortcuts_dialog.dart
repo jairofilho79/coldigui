@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/tutorial/presentation/providers/tutorial_provider.dart';
 
 /// Categorias dos atalhos de teclado da aplicação.
 enum ShortcutCategory {
@@ -224,182 +227,249 @@ Future<void> showAppShortcutsDialog(BuildContext context) {
 }
 
 /// Diálogo central com catálogo de atalhos de teclado para desktop/web.
-class AppShortcutsDialog extends StatelessWidget {
+class AppShortcutsDialog extends StatefulWidget {
   const AppShortcutsDialog({super.key});
 
   @override
+  State<AppShortcutsDialog> createState() => _AppShortcutsDialogState();
+}
+
+class _AppShortcutsDialogState extends State<AppShortcutsDialog> {
+  final _portalController = SpotlightGuidePortalController();
+  TutorialController? _tutorialController;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_tutorialController == null) {
+      try {
+        _tutorialController = ProviderScope.containerOf(
+          context,
+          listen: false,
+        ).read(tutorialControllerProvider);
+        _tutorialController?.pushPortalController(_portalController);
+      } catch (_) {
+        _tutorialController = null;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    try {
+      if (_portalController.isShowing) {
+        _portalController.hide();
+      }
+      _tutorialController?.popPortalController(_portalController);
+    } catch (_) {}
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: AppColors.background,
-      elevation: 12,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.gold, width: 1.5),
+    return SpotlightGuidePortal(
+      controller: _portalController,
+      autoStart: false,
+      missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
+      barrier: const SpotlightGuideBarrierStyle(
+        color: Color(0x99000000),
+        blurSigma: 0,
       ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: 680,
-          maxHeight: 580,
+      barrierDismissBehavior: SpotlightGuideDismissBehavior.anytime,
+      onBarrierTap: (c) => _tutorialController?.hide(),
+      onFinish: () => _tutorialController?.resetTutorialState(),
+      child: Dialog(
+        backgroundColor: AppColors.background,
+        elevation: 12,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.gold, width: 1.5),
         ),
-        child: DefaultTabController(
-          length: 5,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Cabeçalho
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.btnBackground,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.gold, width: 1.2),
-                      ),
-                      child: const Icon(
-                        Icons.keyboard_outlined,
-                        color: AppColors.goldLight,
-                        size: 22,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: 680,
+            maxHeight: 520,
+          ),
+          child: SizedBox(
+            height: 500,
+            child: DefaultTabController(
+              length: 5,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Cabeçalho
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.btnBackground,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.gold, width: 1.2),
+                          ),
+                          child: const Icon(
+                            Icons.keyboard_outlined,
+                            color: AppColors.goldLight,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Atalhos de Teclado',
+                                style: TextStyle(
+                                  fontFamily: AppTypography.garamondFamily,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 20,
+                                  letterSpacing: 0.5,
+                                  color: AppColors.placeholder,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Comandos rápidos de produtividade para Desktop e Web',
+                                style: TextStyle(
+                                  fontFamily: AppTypography.sansFamily,
+                                  fontSize: 12,
+                                  color: AppColors.textLight,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'shortcuts-info-button',
+                          child: IconButton(
+                            icon: const Icon(Icons.info_outline, color: AppColors.placeholder),
+                            tooltip: 'Como usar os atalhos',
+                            onPressed: () => _tutorialController
+                                ?.startAppShortcutsTutorial(context),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: AppColors.placeholder),
+                          tooltip: 'Fechar',
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(color: AppColors.gold, height: 1, thickness: 1),
+
+                  // Abas de categorias
+                  SpotlightGuideTarget(
+                    id: 'shortcuts-categories-tabs',
+                    child: Container(
+                      color: AppColors.btnBackground.withOpacity(0.5),
+                      child: const TabBar(
+                        isScrollable: true,
+                        labelColor: AppColors.goldLight,
+                        unselectedLabelColor: AppColors.textLight,
+                        indicatorColor: AppColors.gold,
+                        indicatorWeight: 3,
+                        labelStyle: TextStyle(
+                          fontFamily: AppTypography.sansFamily,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                        unselectedLabelStyle: TextStyle(
+                          fontFamily: AppTypography.sansFamily,
+                          fontWeight: FontWeight.w400,
+                          fontSize: 13,
+                        ),
+                        tabs: [
+                          Tab(text: 'Todos'),
+                          Tab(text: 'Navegação'),
+                          Tab(text: 'Repertório & Áudio'),
+                          Tab(text: 'Partituras'),
+                          Tab(text: 'Cifras & Gestos'),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+
+                  // Conteúdo scrollável com atalhos
+                  Expanded(
+                    child: SpotlightGuideTarget(
+                      id: 'shortcuts-list-items',
+                      child: TabBarView(
                         children: [
-                          Text(
-                            'Atalhos de Teclado',
-                            style: TextStyle(
-                              fontFamily: AppTypography.garamondFamily,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 20,
-                              letterSpacing: 0.5,
-                              color: AppColors.placeholder,
-                            ),
+                          _ShortcutList(items: appShortcutsList),
+                          _ShortcutList(
+                            items: appShortcutsList
+                                .where((item) =>
+                                    item.category == ShortcutCategory.navigation)
+                                .toList(),
                           ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Comandos rápidos de produtividade para Desktop e Web',
-                            style: TextStyle(
-                              fontFamily: AppTypography.sansFamily,
-                              fontSize: 12,
-                              color: AppColors.textLight,
-                            ),
+                          _ShortcutList(
+                            items: appShortcutsList
+                                .where((item) =>
+                                    item.category == ShortcutCategory.repertoireAudio)
+                                .toList(),
+                          ),
+                          _ShortcutList(
+                            items: appShortcutsList
+                                .where((item) =>
+                                    item.category == ShortcutCategory.sheetMusic)
+                                .toList(),
+                          ),
+                          _ShortcutList(
+                            items: appShortcutsList
+                                .where((item) =>
+                                    item.category == ShortcutCategory.chordsGestures)
+                                .toList(),
                           ),
                         ],
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: AppColors.placeholder),
-                      tooltip: 'Fechar',
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(color: AppColors.gold, height: 1, thickness: 1),
-
-              // Abas de categorias
-              Container(
-                color: AppColors.btnBackground.withOpacity(0.5),
-                child: const TabBar(
-                  isScrollable: true,
-                  labelColor: AppColors.goldLight,
-                  unselectedLabelColor: AppColors.textLight,
-                  indicatorColor: AppColors.gold,
-                  indicatorWeight: 3,
-                  labelStyle: TextStyle(
-                    fontFamily: AppTypography.sansFamily,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
                   ),
-                  unselectedLabelStyle: TextStyle(
-                    fontFamily: AppTypography.sansFamily,
-                    fontWeight: FontWeight.w400,
-                    fontSize: 13,
-                  ),
-                  tabs: [
-                    Tab(text: 'Todos'),
-                    Tab(text: 'Navegação'),
-                    Tab(text: 'Repertório & Áudio'),
-                    Tab(text: 'Partituras'),
-                    Tab(text: 'Cifras & Gestos'),
-                  ],
-                ),
-              ),
 
-              // Conteúdo scrollável com atalhos
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _ShortcutList(items: appShortcutsList),
-                    _ShortcutList(
-                      items: appShortcutsList
-                          .where((item) =>
-                              item.category == ShortcutCategory.navigation)
-                          .toList(),
-                    ),
-                    _ShortcutList(
-                      items: appShortcutsList
-                          .where((item) =>
-                              item.category == ShortcutCategory.repertoireAudio)
-                          .toList(),
-                    ),
-                    _ShortcutList(
-                      items: appShortcutsList
-                          .where((item) =>
-                              item.category == ShortcutCategory.sheetMusic)
-                          .toList(),
-                    ),
-                    _ShortcutList(
-                      items: appShortcutsList
-                          .where((item) =>
-                              item.category == ShortcutCategory.chordsGestures)
-                          .toList(),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Rodapé com dica rápida
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                decoration: const BoxDecoration(
-                  color: AppColors.btnBackground,
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(15)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.tips_and_updates_outlined,
-                      color: AppColors.gold,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Pressione ? em qualquer tela para abrir este painel a qualquer momento.',
-                        style: TextStyle(
-                          fontFamily: AppTypography.sansFamily,
-                          fontSize: 12,
-                          color: AppColors.textLight,
-                        ),
+                  // Rodapé com dica rápida
+                  SpotlightGuideTarget(
+                    id: 'shortcuts-footer-tip',
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      decoration: const BoxDecoration(
+                        color: AppColors.btnBackground,
+                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(15)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.tips_and_updates_outlined,
+                            color: AppColors.gold,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Pressione ? em qualquer tela para abrir este painel a qualquer momento.',
+                              style: TextStyle(
+                                fontFamily: AppTypography.sansFamily,
+                                fontSize: 12,
+                                color: AppColors.textLight,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.goldLight,
+                            ),
+                            child: const Text('Entendi'),
+                          ),
+                        ],
                       ),
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.goldLight,
-                      ),
-                      child: const Text('Entendi'),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
