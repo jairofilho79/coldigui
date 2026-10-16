@@ -18,6 +18,7 @@ import '../steps/offline_tutorial_steps.dart';
 import '../steps/playlists_tutorial_steps.dart';
 import '../steps/praise_tutorial_steps.dart';
 import '../steps/profile_tutorial_steps.dart';
+import '../steps/public_playlists_tutorial_steps.dart';
 import '../steps/reader_tutorial_steps.dart';
 
 /// Controlador que orquestra a execução dos tutoriais no [SpotlightGuidePortal].
@@ -47,6 +48,7 @@ class TutorialController {
       RoutePaths.about => true,
       RoutePaths.favoriteMaterialKinds => true,
       RoutePaths.myContributions => true,
+      RoutePaths.publicPlaylists => true,
       final p when p.startsWith('/louvor/') => true,
       _ => false,
     };
@@ -75,6 +77,8 @@ class TutorialController {
         buildFavoriteMaterialKindsTutorialSteps(context),
       RoutePaths.myContributions =>
         buildMyContributionsTutorialSteps(context),
+      RoutePaths.publicPlaylists =>
+        buildPublicPlaylistsTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
         buildPraiseTutorialSteps(context),
       _ => const [],

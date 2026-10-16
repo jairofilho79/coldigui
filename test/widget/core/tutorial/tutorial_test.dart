@@ -14,7 +14,7 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 void main() {
   group('TutorialController', () {
-    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords, gestos, audio, offline, lyrics, praise, about, favoriteMaterialKinds e myContributions', () {
+    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords, gestos, audio, offline, lyrics, praise, about, favoriteMaterialKinds, myContributions e publicPlaylists', () {
       final controller = TutorialController();
       expect(controller.hasTutorialFor(RoutePaths.home), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.playlists), isTrue);
@@ -31,6 +31,7 @@ void main() {
       expect(controller.hasTutorialFor(RoutePaths.about), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.favoriteMaterialKinds), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.myContributions), isTrue);
+      expect(controller.hasTutorialFor(RoutePaths.publicPlaylists), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -370,6 +371,32 @@ void main() {
                 expect(steps[2].items.first.targetId, 'my-contributions-item');
                 expect(steps[3].items.first.targetId, 'my-contributions-status');
                 expect(steps[4].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos da tela de Listas Públicas com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  RoutePaths.publicPlaylists,
+                );
+                expect(steps.length, 4);
+                expect(steps[0].items.first.targetId, 'public-playlists-auth-banner');
+                expect(steps[1].items.first.targetId, 'public-playlists-search-bar');
+                expect(steps[2].items.first.targetId, 'public-playlists-results');
+                expect(steps[3].items.first.targetId, 'app-info-button');
                 return const SizedBox();
               },
             ),
@@ -1949,6 +1976,100 @@ void main() {
       expect(find.text('Status da Análise'), findsOneWidget);
 
       // Passo 3: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'toque no botão (i) na tela de Listas Públicas dispara o tutorial e navega pelos passos',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: RoutePaths.publicPlaylists,
+        routes: [
+          GoRoute(
+            path: RoutePaths.publicPlaylists,
+            builder: (context, state) {
+              final tutorialNotifier =
+                  ProviderScope.containerOf(context).read(tutorialControllerProvider);
+
+              return SpotlightGuidePortal(
+                controller: tutorialNotifier.portalController,
+                child: Scaffold(
+                  appBar: const PlpcgPrimaryAppBar(),
+                  body: ListView(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'public-playlists-auth-banner',
+                        child: const SizedBox(
+                          height: 60,
+                          child: Text('Auth banner'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'public-playlists-search-bar',
+                        child: const SizedBox(
+                          height: 50,
+                          child: Text('Search bar'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'public-playlists-results',
+                        child: const SizedBox(
+                          height: 80,
+                          child: Text('Results card'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final infoButtonFinder = find.byIcon(Icons.info_outline);
+      expect(infoButtonFinder, findsOneWidget);
+
+      await tester.tap(infoButtonFinder);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Seu Nome de Usuário
+      expect(find.text('Seu Nome de Usuário'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Buscar Irmãos e Equipes
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Buscar Irmãos e Equipes'), findsOneWidget);
+
+      // Passo 3: Listas e Importação
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Listas e Importação'), findsOneWidget);
+
+      // Passo 4: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda & Tutoriais'), findsOneWidget);

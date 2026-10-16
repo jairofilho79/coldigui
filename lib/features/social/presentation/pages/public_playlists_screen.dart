@@ -9,6 +9,7 @@ import 'package:coldigui/features/social/presentation/widgets/social_user_card.d
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 /// Listas públicas (antiga aba Social) — busca de pessoas por @usuário e
 /// importação das listas públicas delas. Sub-rota de Listas
@@ -35,29 +36,46 @@ class PublicPlaylistsScreen extends ConsumerWidget {
               sliver: SliverToBoxAdapter(
                 child: auth.when(
                   data: (user) {
-                    if (user == null) return const _AuthRequiredBanner();
-                    return _UsernameBanner(
-                      username: user.username,
-                      onCreate: () => showCreateUsernameDialog(context),
-                    );
+                    if (user == null) {
+                      return const SpotlightGuideTarget(
+                        id: 'public-playlists-auth-banner',
+                        child: _AuthRequiredBanner(),
+                      );
+                    }
+                    if (user.username == null || user.username!.isEmpty) {
+                      return SpotlightGuideTarget(
+                        id: 'public-playlists-auth-banner',
+                        child: _UsernameBanner(
+                          username: user.username,
+                          onCreate: () => showCreateUsernameDialog(context),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
                   },
                   loading: () => const SizedBox(
                     height: 48,
                     child: Center(child: CircularProgressIndicator()),
                   ),
-                  error: (_, _) => const _AuthRequiredBanner(),
+                  error: (_, _) => const SpotlightGuideTarget(
+                    id: 'public-playlists-auth-banner',
+                    child: _AuthRequiredBanner(),
+                  ),
                 ),
               ),
             ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               sliver: SliverToBoxAdapter(
-                child: plpcg.SearchBar(
-                  hintText: l10n.socialSearchHint,
-                  onQueryChanged: (value) {
-                    ref.read(socialSearchRawQueryProvider.notifier).state =
-                        value;
-                  },
+                child: SpotlightGuideTarget(
+                  id: 'public-playlists-search-bar',
+                  child: plpcg.SearchBar(
+                    hintText: l10n.socialSearchHint,
+                    onQueryChanged: (value) {
+                      ref.read(socialSearchRawQueryProvider.notifier).state =
+                          value;
+                    },
+                  ),
                 ),
               ),
             ),
@@ -99,7 +117,16 @@ class PublicPlaylistsScreen extends ConsumerWidget {
           }
           return SliverList(
             delegate: SliverChildBuilderDelegate(
-              (context, index) => SocialUserCard(user: users[index]),
+              (context, index) {
+                final card = SocialUserCard(user: users[index]);
+                if (index == 0) {
+                  return SpotlightGuideTarget(
+                    id: 'public-playlists-results',
+                    child: card,
+                  );
+                }
+                return card;
+              },
               childCount: users.length,
             ),
           );
