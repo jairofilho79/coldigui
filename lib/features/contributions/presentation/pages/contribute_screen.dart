@@ -22,6 +22,9 @@ import '../utils/pick_files.dart';
 import '../utils/rejection_message.dart';
 import '../widgets/contribution_attachments_section.dart';
 import '../widgets/contribution_links_section.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
+
+import '../../../../core/tutorial/presentation/providers/tutorial_provider.dart';
 import '../widgets/extracted_editor/extracted_material_editor_scaffold.dart';
 import '../widgets/sign_in_to_contribute.dart';
 
@@ -67,6 +70,8 @@ class ContributeScreen extends ConsumerStatefulWidget {
 class _ContributeScreenState extends ConsumerState<ContributeScreen> {
   int _formResetIndex = 0;
   MaterialKind? _selectedExtractedKind;
+  final SpotlightGuidePortalController _portalController =
+      SpotlightGuidePortalController();
 
   static MaterialKind? _detectExtractedKind(ContributionTarget? target) {
     if (target == null) return null;
@@ -93,6 +98,20 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
   void initState() {
     super.initState();
     _selectedExtractedKind = _detectExtractedKind(widget.target);
+    try {
+      ref.read(tutorialControllerProvider).pushPortalController(_portalController);
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    try {
+      if (_portalController.isShowing) {
+        _portalController.hide();
+      }
+      ref.read(tutorialControllerProvider).popPortalController(_portalController);
+    } catch (_) {}
+    super.dispose();
   }
 
   @override
@@ -224,9 +243,12 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       }
     });
 
+    final tutorialNotifier = ref.watch(tutorialControllerProvider);
+
     // Se o alvo for um material extraído (ou selecionado pelo usuário)
+    final Widget content;
     if (_selectedExtractedKind != null && effectiveTarget != null) {
-      return Scaffold(
+      content = Scaffold(
         appBar: const PlpcgPrimaryAppBar(),
         body: ExtractedMaterialEditorScaffold(
           target: effectiveTarget,
@@ -237,380 +259,422 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
           snapshot: snapshot,
         ),
       );
-    }
+    } else {
+      final canSend =
+          draft.isValid &&
+          (state.submit is ContributeIdle || state.submit is ContributeFailed);
 
-    final canSend =
-        draft.isValid &&
-        (state.submit is ContributeIdle || state.submit is ContributeFailed);
-
-    return Scaffold(
-      appBar: const PlpcgPrimaryAppBar(),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
-          child: Theme(
-            data: Theme.of(context).copyWith(
-              inputDecorationTheme: Theme.of(context).inputDecorationTheme
-                  .copyWith(
-                    floatingLabelStyle: AppTypography.label.copyWith(
-                      color: AppColors.title,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    labelStyle: AppTypography.body.copyWith(
-                      color: AppColors.title.withValues(alpha: 0.75),
-                    ),
-                    counterStyle: AppTypography.body.copyWith(
-                      fontSize: 12,
-                      color: AppColors.textLight.withValues(alpha: 0.8),
-                    ),
-                  ),
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: ValueKey(_formResetIndex),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Text(
-                        l10n.contributeTitle,
-                        style: AppTypography.headline.copyWith(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textLight,
-                        ),
-                        textAlign: TextAlign.center,
+      content = Scaffold(
+        appBar: const PlpcgPrimaryAppBar(),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                inputDecorationTheme: Theme.of(context).inputDecorationTheme
+                    .copyWith(
+                      floatingLabelStyle: AppTypography.label.copyWith(
+                        color: AppColors.title,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      labelStyle: AppTypography.body.copyWith(
+                        color: AppColors.title.withValues(alpha: 0.75),
+                      ),
+                      counterStyle: AppTypography.body.copyWith(
+                        fontSize: 12,
+                        color: AppColors.textLight.withValues(alpha: 0.8),
                       ),
                     ),
-                    if (effectivePraiseId != null) ...[
-                      const SizedBox(height: 12),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: ValueKey(_formResetIndex),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                        child: Text(
+                          l10n.contributeTitle,
+                          style: AppTypography.headline.copyWith(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textLight,
                           ),
-                          decoration: BoxDecoration(
-                            color: AppColors.gold.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AppColors.gold.withValues(alpha: 0.3),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      if (effectivePraiseId != null) ...[
+                        const SizedBox(height: 12),
+                        SpotlightGuideTarget(
+                          id: 'contribute-target-banner',
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.gold.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: AppColors.gold.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.music_note,
+                                    size: 16,
+                                    color: AppColors.gold,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    l10n.contributeLinkedPraise,
+                                    style: AppTypography.label.copyWith(
+                                      color: AppColors.gold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                        ),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            alignment: WrapAlignment.center,
                             children: [
-                              const Icon(
-                                Icons.music_note,
-                                size: 16,
-                                color: AppColors.gold,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                l10n.contributeLinkedPraise,
-                                style: AppTypography.label.copyWith(
+                              ChoiceChip(
+                                key: const Key('contribute-chip-general'),
+                                label: Text(l10n.contributeEditorGeneralKind),
+                                selected: _selectedExtractedKind == null,
+                                onSelected: (_) =>
+                                    setState(() => _selectedExtractedKind = null),
+                                selectedColor:
+                                    AppColors.gold.withValues(alpha: 0.25),
+                                labelStyle: AppTypography.label.copyWith(
                                   color: AppColors.gold,
-                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                side: const BorderSide(color: AppColors.gold),
+                              ),
+                              ActionChip(
+                                key: const Key('contribute-chip-lyrics'),
+                                avatar: const Icon(
+                                  Icons.article_outlined,
+                                  size: 16,
+                                  color: AppColors.gold,
+                                ),
+                                label: Text(l10n.contributeEditorLyricsKind),
+                                backgroundColor: AppColors.card,
+                                side: const BorderSide(color: Color(0x33D4AF37)),
+                                labelStyle: AppTypography.label.copyWith(
+                                  color: AppColors.title,
+                                ),
+                                onPressed: () => setState(
+                                  () => _selectedExtractedKind = MaterialKind.lyrics,
+                                ),
+                              ),
+                              ActionChip(
+                                key: const Key('contribute-chip-chord'),
+                                avatar: const Icon(
+                                  Icons.music_note_outlined,
+                                  size: 16,
+                                  color: AppColors.gold,
+                                ),
+                                label: Text(l10n.contributeEditorChordKind),
+                                backgroundColor: AppColors.card,
+                                side: const BorderSide(color: Color(0x33D4AF37)),
+                                labelStyle: AppTypography.label.copyWith(
+                                  color: AppColors.title,
+                                ),
+                                onPressed: () => setState(
+                                  () => _selectedExtractedKind = MaterialKind.chord,
+                                ),
+                              ),
+                              ActionChip(
+                                key: const Key('contribute-chip-gesture'),
+                                avatar: const Icon(
+                                  Icons.sign_language_outlined,
+                                  size: 16,
+                                  color: AppColors.gold,
+                                ),
+                                label: Text(l10n.contributeEditorGestureKind),
+                                backgroundColor: AppColors.card,
+                                side: const BorderSide(color: Color(0x33D4AF37)),
+                                labelStyle: AppTypography.label.copyWith(
+                                  color: AppColors.title,
+                                ),
+                                onPressed: () => setState(
+                                  () => _selectedExtractedKind = MaterialKind.gesture,
                                 ),
                               ),
                             ],
                           ),
                         ),
+                      ] else ...[
+                        const SizedBox(height: 12),
+                        SpotlightGuideTarget(
+                          id: 'contribute-target-banner',
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.gold.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.gold.withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.lightbulb_outline,
+                                  size: 18,
+                                  color: AppColors.gold,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    l10n.contributeEditorGeneralHint,
+                                    style: AppTypography.body.copyWith(
+                                      fontSize: 12.5,
+                                      color: AppColors.textLight.withValues(alpha: 0.9),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      SpotlightGuideTarget(
+                        id: 'contribute-body-field',
+                        child: GoldenTaggedContainer(
+                          label: l10n.contributeBodyField,
+                          contentPadding: EdgeInsets.fromLTRB(
+                            12,
+                            MediaQuery.textScalerOf(context).scale(14),
+                            12,
+                            MediaQuery.textScalerOf(context).scale(8),
+                          ),
+                          child: TextFormField(
+                            key: const Key('contribute-body'),
+                            initialValue: draft.body,
+                            maxLength: kMaxBodyLength,
+                            minLines: 5,
+                            maxLines: null,
+                            style: AppTypography.input,
+                            decoration: InputDecoration(
+                              hintText: l10n.contributeBodyHint,
+                              hintStyle: AppTypography.hint(italic: true),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              filled: false,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                              counterStyle: AppTypography.body.copyWith(
+                                fontSize: 12,
+                                color: AppColors.title.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            onChanged: notifier.setBody,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      Center(
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          alignment: WrapAlignment.center,
+                      SpotlightGuideTarget(
+                        id: 'contribute-diagnostics',
+                        child: InkWell(
+                          key: const Key('contribute-device-toggle'),
+                          onTap: () => notifier.setSendDeviceData(!draft.sendDeviceData),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 4,
+                              horizontal: 2,
+                            ),
+                            child: Row(
+                              children: [
+                                Checkbox(
+                                  key: const Key('contribute-device-checkbox'),
+                                  value: draft.sendDeviceData,
+                                  onChanged: (val) =>
+                                      notifier.setSendDeviceData(val ?? true),
+                                  activeColor: AppColors.gold,
+                                  checkColor: AppColors.title,
+                                  side: const BorderSide(
+                                    color: Color(0x99D4AF37),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    l10n.contributeSendDeviceData,
+                                    style: AppTypography.body.copyWith(
+                                      color: AppColors.textLight.withValues(alpha: 0.9),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SpotlightGuideTarget(
+                        id: 'contribute-attachments',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            ChoiceChip(
-                              key: const Key('contribute-chip-general'),
-                              label: Text(l10n.contributeEditorGeneralKind),
-                              selected: _selectedExtractedKind == null,
-                              onSelected: (_) =>
-                                  setState(() => _selectedExtractedKind = null),
-                              selectedColor:
-                                  AppColors.gold.withValues(alpha: 0.25),
-                              labelStyle: AppTypography.label.copyWith(
-                                color: AppColors.gold,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              side: const BorderSide(color: AppColors.gold),
+                            AttachmentsSection(
+                              kind: draft.kind,
+                              attachments: draft.attachments,
+                              pickFiles: widget.pickFiles,
+                              onAdd: notifier.addAttachment,
+                              onRemove: notifier.removeAttachment,
                             ),
-                            ActionChip(
-                              key: const Key('contribute-chip-lyrics'),
-                              avatar: const Icon(
-                                Icons.article_outlined,
-                                size: 16,
-                                color: AppColors.gold,
-                              ),
-                              label: Text(l10n.contributeEditorLyricsKind),
-                              backgroundColor: AppColors.card,
-                              side: const BorderSide(color: Color(0x33D4AF37)),
-                              labelStyle: AppTypography.label.copyWith(
-                                color: AppColors.title,
-                              ),
-                              onPressed: () => setState(
-                                () => _selectedExtractedKind = MaterialKind.lyrics,
-                              ),
-                            ),
-                            ActionChip(
-                              key: const Key('contribute-chip-chord'),
-                              avatar: const Icon(
-                                Icons.music_note_outlined,
-                                size: 16,
-                                color: AppColors.gold,
-                              ),
-                              label: Text(l10n.contributeEditorChordKind),
-                              backgroundColor: AppColors.card,
-                              side: const BorderSide(color: Color(0x33D4AF37)),
-                              labelStyle: AppTypography.label.copyWith(
-                                color: AppColors.title,
-                              ),
-                              onPressed: () => setState(
-                                () => _selectedExtractedKind = MaterialKind.chord,
-                              ),
-                            ),
-                            ActionChip(
-                              key: const Key('contribute-chip-gesture'),
-                              avatar: const Icon(
-                                Icons.sign_language_outlined,
-                                size: 16,
-                                color: AppColors.gold,
-                              ),
-                              label: Text(l10n.contributeEditorGestureKind),
-                              backgroundColor: AppColors.card,
-                              side: const BorderSide(color: Color(0x33D4AF37)),
-                              labelStyle: AppTypography.label.copyWith(
-                                color: AppColors.title,
-                              ),
-                              onPressed: () => setState(
-                                () => _selectedExtractedKind = MaterialKind.gesture,
-                              ),
+                            const SizedBox(height: 16),
+                            LinksSection(
+                              links: draft.links,
+                              onAdd: notifier.addLink,
+                              onRemove: notifier.removeLink,
                             ),
                           ],
                         ),
                       ),
-                    ] else ...[
+                      const SizedBox(height: 24),
+                      if (state.submit case ContributeSending(:final progress))
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            color: AppColors.gold,
+                            backgroundColor: AppColors.gold.withValues(
+                              alpha: 0.25,
+                            ),
+                          ),
+                        ),
+                      if (user == null)
+                        const Center(
+                          child: SpotlightGuideTarget(
+                            id: 'contribute-submit-button',
+                            child: SignInToContribute(),
+                          ),
+                        )
+                      else
+                        SpotlightGuideTarget(
+                          id: 'contribute-submit-button',
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: FilledButton(
+                              key: const Key('contribute-send'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.gold,
+                                foregroundColor: AppColors.title,
+                                disabledBackgroundColor: AppColors.background,
+                                disabledForegroundColor: const Color(0xFF351C1B),
+                                side: BorderSide(
+                                  color: canSend
+                                      ? AppColors.gold
+                                      : const Color(0x55D4AF37),
+                                  width: canSend ? 2 : 1.5,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                              ),
+                              onPressed: canSend ? () => _send(args, snapshot) : null,
+                              child: Text(
+                                l10n.contributeSend,
+                                style: canSend
+                                    ? AppTypography.body.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 16,
+                                        color: AppColors.title,
+                                      )
+                                    : AppTypography.body.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 16,
+                                        color: const Color(0xFF351C1B),
+                                        shadows: const [
+                                          Shadow(
+                                            color: Color(0xD0000000),
+                                            offset: Offset(0, -1.0),
+                                            blurRadius: 1.0,
+                                          ),
+                                          Shadow(
+                                            color: Color(0x35FFE29A),
+                                            offset: Offset(0, 1.0),
+                                            blurRadius: 1.0,
+                                          ),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ),
                       const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.gold.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.gold.withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.lightbulb_outline,
-                              size: 18,
-                              color: AppColors.gold,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                l10n.contributeEditorGeneralHint,
-                                style: AppTypography.body.copyWith(
-                                  fontSize: 12.5,
-                                  color: AppColors.textLight.withValues(alpha: 0.9),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-                    GoldenTaggedContainer(
-                      label: l10n.contributeBodyField,
-                      contentPadding: EdgeInsets.fromLTRB(
-                        12,
-                        MediaQuery.textScalerOf(context).scale(14),
-                        12,
-                        MediaQuery.textScalerOf(context).scale(8),
-                      ),
-                      child: TextFormField(
-                        key: const Key('contribute-body'),
-                        initialValue: draft.body,
-                        maxLength: kMaxBodyLength,
-                        minLines: 5,
-                        maxLines: null,
-                        style: AppTypography.input,
-                        decoration: InputDecoration(
-                          hintText: l10n.contributeBodyHint,
-                          hintStyle: AppTypography.hint(italic: true),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          filled: false,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                          counterStyle: AppTypography.body.copyWith(
-                            fontSize: 12,
-                            color: AppColors.title.withValues(alpha: 0.6),
-                          ),
-                        ),
-                        onChanged: notifier.setBody,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    InkWell(
-                      key: const Key('contribute-device-toggle'),
-                      onTap: () => notifier.setSendDeviceData(!draft.sendDeviceData),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 4,
-                          horizontal: 2,
-                        ),
-                        child: Row(
-                          children: [
-                            Checkbox(
-                              key: const Key('contribute-device-checkbox'),
-                              value: draft.sendDeviceData,
-                              onChanged: (val) =>
-                                  notifier.setSendDeviceData(val ?? true),
-                              activeColor: AppColors.gold,
-                              checkColor: AppColors.title,
-                              side: const BorderSide(
-                                color: Color(0x99D4AF37),
-                                width: 1.5,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                l10n.contributeSendDeviceData,
-                                style: AppTypography.body.copyWith(
-                                  color: AppColors.textLight.withValues(alpha: 0.9),
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    AttachmentsSection(
-                      kind: draft.kind,
-                      attachments: draft.attachments,
-                      pickFiles: widget.pickFiles,
-                      onAdd: notifier.addAttachment,
-                      onRemove: notifier.removeAttachment,
-                    ),
-                    const SizedBox(height: 16),
-                    LinksSection(
-                      links: draft.links,
-                      onAdd: notifier.addLink,
-                      onRemove: notifier.removeLink,
-                    ),
-                    const SizedBox(height: 24),
-                    if (state.submit case ContributeSending(:final progress))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          color: AppColors.gold,
-                          backgroundColor: AppColors.gold.withValues(
-                            alpha: 0.25,
-                          ),
-                        ),
-                      ),
-                    if (user == null)
-                      const Center(child: SignInToContribute())
-                    else
                       SizedBox(
                         width: double.infinity,
-                        height: 48,
-                        child: FilledButton(
-                          key: const Key('contribute-send'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.gold,
-                            foregroundColor: AppColors.title,
-                            disabledBackgroundColor: AppColors.background,
-                            disabledForegroundColor: const Color(0xFF351C1B),
-                            side: BorderSide(
-                              color: canSend
-                                  ? AppColors.gold
-                                  : const Color(0x55D4AF37),
-                              width: canSend ? 2 : 1.5,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          key: const Key('contribute-clear-form'),
+                          onPressed: () => _confirmClearForm(context, args),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: AppColors.gold,
+                          ),
+                          label: Text(
+                            l10n.contributeClearForm,
+                            style: AppTypography.body.copyWith(
+                              color: AppColors.gold,
+                              fontWeight: FontWeight.w600,
                             ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0x55D4AF37)),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(24),
                             ),
                           ),
-                          onPressed: canSend ? () => _send(args, snapshot) : null,
-                          child: Text(
-                            l10n.contributeSend,
-                            style: canSend
-                                ? AppTypography.body.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                    color: AppColors.title,
-                                  )
-                                : AppTypography.body.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                    color: const Color(0xFF351C1B),
-                                    shadows: const [
-                                      Shadow(
-                                        color: Color(0xD0000000),
-                                        offset: Offset(0, -1.0),
-                                        blurRadius: 1.0,
-                                      ),
-                                      Shadow(
-                                        color: Color(0x35FFE29A),
-                                        offset: Offset(0, 1.0),
-                                        blurRadius: 1.0,
-                                      ),
-                                    ],
-                                  ),
-                          ),
                         ),
                       ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 44,
-                      child: OutlinedButton.icon(
-                        key: const Key('contribute-clear-form'),
-                        onPressed: () => _confirmClearForm(context, args),
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          size: 20,
-                          color: AppColors.gold,
-                        ),
-                        label: Text(
-                          l10n.contributeClearForm,
-                          style: AppTypography.body.copyWith(
-                            color: AppColors.gold,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0x55D4AF37)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
+      );
+    }
+
+    return SpotlightGuidePortal(
+      controller: _portalController,
+      autoStart: false,
+      missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
+      barrier: const SpotlightGuideBarrierStyle(
+        color: Color(0x99000000),
+        blurSigma: 0,
       ),
+      barrierDismissBehavior: SpotlightGuideDismissBehavior.anytime,
+      onBarrierTap: (c) => tutorialNotifier.hide(),
+      onFinish: () => tutorialNotifier.resetTutorialState(),
+      child: content,
     );
   }
 

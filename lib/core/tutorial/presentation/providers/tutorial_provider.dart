@@ -8,6 +8,7 @@ import '../../../routing/route_paths.dart';
 import '../steps/about_tutorial_steps.dart';
 import '../steps/audio_tutorial_steps.dart';
 import '../steps/chords_tutorial_steps.dart';
+import '../steps/contribute_tutorial_steps.dart';
 import '../steps/favorite_material_kinds_tutorial_steps.dart';
 import '../steps/gestures_tutorial_steps.dart';
 import '../steps/home_tutorial_steps.dart';
@@ -27,8 +28,23 @@ class TutorialController {
 
   final Ref? _ref;
 
-  final SpotlightGuidePortalController portalController =
-      SpotlightGuidePortalController();
+  final List<SpotlightGuidePortalController> _portalControllers = [
+    SpotlightGuidePortalController(),
+  ];
+
+  /// Controller ativo do portal de tutorial.
+  SpotlightGuidePortalController get portalController =>
+      _portalControllers.last;
+
+  /// Registra um controller de portal específico (ex: telas sobrepostas fora do Shell).
+  void pushPortalController(SpotlightGuidePortalController controller) {
+    _portalControllers.add(controller);
+  }
+
+  /// Remove o controller de portal registrado.
+  void popPortalController(SpotlightGuidePortalController controller) {
+    _portalControllers.remove(controller);
+  }
 
   /// Verifica se a rota especificada possui passos de tutorial registrados.
   bool hasTutorialFor(String? path) {
@@ -49,6 +65,7 @@ class TutorialController {
       RoutePaths.favoriteMaterialKinds => true,
       RoutePaths.myContributions => true,
       RoutePaths.publicPlaylists => true,
+      RoutePaths.contribute => true,
       final p when p.startsWith('/louvor/') => true,
       _ => false,
     };
@@ -79,6 +96,8 @@ class TutorialController {
         buildMyContributionsTutorialSteps(context),
       RoutePaths.publicPlaylists =>
         buildPublicPlaylistsTutorialSteps(context),
+      RoutePaths.contribute =>
+        buildContributeTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
         buildPraiseTutorialSteps(context),
       _ => const [],
