@@ -47,6 +47,9 @@ void main() {
       expect(controller.hasTutorialFor('modal:filters'), isTrue);
       expect(controller.hasTutorialFor('modal:extracted-editor'), isTrue);
       expect(controller.hasTutorialFor('modal:gesture-focus'), isTrue);
+      expect(controller.hasTutorialFor('modal:playlist-share'), isTrue);
+      expect(controller.hasTutorialFor('modal:publish-playlist'), isTrue);
+      expect(controller.hasTutorialFor('modal:join-live-room'), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -648,6 +651,83 @@ void main() {
                 expect(steps[2].items.first.targetId, 'gesture-focus-navigation');
                 expect(steps[3].items.first.targetId, 'gesture-focus-next');
                 expect(steps[4].items.first.targetId, 'gesture-focus-info');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos do Diálogo de Compartilhamento (PlaylistShareSheet) com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  'modal:playlist-share',
+                );
+                expect(steps.length, 3);
+                expect(steps[0].items.first.targetId, 'playlist-share-leaflet');
+                expect(steps[1].items.first.targetId, 'playlist-share-link');
+                expect(steps[2].items.first.targetId, 'playlist-share-info');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos do Diálogo de Publicação (PublishPlaylistDialog) com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  'modal:publish-playlist',
+                );
+                expect(steps.length, 4);
+                expect(steps[0].items.first.targetId, 'publish-playlist-category');
+                expect(steps[1].items.first.targetId, 'publish-playlist-reach');
+                expect(steps[2].items.first.targetId, 'publish-playlist-confirm');
+                expect(steps[3].items.first.targetId, 'publish-playlist-info');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos do Diálogo de Entrada em Sala ao Vivo (JoinLiveRoomDialog) com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  'modal:join-live-room',
+                );
+                expect(steps.length, 4);
+                expect(steps[0].items.first.targetId, 'join-live-input');
+                expect(steps[1].items.first.targetId, 'join-live-paste');
+                expect(steps[2].items.first.targetId, 'join-live-confirm');
+                expect(steps[3].items.first.targetId, 'join-live-info');
                 return const SizedBox();
               },
             ),
@@ -3174,6 +3254,231 @@ void main() {
       await tester.tap(find.text('Concluir'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda do Modo Foco'), findsNothing);
+    });
+
+    testWidgets(
+        'navega por todos os passos do tutorial do Diálogo de Compartilhamento (PlaylistShareSheet)',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final tutorial = container.read(tutorialControllerProvider);
+
+                return SpotlightGuidePortal(
+                  controller: tutorial.portalController,
+                  autoStart: false,
+                  onFinish: () => tutorial.resetTutorialState(),
+                  child: Scaffold(
+                    body: Column(
+                      children: [
+                        SpotlightGuideTarget(
+                          id: 'playlist-share-leaflet',
+                          child: const SizedBox(height: 40, child: Text('Leaflet')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'playlist-share-link',
+                          child: const SizedBox(height: 40, child: Text('Link')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'playlist-share-info',
+                          child: const SizedBox(height: 40, child: Text('Info')),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      final tutorial = container.read(tutorialControllerProvider);
+      final context = tester.element(find.byType(Scaffold));
+
+      tutorial.startPlaylistShareTutorial(context);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Folheto Ilustrado
+      expect(find.text('Folheto Ilustrado'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Link Direto
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Link Direto'), findsOneWidget);
+
+      // Passo 3: Ajuda de Compartilhamento
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda de Compartilhamento'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda de Compartilhamento'), findsNothing);
+    });
+
+    testWidgets(
+        'navega por todos os passos do tutorial do Diálogo de Publicação (PublishPlaylistDialog)',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final tutorial = container.read(tutorialControllerProvider);
+
+                return SpotlightGuidePortal(
+                  controller: tutorial.portalController,
+                  autoStart: false,
+                  onFinish: () => tutorial.resetTutorialState(),
+                  child: Scaffold(
+                    body: Column(
+                      children: [
+                        SpotlightGuideTarget(
+                          id: 'publish-playlist-category',
+                          child: const SizedBox(height: 40, child: Text('Category')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'publish-playlist-reach',
+                          child: const SizedBox(height: 40, child: Text('Reach')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'publish-playlist-confirm',
+                          child: const SizedBox(height: 40, child: Text('Confirm')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'publish-playlist-info',
+                          child: const SizedBox(height: 40, child: Text('Info')),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      final tutorial = container.read(tutorialControllerProvider);
+      final context = tester.element(find.byType(Scaffold));
+
+      tutorial.startPublishPlaylistTutorial(context);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Categoria da Lista
+      expect(find.text('Categoria da Lista'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Alcance do Repertório
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Alcance do Repertório'), findsOneWidget);
+
+      // Passo 3: Publicação na Comunidade
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Publicação na Comunidade'), findsOneWidget);
+
+      // Passo 4: Ajuda de Publicação
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda de Publicação'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda de Publicação'), findsNothing);
+    });
+
+    testWidgets(
+        'navega por todos os passos do tutorial do Diálogo de Entrada em Sala ao Vivo (JoinLiveRoomDialog)',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final tutorial = container.read(tutorialControllerProvider);
+
+                return SpotlightGuidePortal(
+                  controller: tutorial.portalController,
+                  autoStart: false,
+                  onFinish: () => tutorial.resetTutorialState(),
+                  child: Scaffold(
+                    body: Column(
+                      children: [
+                        SpotlightGuideTarget(
+                          id: 'join-live-input',
+                          child: const SizedBox(height: 40, child: Text('Input')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'join-live-paste',
+                          child: const SizedBox(height: 40, child: Text('Paste')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'join-live-confirm',
+                          child: const SizedBox(height: 40, child: Text('Confirm')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'join-live-info',
+                          child: const SizedBox(height: 40, child: Text('Info')),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      final tutorial = container.read(tutorialControllerProvider);
+      final context = tester.element(find.byType(Scaffold));
+
+      tutorial.startJoinLiveRoomTutorial(context);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Código ou Link da Sala
+      expect(find.text('Código ou Link da Sala'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Colar da Área de Transferência
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Colar da Área de Transferência'), findsOneWidget);
+
+      // Passo 3: Conectar à Sala
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Conectar à Sala'), findsOneWidget);
+
+      // Passo 4: Ajuda da Sala ao Vivo
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda da Sala ao Vivo'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda da Sala ao Vivo'), findsNothing);
     });
   });
 }

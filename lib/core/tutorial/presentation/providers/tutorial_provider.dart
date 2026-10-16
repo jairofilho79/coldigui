@@ -9,6 +9,7 @@ import '../steps/about_tutorial_steps.dart';
 import '../steps/audio_tutorial_steps.dart';
 import '../steps/carousel_selection_tutorial_steps.dart';
 import '../steps/chords_tutorial_steps.dart';
+import '../steps/collaboration_dialogs_tutorial_steps.dart';
 import '../steps/contribution_detail_tutorial_steps.dart';
 import '../steps/contribute_tutorial_steps.dart';
 import '../steps/extracted_material_editor_tutorial_steps.dart';
@@ -80,6 +81,9 @@ class TutorialController {
       'modal:filters' => true,
       'modal:extracted-editor' => true,
       'modal:gesture-focus' => true,
+      'modal:playlist-share' => true,
+      'modal:publish-playlist' => true,
+      'modal:join-live-room' => true,
       final p when p.startsWith('/ao-vivo/') => true,
       final p when p.startsWith('/louvor/') => true,
       final p when p.startsWith('/contribuicoes/') => true,
@@ -130,6 +134,12 @@ class TutorialController {
         buildExtractedMaterialEditorTutorialSteps(context),
       'modal:gesture-focus' =>
         buildGestureFocusTutorialSteps(context),
+      'modal:playlist-share' =>
+        buildPlaylistShareTutorialSteps(context),
+      'modal:publish-playlist' =>
+        buildPublishPlaylistTutorialSteps(context),
+      'modal:join-live-room' =>
+        buildJoinLiveRoomTutorialSteps(context),
       final p when p.startsWith('/ao-vivo/') =>
         buildLiveRoomTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
@@ -190,6 +200,21 @@ class TutorialController {
   /// Inicia o tutorial do modo foco de gestos ([GestureFocusView]).
   void startGestureFocusTutorial(BuildContext context) {
     showSteps(buildGestureFocusTutorialSteps(context));
+  }
+
+  /// Inicia o tutorial do diálogo de compartilhamento ([PlaylistShareSheet]).
+  void startPlaylistShareTutorial(BuildContext context) {
+    showSteps(buildPlaylistShareTutorialSteps(context));
+  }
+
+  /// Inicia o tutorial do diálogo de publicação na comunidade ([PublishPlaylistDialog]).
+  void startPublishPlaylistTutorial(BuildContext context) {
+    showSteps(buildPublishPlaylistTutorialSteps(context));
+  }
+
+  /// Inicia o tutorial do diálogo de entrada em sala ao vivo ([JoinLiveRoomDialog]).
+  void startJoinLiveRoomTutorial(BuildContext context) {
+    showSteps(buildJoinLiveRoomTutorialSteps(context));
   }
 
   /// Restaura qualquer estado alterado durante a apresentação do tutorial.
