@@ -189,4 +189,34 @@ void main() {
     expect(pdf.r2Key, 'assets/praises/p-001/m-pdf.pdf');
     expect(pdf.kindName, 'Grade');
   });
+
+  test('mapeia biblicalSummary entre catalog, cache e praiseDetail', () {
+    const praiseDto = ColdigomCatalogPraiseDto(
+      id: 'p-100',
+      number: '100',
+      name: 'Salmo 23',
+      author: 'Davi',
+      rhythm: 'Lento',
+      tonality: 'C',
+      tags: ['Salmos'],
+      lyrics: 'O Senhor é o meu pastor',
+      materials: [],
+      biblicalSummary: 'Sl 23:1 — O Senhor é meu pastor, nada me faltará',
+    );
+
+    final row = ColdigomPraiseCacheMapper.fromCatalogPraise(
+      praiseDto,
+      kindNames: const {},
+    );
+    expect(row.biblicalSummary, 'Sl 23:1 — O Senhor é meu pastor, nada me faltará');
+
+    final detail = ColdigomPraiseCacheMapper.toPraiseDetail(row);
+    expect(detail.biblicalSummary, 'Sl 23:1 — O Senhor é meu pastor, nada me faltará');
+
+    final rowFromDetail = ColdigomPraiseCacheMapper.fromPraiseDetail(
+      detail,
+      kindNames: const {},
+    );
+    expect(rowFromDetail.biblicalSummary, 'Sl 23:1 — O Senhor é meu pastor, nada me faltará');
+  });
 }

@@ -53,4 +53,8 @@ class ColdigomPraiseCache {
   /// uma vez pela versão de esquema do catálogo (§3.4).
   /// Propriedade aditiva, sem migração.
   String? groupId;
+
+  /// Resumo bíblico discreto (1 linha) vindo do dump ou detalhe da API.
+  /// Propriedade aditiva, sem migração.
+  String? biblicalSummary;
 }

@@ -405,6 +405,7 @@
   "coldigomMetaTonality": "Key",
   "coldigomMetaAuthor": "Author",
   "coldigomMetaRhythm": "Rhythm",
+  "coldigomMetaBiblical": "Biblical Insight",
   "coldigomMetaTags": "Tags",
   "youtubeOpenError": "Could not open YouTube",
   "audioPlay": "Play",

@@ -24,6 +24,7 @@ abstract final class ColdigomLouvorAdapter {
       lyricsExcerpt: praise.lyricsExcerpt,
       shortId: praise.shortId,
       groupId: praise.groupId,
+      biblicalSummary: praise.biblicalSummary,
     );
   }
 

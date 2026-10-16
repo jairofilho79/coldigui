@@ -108,6 +108,7 @@ class PraiseDetailDto {
     this.lyricsExcerpt,
     this.shortId,
     this.groupId,
+    this.biblicalSummary,
   });
 
   final String id;
@@ -118,6 +119,9 @@ class PraiseDetailDto {
   final String author;
   final List<String> tagNames;
   final List<MaterialDto> materials;
+
+  /// Resumo bíblico discreto (1 linha) vindo do dump ou detalhe da API.
+  final String? biblicalSummary;
 
   /// Trecho de uma linha da letra ao redor do match da busca — só quando a
   /// busca bateu na letra; `null` no browse comum ou match só no título.
@@ -131,6 +135,11 @@ class PraiseDetailDto {
 
   factory PraiseDetailDto.fromJson(Map<String, dynamic> json) {
     final materialsJson = json['materials'] as List<dynamic>? ?? const [];
+    final biblicalJson = json['biblical'];
+    final biblicalSummary = (json['biblicalSummary'] as String?)?.trim() ??
+        (biblicalJson is Map
+            ? (biblicalJson['resumo_uma_linha'] as String?)?.trim()
+            : null);
     return PraiseDetailDto(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -139,6 +148,7 @@ class PraiseDetailDto {
       tonality: json['tonality'] as String? ?? '',
       author: json['author'] as String? ?? '',
       tagNames: splitColdigomCsv(json['tag_names']),
+      biblicalSummary: biblicalSummary,
       lyricsExcerpt: json['lyrics_excerpt'] as String?,
       shortId: normalizePraiseShortId(json['short_id']),
       groupId: normalizePraiseGroupId(json['group_id']),

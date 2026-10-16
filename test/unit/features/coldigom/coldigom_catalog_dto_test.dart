@@ -198,4 +198,19 @@ void main() {
       isTrue,
     );
   });
+
+  test('parseia biblicalSummary opcional do praise', () {
+    final dto = ColdigomCatalogPraiseDto.fromJson({
+      'id': 'p-1',
+      'name': 'Louvor 1',
+      'biblicalSummary': 'Sl 23:1 — O Senhor é o meu pastor',
+    });
+    expect(dto.biblicalSummary, 'Sl 23:1 — O Senhor é o meu pastor');
+
+    final dtoWithout = ColdigomCatalogPraiseDto.fromJson({
+      'id': 'p-2',
+      'name': 'Louvor 2',
+    });
+    expect(dtoWithout.biblicalSummary, isNull);
+  });
 }

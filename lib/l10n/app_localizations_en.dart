@@ -782,6 +782,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coldigomMetaRhythm => 'Rhythm';
 
   @override
+  String get coldigomMetaBiblical => 'Biblical Insight';
+
+  @override
   String get coldigomMetaTags => 'Tags';
 
   @override

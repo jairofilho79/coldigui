@@ -99,6 +99,7 @@ abstract final class ColdigomPraiseCacheMapper {
       ],
       shortId: praise.shortId,
       groupId: praise.groupId,
+      biblicalSummary: praise.biblicalSummary,
     );
   }
 
@@ -135,6 +136,7 @@ abstract final class ColdigomPraiseCacheMapper {
       ],
       shortId: praise.shortId,
       groupId: praise.groupId,
+      biblicalSummary: praise.biblicalSummary,
     );
   }
 
@@ -182,6 +184,7 @@ abstract final class ColdigomPraiseCacheMapper {
       materials: materials,
       shortId: meta?.shortId,
       groupId: meta?.groupId,
+      biblicalSummary: meta?.biblicalSummary,
     );
   }
 
@@ -225,6 +228,7 @@ abstract final class ColdigomPraiseCacheMapper {
     required List<ColdigomCatalogMaterialEntry> materials,
     String? shortId,
     String? groupId,
+    String? biblicalSummary,
   }) {
     return ColdigomPraiseCache()
       ..praiseId = praiseId
@@ -238,6 +242,7 @@ abstract final class ColdigomPraiseCacheMapper {
       ..materialsJson = jsonEncode([for (final m in materials) m.toJson()])
       ..shortId = shortId
       ..groupId = groupId
+      ..biblicalSummary = biblicalSummary
       ..searchTokens = buildSearchTokens(
         name: name,
         number: number,
@@ -330,6 +335,7 @@ abstract final class ColdigomPraiseCacheMapper {
       materials: materials,
       shortId: row.shortId,
       groupId: row.groupId,
+      biblicalSummary: row.biblicalSummary,
     );
   }
 }

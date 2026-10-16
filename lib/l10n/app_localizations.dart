@@ -1412,6 +1412,12 @@ abstract class AppLocalizations {
   /// **'Ritmo'**
   String get coldigomMetaRhythm;
 
+  /// No description provided for @coldigomMetaBiblical.
+  ///
+  /// In pt, this message translates to:
+  /// **'Iluminação Bíblica'**
+  String get coldigomMetaBiblical;
+
   /// No description provided for @coldigomMetaTags.
   ///
   /// In pt, this message translates to:

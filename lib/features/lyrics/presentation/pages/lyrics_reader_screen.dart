@@ -218,6 +218,7 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen>
     final row = ref.watch(coldigomCatalogRowProvider(_praiseId));
     final title = widget.queryParams[UrlSyncParams.titulo] ?? row?.name ?? '';
     final text = row?.lyrics.trim() ?? '';
+    final biblicalSummary = row?.biblicalSummary?.trim() ?? '';
 
     ref.listen<LyricsAutoscrollState>(lyricsAutoscrollProvider, (previous, next) {
       if (next.running) {
@@ -299,13 +300,44 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen>
                             child: SingleChildScrollView(
                               controller: _scrollController,
                               padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                              child: SelectableText(
-                                text,
-                                style: AppTypography.body.copyWith(
-                                  color: AppColors.textDark,
-                                  fontSize: fontSize,
-                                  height: 1.5,
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (biblicalSummary.isNotEmpty) ...[
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      margin: const EdgeInsets.only(bottom: 16),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.gold.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: AppColors.gold.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        biblicalSummary,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTypography.body.copyWith(
+                                          color: AppColors.title,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  SelectableText(
+                                    text,
+                                    style: AppTypography.body.copyWith(
+                                      color: AppColors.textDark,
+                                      fontSize: fontSize,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),

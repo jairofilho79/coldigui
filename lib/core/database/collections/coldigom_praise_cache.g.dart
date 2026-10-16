@@ -33,6 +33,7 @@ final ColdigomPraiseCacheSchema = IsarGeneratedSchema(
       IsarPropertySchema(name: 'searchTokens', type: IsarType.string),
       IsarPropertySchema(name: 'shortId', type: IsarType.string),
       IsarPropertySchema(name: 'groupId', type: IsarType.string),
+      IsarPropertySchema(name: 'biblicalSummary', type: IsarType.string),
     ],
     indexes: [
       IsarIndexSchema(
@@ -89,6 +90,14 @@ int serializeColdigomPraiseCache(
       IsarCore.writeString(writer, 12, value);
     }
   }
+  {
+    final value = object.biblicalSummary;
+    if (value == null) {
+      IsarCore.writeNull(writer, 13);
+    } else {
+      IsarCore.writeString(writer, 13, value);
+    }
+  }
   return object.id;
 }
 
@@ -123,6 +132,7 @@ ColdigomPraiseCache deserializeColdigomPraiseCache(IsarReader reader) {
   object.searchTokens = IsarCore.readString(reader, 10) ?? '';
   object.shortId = IsarCore.readString(reader, 11);
   object.groupId = IsarCore.readString(reader, 12);
+  object.biblicalSummary = IsarCore.readString(reader, 13);
   return object;
 }
 
@@ -170,6 +180,8 @@ dynamic deserializeColdigomPraiseCacheProp(IsarReader reader, int property) {
       return IsarCore.readString(reader, 11);
     case 12:
       return IsarCore.readString(reader, 12);
+    case 13:
+      return IsarCore.readString(reader, 13);
     default:
       throw ArgumentError('Unknown property: $property');
   }
@@ -189,6 +201,7 @@ sealed class _ColdigomPraiseCacheUpdate {
     String? searchTokens,
     String? shortId,
     String? groupId,
+    String? biblicalSummary,
   });
 }
 
@@ -211,6 +224,7 @@ class _ColdigomPraiseCacheUpdateImpl implements _ColdigomPraiseCacheUpdate {
     Object? searchTokens = ignore,
     Object? shortId = ignore,
     Object? groupId = ignore,
+    Object? biblicalSummary = ignore,
   }) {
     return collection.updateProperties(
           [id],
@@ -226,6 +240,7 @@ class _ColdigomPraiseCacheUpdateImpl implements _ColdigomPraiseCacheUpdate {
             if (searchTokens != ignore) 10: searchTokens as String?,
             if (shortId != ignore) 11: shortId as String?,
             if (groupId != ignore) 12: groupId as String?,
+            if (biblicalSummary != ignore) 13: biblicalSummary as String?,
           },
         ) >
         0;
@@ -246,6 +261,7 @@ sealed class _ColdigomPraiseCacheUpdateAll {
     String? searchTokens,
     String? shortId,
     String? groupId,
+    String? biblicalSummary,
   });
 }
 
@@ -269,6 +285,7 @@ class _ColdigomPraiseCacheUpdateAllImpl
     Object? searchTokens = ignore,
     Object? shortId = ignore,
     Object? groupId = ignore,
+    Object? biblicalSummary = ignore,
   }) {
     return collection.updateProperties(id, {
       if (praiseId != ignore) 1: praiseId as String?,
@@ -282,6 +299,7 @@ class _ColdigomPraiseCacheUpdateAllImpl
       if (searchTokens != ignore) 10: searchTokens as String?,
       if (shortId != ignore) 11: shortId as String?,
       if (groupId != ignore) 12: groupId as String?,
+      if (biblicalSummary != ignore) 13: biblicalSummary as String?,
     });
   }
 }
@@ -307,6 +325,7 @@ sealed class _ColdigomPraiseCacheQueryUpdate {
     String? searchTokens,
     String? shortId,
     String? groupId,
+    String? biblicalSummary,
   });
 }
 
@@ -330,6 +349,7 @@ class _ColdigomPraiseCacheQueryUpdateImpl
     Object? searchTokens = ignore,
     Object? shortId = ignore,
     Object? groupId = ignore,
+    Object? biblicalSummary = ignore,
   }) {
     return query.updateProperties(limit: limit, {
       if (praiseId != ignore) 1: praiseId as String?,
@@ -343,6 +363,7 @@ class _ColdigomPraiseCacheQueryUpdateImpl
       if (searchTokens != ignore) 10: searchTokens as String?,
       if (shortId != ignore) 11: shortId as String?,
       if (groupId != ignore) 12: groupId as String?,
+      if (biblicalSummary != ignore) 13: biblicalSummary as String?,
     });
   }
 }
@@ -376,6 +397,7 @@ class _ColdigomPraiseCacheQueryBuilderUpdateImpl
     Object? searchTokens = ignore,
     Object? shortId = ignore,
     Object? groupId = ignore,
+    Object? biblicalSummary = ignore,
   }) {
     final q = query.build();
     try {
@@ -391,6 +413,7 @@ class _ColdigomPraiseCacheQueryBuilderUpdateImpl
         if (searchTokens != ignore) 10: searchTokens as String?,
         if (shortId != ignore) 11: shortId as String?,
         if (groupId != ignore) 12: groupId as String?,
+        if (biblicalSummary != ignore) 13: biblicalSummary as String?,
       });
     } finally {
       q.close();
@@ -2215,6 +2238,172 @@ extension ColdigomPraiseCacheQueryFilter
       );
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 13));
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 13));
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryGreaterThanOrEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 13, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryBetween(
+    String? lower,
+    String? upper, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 13,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 13,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 13, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  biblicalSummaryIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 13, value: ''),
+      );
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQueryObject
@@ -2394,6 +2583,20 @@ extension ColdigomPraiseCacheQuerySortBy
       return query.addSortBy(12, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
+  sortByBiblicalSummary({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(13, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
+  sortByBiblicalSummaryDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(13, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQuerySortThenBy
@@ -2565,6 +2768,20 @@ extension ColdigomPraiseCacheQuerySortThenBy
       return query.addSortBy(12, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
+  thenByBiblicalSummary({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(13, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
+  thenByBiblicalSummaryDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(13, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQueryWhereDistinct
@@ -2652,6 +2869,13 @@ extension ColdigomPraiseCacheQueryWhereDistinct
       return query.addDistinctBy(12, caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterDistinct>
+  distinctByBiblicalSummary({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(13, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQueryProperty1
@@ -2734,6 +2958,13 @@ extension ColdigomPraiseCacheQueryProperty1
   QueryBuilder<ColdigomPraiseCache, String?, QAfterProperty> groupIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(12);
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, String?, QAfterProperty>
+  biblicalSummaryProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(13);
     });
   }
 }
@@ -2829,6 +3060,13 @@ extension ColdigomPraiseCacheQueryProperty2<R>
       return query.addProperty(12);
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, (R, String?), QAfterProperty>
+  biblicalSummaryProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(13);
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQueryProperty3<R1, R2>
@@ -2920,6 +3158,13 @@ extension ColdigomPraiseCacheQueryProperty3<R1, R2>
   groupIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(12);
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, (R1, R2, String?), QOperations>
+  biblicalSummaryProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(13);
     });
   }
 }

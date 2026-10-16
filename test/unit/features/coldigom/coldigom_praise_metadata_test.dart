@@ -20,5 +20,12 @@ void main() {
       const ColdigomPraiseMetadata(name: 'x', tagNames: ['PES']).hasAnyField,
       isTrue,
     );
+    expect(
+      const ColdigomPraiseMetadata(
+        name: 'x',
+        biblicalSummary: 'Sl 23:1 — O Senhor é meu pastor',
+      ).hasAnyField,
+      isTrue,
+    );
   });
 }

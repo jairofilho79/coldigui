@@ -94,6 +94,7 @@ class ColdigomCatalogPraiseDto {
     required this.materials,
     this.shortId,
     this.groupId,
+    this.biblicalSummary,
   });
 
   final String id;
@@ -116,6 +117,9 @@ class ColdigomCatalogPraiseDto {
   /// (spec louvores-agrupados §3.2); `null` fora de grupo.
   final String? groupId;
 
+  /// Resumo bíblico discreto (1 linha) vindo do dump ou detalhe da API.
+  final String? biblicalSummary;
+
   factory ColdigomCatalogPraiseDto.fromJson(Map<String, dynamic> json) {
     final id = json['id'] as String;
     return ColdigomCatalogPraiseDto(
@@ -132,6 +136,7 @@ class ColdigomCatalogPraiseDto {
           if (tag is String && tag.trim().isNotEmpty) tag.trim(),
       ],
       lyrics: json['lyrics'] as String? ?? '',
+      biblicalSummary: (json['biblicalSummary'] as String?)?.trim(),
       materials: _parseMaterials(
         json['materials'] as List<dynamic>? ?? const [],
         praiseId: id,

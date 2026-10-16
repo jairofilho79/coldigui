@@ -189,5 +189,34 @@ void main() {
     expect(find.byIcon(Icons.fullscreen), findsOneWidget);
     expect(find.byIcon(Icons.fullscreen_exit), findsNothing);
   });
+
+  testWidgets('mostra resumo bíblico discreto quando presente no catálogo', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(const {});
+    final prefs = await SharedPreferences.getInstance();
+    final row = _row('Ainda há tempo\nde voltar ao Senhor')
+      ..biblicalSummary = 'Sl 23:1 — O Senhor é o meu pastor';
+
+    await pumpApp(
+      tester,
+      const LyricsReaderScreen(
+        queryParams: {'praiseId': 'p1', 'titulo': 'Ainda há tempo'},
+      ),
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        coldigomCatalogLocalDatasourceProvider.overrideWithValue(
+          _MemoryCatalog({'p1': row}),
+        ),
+      ],
+    );
+    await tester.pump();
+
+    final badgeFinder = find.text('Sl 23:1 — O Senhor é o meu pastor');
+    expect(badgeFinder, findsOneWidget);
+    final Text textWidget = tester.widget(badgeFinder);
+    expect(textWidget.maxLines, 1);
+    expect(textWidget.overflow, TextOverflow.ellipsis);
+  });
 }
 

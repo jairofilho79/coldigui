@@ -103,6 +103,7 @@ class ColdigomMetaBlock extends StatelessWidget {
     final tonality = m?.tonality.trim() ?? '';
     final rhythm = m?.rhythm.trim() ?? '';
     final author = m?.author.trim() ?? '';
+    final biblical = m?.biblicalSummary?.trim() ?? '';
     final hasPair = tonality.isNotEmpty || rhythm.isNotEmpty;
     final tagNames = m?.tagNames ?? const <String>[];
 
@@ -129,6 +130,10 @@ class ColdigomMetaBlock extends StatelessWidget {
         if (author.isNotEmpty) ...[
           if (hasPair) const SizedBox(height: 10),
           _metaField(l10n.coldigomMetaAuthor, author),
+        ],
+        if (biblical.isNotEmpty) ...[
+          if (hasPair || author.isNotEmpty) const SizedBox(height: 10),
+          _metaField(l10n.coldigomMetaBiblical, biblical, singleLine: true),
         ],
         if (tagNames.isNotEmpty) ...[
           const SizedBox(height: 12),
@@ -229,7 +234,7 @@ class ColdigomMetaBlock extends StatelessWidget {
     );
   }
 
-  Widget _metaField(String label, String value) {
+  Widget _metaField(String label, String value, {bool singleLine = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -243,6 +248,8 @@ class ColdigomMetaBlock extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           value,
+          maxLines: singleLine ? 1 : null,
+          overflow: singleLine ? TextOverflow.ellipsis : null,
           style: AppTypography.body.copyWith(
             color: AppColors.title,
             fontWeight: FontWeight.w500,

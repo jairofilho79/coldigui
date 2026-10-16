@@ -10,6 +10,7 @@ class ColdigomPraiseMetadata {
     this.lyricsExcerpt,
     this.shortId,
     this.groupId,
+    this.biblicalSummary,
   });
 
   final String name;
@@ -17,6 +18,9 @@ class ColdigomPraiseMetadata {
   final String author;
   final String rhythm;
   final List<String> tagNames;
+
+  /// Resumo bíblico discreto (1 linha) vindo do dump ou detalhe da API.
+  final String? biblicalSummary;
 
   /// Trecho da letra ao redor do match da busca — `null` fora de uma busca
   /// que bateu na letra.
@@ -41,5 +45,6 @@ class ColdigomPraiseMetadata {
       tonality.trim().isNotEmpty ||
       author.trim().isNotEmpty ||
       rhythm.trim().isNotEmpty ||
-      tagNames.isNotEmpty;
+      tagNames.isNotEmpty ||
+      (biblicalSummary != null && biblicalSummary!.trim().isNotEmpty);
 }
