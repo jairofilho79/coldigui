@@ -14,6 +14,7 @@ import '../steps/contribute_tutorial_steps.dart';
 import '../steps/extracted_material_editor_tutorial_steps.dart';
 import '../steps/favorite_material_kinds_tutorial_steps.dart';
 import '../steps/filters_tutorial_steps.dart';
+import '../steps/gesture_focus_tutorial_steps.dart';
 import '../steps/gestures_tutorial_steps.dart';
 import '../steps/home_tutorial_steps.dart';
 import '../steps/library_tutorial_steps.dart';
@@ -78,6 +79,7 @@ class TutorialController {
       'modal:carousel-selection' => true,
       'modal:filters' => true,
       'modal:extracted-editor' => true,
+      'modal:gesture-focus' => true,
       final p when p.startsWith('/ao-vivo/') => true,
       final p when p.startsWith('/louvor/') => true,
       final p when p.startsWith('/contribuicoes/') => true,
@@ -126,6 +128,8 @@ class TutorialController {
         buildFiltersTutorialSteps(context),
       'modal:extracted-editor' =>
         buildExtractedMaterialEditorTutorialSteps(context),
+      'modal:gesture-focus' =>
+        buildGestureFocusTutorialSteps(context),
       final p when p.startsWith('/ao-vivo/') =>
         buildLiveRoomTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
@@ -181,6 +185,11 @@ class TutorialController {
   /// Inicia o tutorial do editor de materiais extraídos ([ExtractedMaterialEditorScaffold]).
   void startExtractedMaterialEditorTutorial(BuildContext context) {
     showSteps(buildExtractedMaterialEditorTutorialSteps(context));
+  }
+
+  /// Inicia o tutorial do modo foco de gestos ([GestureFocusView]).
+  void startGestureFocusTutorial(BuildContext context) {
+    showSteps(buildGestureFocusTutorialSteps(context));
   }
 
   /// Restaura qualquer estado alterado durante a apresentação do tutorial.

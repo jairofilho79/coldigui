@@ -46,6 +46,7 @@ void main() {
       expect(controller.hasTutorialFor('modal:carousel-selection'), isTrue);
       expect(controller.hasTutorialFor('modal:filters'), isTrue);
       expect(controller.hasTutorialFor('modal:extracted-editor'), isTrue);
+      expect(controller.hasTutorialFor('modal:gesture-focus'), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -620,6 +621,33 @@ void main() {
                 expect(steps[3].items.first.targetId, 'extracted-editor-preview');
                 expect(steps[4].items.first.targetId, 'extracted-editor-submit');
                 expect(steps[5].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos do Modo Foco de Gestos (GestureFocusView) com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  'modal:gesture-focus',
+                );
+                expect(steps.length, 5);
+                expect(steps[0].items.first.targetId, 'gesture-focus-card');
+                expect(steps[1].items.first.targetId, 'gesture-focus-trigger');
+                expect(steps[2].items.first.targetId, 'gesture-focus-navigation');
+                expect(steps[3].items.first.targetId, 'gesture-focus-next');
+                expect(steps[4].items.first.targetId, 'gesture-focus-info');
                 return const SizedBox();
               },
             ),
@@ -3059,6 +3087,93 @@ void main() {
       await tester.tap(find.text('Concluir'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'navega por todos os passos do tutorial do Modo Foco de Gestos (GestureFocusView)',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final tutorial = container.read(tutorialControllerProvider);
+
+                return SpotlightGuidePortal(
+                  controller: tutorial.portalController,
+                  autoStart: false,
+                  onFinish: () => tutorial.resetTutorialState(),
+                  child: Scaffold(
+                    body: Column(
+                      children: [
+                        SpotlightGuideTarget(
+                          id: 'gesture-focus-card',
+                          child: const SizedBox(height: 40, child: Text('Card')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'gesture-focus-trigger',
+                          child: const SizedBox(height: 40, child: Text('Trigger')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'gesture-focus-navigation',
+                          child: const SizedBox(height: 40, child: Text('Navigation')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'gesture-focus-next',
+                          child: const SizedBox(height: 40, child: Text('Next')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'gesture-focus-info',
+                          child: const SizedBox(height: 40, child: Text('Info')),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      final tutorial = container.read(tutorialControllerProvider);
+      final context = tester.element(find.byType(Scaffold));
+
+      tutorial.startGestureFocusTutorial(context);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Cartão do Gesto em Destaque
+      expect(find.text('Cartão do Gesto em Destaque'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Frase & Letra Disparadora
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Frase & Letra Disparadora'), findsOneWidget);
+
+      // Passo 3: Navegação entre Gestos
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Navegação entre Gestos'), findsOneWidget);
+
+      // Passo 4: Próximo Gatilho
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Próximo Gatilho'), findsOneWidget);
+
+      // Passo 5: Ajuda do Modo Foco
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda do Modo Foco'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda do Modo Foco'), findsNothing);
     });
   });
 }

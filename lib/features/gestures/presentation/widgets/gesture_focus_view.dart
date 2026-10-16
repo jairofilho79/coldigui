@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
+import '../../../../core/tutorial/presentation/providers/tutorial_provider.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import '../../domain/entities/flat_gesture_card.dart';
@@ -90,9 +92,28 @@ class _GestureFocusViewState extends ConsumerState<GestureFocusView> {
   );
   late int _index = _controller.initialPage;
   final _focusNode = FocusNode(debugLabel: 'gestureFocusKeys');
+  final _portalController = SpotlightGuidePortalController();
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      ref
+          .read(tutorialControllerProvider)
+          .pushPortalController(_portalController);
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
+    try {
+      if (_portalController.isShowing) {
+        _portalController.hide();
+      }
+      ref
+          .read(tutorialControllerProvider)
+          .popPortalController(_portalController);
+    } catch (_) {}
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -122,6 +143,10 @@ class _GestureFocusViewState extends ConsumerState<GestureFocusView> {
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.escape) {
+      if (_portalController.isShowing) {
+        ref.read(tutorialControllerProvider).hide();
+        return KeyEventResult.handled;
+      }
       _close();
       return KeyEventResult.handled;
     }
@@ -139,57 +164,91 @@ class _GestureFocusViewState extends ConsumerState<GestureFocusView> {
     final next = _index + 1 < cards.length ? cards[_index + 1] : null;
     final nextTrigger = _footerTriggerOf(next);
 
+    final tutorialNotifier = ref.watch(tutorialControllerProvider);
+
     return Focus(
       focusNode: _focusNode,
       autofocus: true,
       onKeyEvent: _onKey,
-      child: Material(
-        color: widget.palette.paper,
-        child: SafeArea(
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  key: gestureFocusCloseKey,
-                  tooltip: l10n.gestureFocusClose,
-                  icon: Icon(Icons.close, color: widget.palette.lyric),
-                  onPressed: _close,
-                ),
-              ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTapUp: (details) => _go(
-                        details.localPosition.dx > constraints.maxWidth / 2
-                            ? 1
-                            : -1,
-                      ),
-                      child: PageView.builder(
-                        controller: _controller,
-                        itemCount: cards.length,
-                        onPageChanged: (i) => setState(() => _index = i),
-                        itemBuilder: (context, i) => _FocusPage(
-                          key: gestureFocusPageKey(i),
-                          flat: cards[i],
-                          dictionary: widget.dictionary,
-                          fontSize: widget.fontSize + 6,
-                          maxWidth: constraints.maxWidth,
-                          palette: widget.palette,
+      child: SpotlightGuidePortal(
+        controller: _portalController,
+        autoStart: false,
+        missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
+        barrier: const SpotlightGuideBarrierStyle(
+          color: Color(0x99000000),
+          blurSigma: 0,
+        ),
+        barrierDismissBehavior: SpotlightGuideDismissBehavior.anytime,
+        onBarrierTap: (c) => tutorialNotifier.hide(),
+        onFinish: () => tutorialNotifier.resetTutorialState(),
+        child: Material(
+          color: widget.palette.paper,
+          child: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'gesture-focus-info',
+                        child: IconButton(
+                          icon: Icon(Icons.info_outline, color: widget.palette.lyric),
+                          tooltip: 'Como usar o Modo Foco',
+                          onPressed: () => tutorialNotifier
+                              .startGestureFocusTutorial(context),
                         ),
                       ),
-                    );
-                  },
+                      IconButton(
+                        key: gestureFocusCloseKey,
+                        tooltip: l10n.gestureFocusClose,
+                        icon: Icon(Icons.close, color: widget.palette.lyric),
+                        onPressed: _close,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              _NextFooter(
-                l10n: l10n,
-                nextTrigger: next == null ? null : nextTrigger,
-                palette: widget.palette,
-              ),
-            ],
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SpotlightGuideTarget(
+                        id: 'gesture-focus-navigation',
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTapUp: (details) => _go(
+                            details.localPosition.dx > constraints.maxWidth / 2
+                                ? 1
+                                : -1,
+                          ),
+                          child: PageView.builder(
+                            controller: _controller,
+                            itemCount: cards.length,
+                            onPageChanged: (i) => setState(() => _index = i),
+                            itemBuilder: (context, i) => _FocusPage(
+                              key: gestureFocusPageKey(i),
+                              flat: cards[i],
+                              dictionary: widget.dictionary,
+                              fontSize: widget.fontSize + 6,
+                              maxWidth: constraints.maxWidth,
+                              palette: widget.palette,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                SpotlightGuideTarget(
+                  id: 'gesture-focus-next',
+                  child: _NextFooter(
+                    l10n: l10n,
+                    nextTrigger: next == null ? null : nextTrigger,
+                    palette: widget.palette,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -240,23 +299,33 @@ class _FocusPage extends StatelessWidget {
               ],
             ),
           const SizedBox(height: 8),
-          GestureFigure(
-            entry: entry,
-            gestureId: flat.card.gestureId,
-            side: side,
-            preferGif: true,
-            palette: palette,
+          SpotlightGuideTarget(
+            id: 'gesture-focus-card',
+            child: GestureFigure(
+              entry: entry,
+              gestureId: flat.card.gestureId,
+              side: side,
+              preferGif: true,
+              palette: palette,
+            ),
           ),
           const SizedBox(height: 16),
-          for (final line in flat.card.lyrics)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: LyricLineText(
-                line: line,
-                fontSize: fontSize,
-                palette: palette,
-              ),
+          SpotlightGuideTarget(
+            id: 'gesture-focus-trigger',
+            child: Column(
+              children: [
+                for (final line in flat.card.lyrics)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: LyricLineText(
+                      line: line,
+                      fontSize: fontSize,
+                      palette: palette,
+                    ),
+                  ),
+              ],
             ),
+          ),
         ],
       ),
     );
