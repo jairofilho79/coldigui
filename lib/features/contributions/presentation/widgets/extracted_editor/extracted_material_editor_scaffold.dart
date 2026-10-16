@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../../core/layout/breakpoints.dart';
 import '../../../../../core/theme/app_typography.dart';
@@ -188,33 +189,36 @@ class _ExtractedMaterialEditorScaffoldState
               if (user == null)
                 const Center(child: SignInToContribute())
               else
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: FilledButton(
-                    key: const Key('contribute-send-extracted'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.gold,
-                      foregroundColor: AppColors.title,
-                      disabledBackgroundColor: AppColors.background,
-                      disabledForegroundColor: const Color(0xFF351C1B),
-                      side: const BorderSide(
-                        color: AppColors.gold,
-                        width: 2,
+                SpotlightGuideTarget(
+                  id: 'extracted-editor-submit',
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton(
+                      key: const Key('contribute-send-extracted'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.gold,
+                        foregroundColor: AppColors.title,
+                        disabledBackgroundColor: AppColors.background,
+                        disabledForegroundColor: const Color(0xFF351C1B),
+                        side: const BorderSide(
+                          color: AppColors.gold,
+                          width: 2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    onPressed: formState.submit is! ContributeSending
-                        ? () => _submitSuggestion(praiseTitle, notifier)
-                        : null,
-                    child: Text(
-                      l10n.contributeSend,
-                      style: AppTypography.body.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                        color: AppColors.title,
+                      onPressed: formState.submit is! ContributeSending
+                          ? () => _submitSuggestion(praiseTitle, notifier)
+                          : null,
+                      child: Text(
+                        l10n.contributeSend,
+                        style: AppTypography.body.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: AppColors.title,
+                        ),
                       ),
                     ),
                   ),

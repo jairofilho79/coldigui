@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../../core/layout/breakpoints.dart';
 import '../../../../../core/theme/app_typography.dart';
@@ -200,53 +201,60 @@ class _ExtractedGestureEditorState extends ConsumerState<ExtractedGestureEditor>
     final editorWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        toolbar,
+        SpotlightGuideTarget(
+          id: 'extracted-editor-toolbar',
+          child: toolbar,
+        ),
         const SizedBox(height: 12),
-        if (_document.items.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0x33D4AF37)),
-            ),
-            child: Center(
-              child: Text(
-                'Nenhum item no documento. Adicione uma linha acima.',
-                style: AppTypography.body.copyWith(
-                  color: AppColors.title.withValues(alpha: 0.7),
+        SpotlightGuideTarget(
+          id: 'extracted-editor-workspace',
+          child: _document.items.isEmpty
+              ? Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0x33D4AF37)),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Nenhum item no documento. Adicione uma linha acima.',
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.title.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _document.items.length,
+                  itemBuilder: (context, index) {
+                    return _buildItemWidget(
+                      _document.items[index],
+                      _document.items,
+                      index,
+                      dict,
+                      palette,
+                      l10n,
+                    );
+                  },
                 ),
-              ),
-            ),
-          )
-        else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _document.items.length,
-            itemBuilder: (context, index) {
-              return _buildItemWidget(
-                _document.items[index],
-                _document.items,
-                index,
-                dict,
-                palette,
-                l10n,
-              );
-            },
-          ),
+        ),
       ],
     );
 
-    final previewWidget = Container(
-      height: wide ? 620 : 450,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0x33D4AF37)),
-      ),
-      child: Column(
+    final previewWidget = SpotlightGuideTarget(
+      id: 'extracted-editor-preview',
+      child: Container(
+        height: wide ? 620 : 450,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0x33D4AF37)),
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
@@ -284,7 +292,7 @@ class _ExtractedGestureEditorState extends ConsumerState<ExtractedGestureEditor>
           ),
         ],
       ),
-    );
+    ));
 
     if (wide) {
       return Row(
@@ -474,17 +482,33 @@ class _ExtractedGestureEditorState extends ConsumerState<ExtractedGestureEditor>
                         fontSize: 14,
                       ),
                     ),
-                    TextButton.icon(
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(0, 24),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        foregroundColor: AppColors.gold,
+                    if (index == 0)
+                      SpotlightGuideTarget(
+                        id: 'extracted-gesture-picker',
+                        child: TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 24),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            foregroundColor: AppColors.gold,
+                          ),
+                          onPressed: () => _pickGestureForCard(card, parentList, index),
+                          icon: const Icon(Icons.swap_horiz, size: 16),
+                          label: Text(l10n.contributeEditorChangeGesture),
+                        ),
+                      )
+                    else
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 24),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          foregroundColor: AppColors.gold,
+                        ),
+                        onPressed: () => _pickGestureForCard(card, parentList, index),
+                        icon: const Icon(Icons.swap_horiz, size: 16),
+                        label: Text(l10n.contributeEditorChangeGesture),
                       ),
-                      onPressed: () => _pickGestureForCard(card, parentList, index),
-                      icon: const Icon(Icons.swap_horiz, size: 16),
-                      label: Text(l10n.contributeEditorChangeGesture),
-                    ),
                   ],
                 ),
               ),

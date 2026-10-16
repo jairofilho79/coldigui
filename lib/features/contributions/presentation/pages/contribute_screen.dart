@@ -110,6 +110,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
         _portalController.hide();
       }
       ref.read(tutorialControllerProvider).popPortalController(_portalController);
+      ref.read(extractedEditorActiveProvider.notifier).set(false);
     } catch (_) {}
     super.dispose();
   }
@@ -246,8 +247,20 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     final tutorialNotifier = ref.watch(tutorialControllerProvider);
 
     // Se o alvo for um material extraído (ou selecionado pelo usuário)
+    final isExtractedActive =
+        _selectedExtractedKind != null && effectiveTarget != null;
+    if (ref.read(extractedEditorActiveProvider) != isExtractedActive) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(extractedEditorActiveProvider.notifier).set(
+                isExtractedActive,
+              );
+        }
+      });
+    }
+
     final Widget content;
-    if (_selectedExtractedKind != null && effectiveTarget != null) {
+    if (isExtractedActive) {
       content = Scaffold(
         appBar: const PlpcgPrimaryAppBar(),
         body: ExtractedMaterialEditorScaffold(

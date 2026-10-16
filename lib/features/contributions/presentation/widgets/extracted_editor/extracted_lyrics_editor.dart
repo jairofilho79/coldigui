@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../../core/layout/breakpoints.dart';
 import '../../../../../core/theme/app_typography.dart';
@@ -119,45 +120,53 @@ class _ExtractedLyricsEditorState extends State<ExtractedLyricsEditor> {
     final editorWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        toolbar,
+        SpotlightGuideTarget(
+          id: 'extracted-editor-toolbar',
+          child: toolbar,
+        ),
         const SizedBox(height: 12),
-        GoldenTaggedContainer(
-          label: l10n.contributeEditorRawTab,
-          contentPadding: const EdgeInsets.all(12),
-          child: TextFormField(
-            controller: _controller,
-            minLines: 8,
-            maxLines: null,
-            keyboardType: TextInputType.multiline,
-            style: AppTypography.input.copyWith(
-              fontFamily: 'monospace',
-              fontSize: 14,
-              height: 1.5,
+        SpotlightGuideTarget(
+          id: 'extracted-editor-workspace',
+          child: GoldenTaggedContainer(
+            label: l10n.contributeEditorRawTab,
+            contentPadding: const EdgeInsets.all(12),
+            child: TextFormField(
+              controller: _controller,
+              minLines: 8,
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+              style: AppTypography.input.copyWith(
+                fontFamily: 'monospace',
+                fontSize: 14,
+                height: 1.5,
+              ),
+              decoration: InputDecoration(
+                hintText: l10n.contributeBodyHint,
+                hintStyle: AppTypography.hint(italic: true),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              onChanged: (val) {
+                widget.onChanged(val);
+                setState(() {});
+              },
             ),
-            decoration: InputDecoration(
-              hintText: l10n.contributeBodyHint,
-              hintStyle: AppTypography.hint(italic: true),
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
-            ),
-            onChanged: (val) {
-              widget.onChanged(val);
-              setState(() {});
-            },
           ),
         ),
       ],
     );
 
-    final previewWidget = Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0x33D4AF37)),
-      ),
-      child: Column(
+    final previewWidget = SpotlightGuideTarget(
+      id: 'extracted-editor-preview',
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0x33D4AF37)),
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
@@ -205,7 +214,7 @@ class _ExtractedLyricsEditorState extends State<ExtractedLyricsEditor> {
                 ),
         ],
       ),
-    );
+    ));
 
     if (wide) {
       return Row(

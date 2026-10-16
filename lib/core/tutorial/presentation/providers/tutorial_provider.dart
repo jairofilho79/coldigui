@@ -11,6 +11,7 @@ import '../steps/carousel_selection_tutorial_steps.dart';
 import '../steps/chords_tutorial_steps.dart';
 import '../steps/contribution_detail_tutorial_steps.dart';
 import '../steps/contribute_tutorial_steps.dart';
+import '../steps/extracted_material_editor_tutorial_steps.dart';
 import '../steps/favorite_material_kinds_tutorial_steps.dart';
 import '../steps/filters_tutorial_steps.dart';
 import '../steps/gestures_tutorial_steps.dart';
@@ -76,6 +77,7 @@ class TutorialController {
       'modal:material-sheet' => true,
       'modal:carousel-selection' => true,
       'modal:filters' => true,
+      'modal:extracted-editor' => true,
       final p when p.startsWith('/ao-vivo/') => true,
       final p when p.startsWith('/louvor/') => true,
       final p when p.startsWith('/contribuicoes/') => true,
@@ -109,7 +111,9 @@ class TutorialController {
       RoutePaths.publicPlaylists =>
         buildPublicPlaylistsTutorialSteps(context),
       RoutePaths.contribute =>
-        buildContributeTutorialSteps(context),
+        _ref?.read(extractedEditorActiveProvider) == true
+            ? buildExtractedMaterialEditorTutorialSteps(context)
+            : buildContributeTutorialSteps(context),
       RoutePaths.liveRoom =>
         buildLiveRoomTutorialSteps(context),
       RoutePaths.contributionDetail =>
@@ -120,6 +124,8 @@ class TutorialController {
         buildCarouselSelectionTutorialSteps(context),
       'modal:filters' =>
         buildFiltersTutorialSteps(context),
+      'modal:extracted-editor' =>
+        buildExtractedMaterialEditorTutorialSteps(context),
       final p when p.startsWith('/ao-vivo/') =>
         buildLiveRoomTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
@@ -172,6 +178,11 @@ class TutorialController {
     showSteps(buildFiltersTutorialSteps(context));
   }
 
+  /// Inicia o tutorial do editor de materiais extraídos ([ExtractedMaterialEditorScaffold]).
+  void startExtractedMaterialEditorTutorial(BuildContext context) {
+    showSteps(buildExtractedMaterialEditorTutorialSteps(context));
+  }
+
   /// Restaura qualquer estado alterado durante a apresentação do tutorial.
   void resetTutorialState() {
     _ref
@@ -213,3 +224,17 @@ final tutorialControllerProvider = Provider<TutorialController>((ref) {
   });
   return controller;
 });
+
+/// Notifier que controla se o editor de materiais extraídos está ativo na tela de contribuição.
+class ExtractedEditorActiveNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
+
+/// Provider que sinaliza se o editor de materiais extraídos está ativo na tela de contribuição.
+final extractedEditorActiveProvider =
+    NotifierProvider<ExtractedEditorActiveNotifier, bool>(
+  ExtractedEditorActiveNotifier.new,
+);

@@ -12,6 +12,11 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
+class _ActiveExtractedEditorNotifier extends ExtractedEditorActiveNotifier {
+  @override
+  bool build() => true;
+}
+
 void main() {
   group('TutorialController', () {
     test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords, gestos, audio, offline, lyrics, praise, about, favoriteMaterialKinds, myContributions, publicPlaylists, contribute e liveRoom', () {
@@ -40,6 +45,7 @@ void main() {
       expect(controller.hasTutorialFor('modal:material-sheet'), isTrue);
       expect(controller.hasTutorialFor('modal:carousel-selection'), isTrue);
       expect(controller.hasTutorialFor('modal:filters'), isTrue);
+      expect(controller.hasTutorialFor('modal:extracted-editor'), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -586,6 +592,65 @@ void main() {
                 expect(steps[3].items.first.targetId, 'filters-material-kind');
                 expect(steps[4].items.first.targetId, 'filters-clear-action');
                 expect(steps[5].items.first.targetId, 'filters-info');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos do Editor de Materiais Extraídos (ExtractedMaterialEditor) com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  'modal:extracted-editor',
+                );
+                expect(steps.length, 6);
+                expect(steps[0].items.first.targetId, 'extracted-editor-toolbar');
+                expect(steps[1].items.first.targetId, 'extracted-editor-workspace');
+                expect(steps[2].items.first.targetId, 'extracted-gesture-picker');
+                expect(steps[3].items.first.targetId, 'extracted-editor-preview');
+                expect(steps[4].items.first.targetId, 'extracted-editor-submit');
+                expect(steps[5].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute em RoutePaths.contribute alterna para passos do editor extraído quando ativo',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            extractedEditorActiveProvider.overrideWith(_ActiveExtractedEditorNotifier.new),
+          ],
+          child: MaterialApp(
+            home: Consumer(
+              builder: (context, ref, _) {
+                final controller = ref.watch(tutorialControllerProvider);
+                final steps = controller.stepsForRoute(
+                  context,
+                  RoutePaths.contribute,
+                );
+                expect(steps.length, 6);
+                expect(steps[0].items.first.targetId, 'extracted-editor-toolbar');
+                expect(steps[1].items.first.targetId, 'extracted-editor-workspace');
+                expect(steps[2].items.first.targetId, 'extracted-gesture-picker');
+                expect(steps[3].items.first.targetId, 'extracted-editor-preview');
+                expect(steps[4].items.first.targetId, 'extracted-editor-submit');
+                expect(steps[5].items.first.targetId, 'app-info-button');
                 return const SizedBox();
               },
             ),
@@ -2898,6 +2963,102 @@ void main() {
       await tester.tap(find.text('Concluir'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda de Filtros'), findsNothing);
+    });
+
+    testWidgets(
+        'navega por todos os passos do tutorial do Editor de Materiais Extraídos (ExtractedMaterialEditor)',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final tutorial = container.read(tutorialControllerProvider);
+
+                return SpotlightGuidePortal(
+                  controller: tutorial.portalController,
+                  autoStart: false,
+                  onFinish: () => tutorial.resetTutorialState(),
+                  child: Scaffold(
+                    body: Column(
+                      children: [
+                        SpotlightGuideTarget(
+                          id: 'extracted-editor-toolbar',
+                          child: const SizedBox(height: 40, child: Text('Toolbar')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'extracted-editor-workspace',
+                          child: const SizedBox(height: 40, child: Text('Workspace')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'extracted-gesture-picker',
+                          child: const SizedBox(height: 40, child: Text('GesturePicker')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'extracted-editor-preview',
+                          child: const SizedBox(height: 40, child: Text('Preview')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'extracted-editor-submit',
+                          child: const SizedBox(height: 40, child: Text('Submit')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'app-info-button',
+                          child: const SizedBox(height: 40, child: Text('Info')),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      final tutorial = container.read(tutorialControllerProvider);
+      final context = tester.element(find.byType(Scaffold));
+
+      tutorial.startExtractedMaterialEditorTutorial(context);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Barra de Ferramentas & Atalhos
+      expect(find.text('Barra de Ferramentas & Atalhos'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Área de Edição
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Área de Edição'), findsOneWidget);
+
+      // Passo 3: Seletor de Gestos CIAs
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Seletor de Gestos CIAs'), findsOneWidget);
+
+      // Passo 4: Pré-visualização ao Vivo
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pré-visualização ao Vivo'), findsOneWidget);
+
+      // Passo 5: Submissão da Proposta
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Submissão da Proposta'), findsOneWidget);
+
+      // Passo 6: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
     });
   });
 }
