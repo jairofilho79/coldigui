@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -105,7 +106,12 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
     final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authStateProvider).asData?.value;
     if (user == null) {
-      return const Center(child: SignInToContribute());
+      return const Center(
+        child: SpotlightGuideTarget(
+          id: 'my-contributions-signin-prompt',
+          child: SignInToContribute(),
+        ),
+      );
     }
 
     final async = ref.watch(myContributionsProvider);
@@ -149,10 +155,13 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Text(
-                l10n.myContributionsEmpty,
-                textAlign: TextAlign.center,
-                style: AppTypography.body.copyWith(color: AppColors.textLight),
+              child: SpotlightGuideTarget(
+                id: 'my-contributions-empty',
+                child: Text(
+                  l10n.myContributionsEmpty,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.body.copyWith(color: AppColors.textLight),
+                ),
               ),
             ),
           ],
@@ -184,7 +193,8 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
             });
           }
           final c = state.items[index];
-          return ListTile(
+          final isFirst = index == 0;
+          final tile = ListTile(
             title: Text(
               c.title,
               style: AppTypography.body.copyWith(color: AppColors.textLight),
@@ -196,9 +206,22 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
                 color: AppColors.textLight.withValues(alpha: 0.7),
               ),
             ),
-            trailing: ContributionStatusChip(status: c.status),
+            trailing: isFirst
+                ? SpotlightGuideTarget(
+                    id: 'my-contributions-status',
+                    child: ContributionStatusChip(status: c.status),
+                  )
+                : ContributionStatusChip(status: c.status),
             onTap: () => context.push('${RoutePaths.myContributions}/${c.id}'),
           );
+
+          if (isFirst) {
+            return SpotlightGuideTarget(
+              id: 'my-contributions-item',
+              child: tile,
+            );
+          }
+          return tile;
         },
       ),
     );
