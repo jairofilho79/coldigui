@@ -43,18 +43,21 @@ class CatalogFilterSections extends ConsumerWidget {
 
     final rawSections = [
       (
+        targetId: 'filters-tonality-section',
         title: l10n.coldigomFilterTonality,
         items: _withSelected(_named(options.tonalities), selected.tonalities),
         selectedIds: selected.tonalities,
         onToggle: notifier.toggleTonality,
       ),
       (
+        targetId: 'filters-rhythm-section',
         title: l10n.coldigomFilterRhythm,
         items: _withSelected(_named(options.rhythms), selected.rhythms),
         selectedIds: selected.rhythms,
         onToggle: notifier.toggleRhythm,
       ),
       (
+        targetId: 'filters-category-section',
         title: l10n.coldigomFilterTags,
         items: _withSelected(
           _named([
@@ -70,6 +73,7 @@ class CatalogFilterSections extends ConsumerWidget {
         onToggle: notifier.toggleTag,
       ),
       (
+        targetId: null,
         title: l10n.coldigomFilterSubtags,
         items: [
           for (final item in _withSelected(
@@ -96,19 +100,32 @@ class CatalogFilterSections extends ConsumerWidget {
       children: [
         for (var i = 0; i < sections.length; i++) ...[
           if (i > 0) const SizedBox(height: 8),
-          _ChipSection(
-            title: sections[i].title,
-            items: sections[i].items,
-            selectedIds: sections[i].selectedIds,
-            onToggle: sections[i].onToggle,
-            highlightFirstItemAsSample:
-                i == 0 && scope == CatalogFilterScope.home,
-          ),
+          () {
+            final sectionWidget = _ChipSection(
+              title: sections[i].title,
+              items: sections[i].items,
+              selectedIds: sections[i].selectedIds,
+              onToggle: sections[i].onToggle,
+              highlightFirstItemAsSample:
+                  i == 0 && scope == CatalogFilterScope.home,
+            );
+            final targetId = sections[i].targetId;
+            if (targetId != null) {
+              return SpotlightGuideTarget(
+                id: targetId,
+                child: sectionWidget,
+              );
+            }
+            return sectionWidget;
+          }(),
         ],
         if (options.materialKinds.isNotEmpty ||
             selected.materialKindIds.isNotEmpty) ...[
           if (sections.isNotEmpty) const SizedBox(height: 8),
-          MaterialKindFilterSection(scope: scope),
+          SpotlightGuideTarget(
+            id: 'filters-material-kind',
+            child: MaterialKindFilterSection(scope: scope),
+          ),
         ],
       ],
     );

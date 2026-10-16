@@ -12,6 +12,7 @@ import '../steps/chords_tutorial_steps.dart';
 import '../steps/contribution_detail_tutorial_steps.dart';
 import '../steps/contribute_tutorial_steps.dart';
 import '../steps/favorite_material_kinds_tutorial_steps.dart';
+import '../steps/filters_tutorial_steps.dart';
 import '../steps/gestures_tutorial_steps.dart';
 import '../steps/home_tutorial_steps.dart';
 import '../steps/library_tutorial_steps.dart';
@@ -74,6 +75,7 @@ class TutorialController {
       RoutePaths.contributionDetail => true,
       'modal:material-sheet' => true,
       'modal:carousel-selection' => true,
+      'modal:filters' => true,
       final p when p.startsWith('/ao-vivo/') => true,
       final p when p.startsWith('/louvor/') => true,
       final p when p.startsWith('/contribuicoes/') => true,
@@ -116,6 +118,8 @@ class TutorialController {
         buildMaterialSheetTutorialSteps(context),
       'modal:carousel-selection' =>
         buildCarouselSelectionTutorialSteps(context),
+      'modal:filters' =>
+        buildFiltersTutorialSteps(context),
       final p when p.startsWith('/ao-vivo/') =>
         buildLiveRoomTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
@@ -159,6 +163,15 @@ class TutorialController {
     showSteps(buildCarouselSelectionTutorialSteps(context));
   }
 
+  /// Inicia o tutorial do painel de filtros ([FiltersPanel]).
+  void startFiltersTutorial(
+    BuildContext context, [
+    CatalogFilterScope scope = CatalogFilterScope.home,
+  ]) {
+    _ref?.read(filtersPanelExpandedOverrideProvider(scope).notifier).set(true);
+    showSteps(buildFiltersTutorialSteps(context));
+  }
+
   /// Restaura qualquer estado alterado durante a apresentação do tutorial.
   void resetTutorialState() {
     _ref
@@ -168,7 +181,16 @@ class TutorialController {
         )
         .set(null);
     _ref
+        ?.read(
+          filtersPanelExpandedOverrideProvider(CatalogFilterScope.library)
+              .notifier,
+        )
+        .set(null);
+    _ref
         ?.read(catalogFiltersProviderFor(CatalogFilterScope.home).notifier)
+        .restoreTutorialFilters();
+    _ref
+        ?.read(catalogFiltersProviderFor(CatalogFilterScope.library).notifier)
         .restoreTutorialFilters();
   }
 

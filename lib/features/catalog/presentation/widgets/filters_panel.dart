@@ -1,11 +1,13 @@
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/core/tutorial/presentation/providers/tutorial_provider.dart';
 import 'package:coldigui/core/widgets/golden_tagged_container.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/catalog_filter_sections.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 /// Notifier para override programático de expansão do painel de filtros.
 class FiltersPanelExpandedNotifier extends Notifier<bool?> {
@@ -121,31 +123,58 @@ class _FiltersPanelState extends ConsumerState<FiltersPanel> {
                 ),
                 if (activeCount > 0) ...[
                   const SizedBox(width: 8),
-                  OutlinedButton(
-                    onPressed: () => ref
-                        .read(catalogFiltersProviderFor(widget.scope).notifier)
-                        .clear(),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.title,
-                      side: const BorderSide(color: AppColors.gold, width: 1.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
+                  SpotlightGuideTarget(
+                    id: 'filters-clear-action',
+                    child: OutlinedButton(
+                      onPressed: () => ref
+                          .read(catalogFiltersProviderFor(widget.scope).notifier)
+                          .clear(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.title,
+                        side: const BorderSide(color: AppColors.gold, width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        minimumSize: const Size(0, 28),
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        textStyle: AppTypography.label.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      minimumSize: const Size(0, 28),
-                      visualDensity: VisualDensity.compact,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      textStyle: AppTypography.label.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
+                      child: Text(l10n.filtersClear),
                     ),
-                    child: Text(l10n.filtersClear),
                   ),
                   const SizedBox(width: 4),
+                ],
+                if (isExpanded) ...[
+                  SpotlightGuideTarget(
+                    id: 'filters-info',
+                    child: IconButton(
+                      tooltip: 'Como usar os filtros',
+                      onPressed: () {
+                        ref
+                            .read(tutorialControllerProvider)
+                            .startFiltersTutorial(context, widget.scope);
+                      },
+                      icon: const Icon(
+                        Icons.info_outline,
+                        color: AppColors.title,
+                        size: 20,
+                      ),
+                      style: IconButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(32, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
                 ],
                 InkWell(
                   onTap: _toggle,

@@ -39,6 +39,7 @@ void main() {
       expect(controller.hasTutorialFor('/contribuicoes/k7x2m9q'), isTrue);
       expect(controller.hasTutorialFor('modal:material-sheet'), isTrue);
       expect(controller.hasTutorialFor('modal:carousel-selection'), isTrue);
+      expect(controller.hasTutorialFor('modal:filters'), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -557,6 +558,34 @@ void main() {
                 expect(steps[2].items.first.targetId, 'active-list-remove');
                 expect(steps[3].items.first.targetId, 'active-list-clear');
                 expect(steps[4].items.first.targetId, 'active-list-info');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos do Painel Avançado de Filtros (FiltersPanel) com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  'modal:filters',
+                );
+                expect(steps.length, 6);
+                expect(steps[0].items.first.targetId, 'filters-tonality-section');
+                expect(steps[1].items.first.targetId, 'filters-rhythm-section');
+                expect(steps[2].items.first.targetId, 'filters-category-section');
+                expect(steps[3].items.first.targetId, 'filters-material-kind');
+                expect(steps[4].items.first.targetId, 'filters-clear-action');
+                expect(steps[5].items.first.targetId, 'filters-info');
                 return const SizedBox();
               },
             ),
@@ -2773,6 +2802,102 @@ void main() {
       await tester.tap(find.text('Concluir'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda da Lista Ativa'), findsNothing);
+    });
+
+    testWidgets(
+        'navega por todos os passos do tutorial do Painel Avançado de Filtros (FiltersPanel)',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final tutorial = container.read(tutorialControllerProvider);
+
+                return SpotlightGuidePortal(
+                  controller: tutorial.portalController,
+                  autoStart: false,
+                  onFinish: () => tutorial.resetTutorialState(),
+                  child: Scaffold(
+                    body: Column(
+                      children: [
+                        SpotlightGuideTarget(
+                          id: 'filters-tonality-section',
+                          child: const SizedBox(height: 40, child: Text('Tonalidade')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'filters-rhythm-section',
+                          child: const SizedBox(height: 40, child: Text('Ritmo')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'filters-category-section',
+                          child: const SizedBox(height: 40, child: Text('Categorias')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'filters-material-kind',
+                          child: const SizedBox(height: 40, child: Text('Materiais')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'filters-clear-action',
+                          child: const SizedBox(height: 40, child: Text('Limpar')),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'filters-info',
+                          child: const SizedBox(height: 40, child: Text('Info')),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      final tutorial = container.read(tutorialControllerProvider);
+      final context = tester.element(find.byType(Scaffold));
+
+      tutorial.startFiltersTutorial(context);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Filtro por Tonalidade
+      expect(find.text('Filtro por Tonalidade'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Filtro por Ritmo
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Filtro por Ritmo'), findsOneWidget);
+
+      // Passo 3: Categorias e Tags de Culto
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Categorias e Tags de Culto'), findsOneWidget);
+
+      // Passo 4: Tipos de Materiais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tipos de Materiais'), findsOneWidget);
+
+      // Passo 5: Limpar Filtros
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Limpar Filtros'), findsOneWidget);
+
+      // Passo 6: Ajuda de Filtros
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda de Filtros'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda de Filtros'), findsNothing);
     });
   });
 }
