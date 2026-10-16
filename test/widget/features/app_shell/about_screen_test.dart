@@ -30,8 +30,14 @@ void main() {
     final targetIds = targets.map((t) => t.id).toList();
     expect(
       targetIds,
-      containsAll(['about-who-we-are', 'about-mission', 'about-shortcuts-card']),
+      containsAll([
+        'about-who-we-are',
+        'about-mission',
+        'about-shortcuts-card',
+        'about-welcome-tour-card',
+      ]),
     );
+    expect(find.text('Tour de Boas-Vindas'), findsOneWidget);
 
     // Toque no card de Atalhos abre o AppShortcutsDialog
     await tester.tap(find.text('Atalhos de Teclado'));

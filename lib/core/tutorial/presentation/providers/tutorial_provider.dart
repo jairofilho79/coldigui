@@ -31,6 +31,7 @@ import '../steps/praise_tutorial_steps.dart';
 import '../steps/profile_tutorial_steps.dart';
 import '../steps/public_playlists_tutorial_steps.dart';
 import '../steps/reader_tutorial_steps.dart';
+import '../steps/welcome_tour_tutorial_steps.dart';
 
 /// Controlador que orquestra a execução dos tutoriais no [SpotlightGuidePortal].
 class TutorialController {
@@ -87,6 +88,8 @@ class TutorialController {
       'modal:publish-playlist' => true,
       'modal:join-live-room' => true,
       'modal:app-shortcuts' => true,
+      'tour:welcome' => true,
+      'welcome-tour' => true,
       final p when p.startsWith('/ao-vivo/') => true,
       final p when p.startsWith('/louvor/') => true,
       final p when p.startsWith('/contribuicoes/') => true,
@@ -145,6 +148,8 @@ class TutorialController {
         buildJoinLiveRoomTutorialSteps(context),
       'modal:app-shortcuts' =>
         buildAppShortcutsTutorialSteps(context),
+      'tour:welcome' || 'welcome-tour' =>
+        buildWelcomeTourTutorialSteps(context),
       final p when p.startsWith('/ao-vivo/') =>
         buildLiveRoomTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
@@ -225,6 +230,12 @@ class TutorialController {
   /// Inicia o tutorial da Central de Atalhos de Teclado ([AppShortcutsDialog]).
   void startAppShortcutsTutorial(BuildContext context) {
     showSteps(buildAppShortcutsTutorialSteps(context));
+  }
+
+  /// Inicia o tour integrado de boas-vindas do Coldigui ([buildWelcomeTourTutorialSteps]).
+  void startWelcomeTour(BuildContext context) {
+    _ref?.read(tutorialPreferencesProvider.notifier).markSeen('welcome-tour');
+    showSteps(buildWelcomeTourTutorialSteps(context));
   }
 
   /// Inicia o tutorial da rota especificada de forma suave caso as preferências

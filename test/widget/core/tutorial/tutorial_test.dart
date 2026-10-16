@@ -1,4 +1,5 @@
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/tutorial/presentation/providers/tutorial_preferences_provider.dart';
 import 'package:coldigui/core/tutorial/presentation/providers/tutorial_provider.dart';
 import 'package:coldigui/core/tutorial/presentation/widgets/coldigui_tutorial_hint.dart';
 import 'package:coldigui/core/widgets/plpcg_primary_app_bar.dart';
@@ -51,6 +52,8 @@ void main() {
       expect(controller.hasTutorialFor('modal:publish-playlist'), isTrue);
       expect(controller.hasTutorialFor('modal:join-live-room'), isTrue);
       expect(controller.hasTutorialFor('modal:app-shortcuts'), isTrue);
+      expect(controller.hasTutorialFor('tour:welcome'), isTrue);
+      expect(controller.hasTutorialFor('welcome-tour'), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -762,6 +765,33 @@ void main() {
         ),
       );
     });
+
+    testWidgets(
+        'stepsForRoute retorna passos do Tour Integrado de Boas-Vindas com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  'tour:welcome',
+                );
+                expect(steps.length, 4);
+                expect(steps[0].items.first.targetId, 'home-search-bar');
+                expect(steps[1].items.first.targetId, 'home-filter-chip-sample');
+                expect(steps[2].items.first.targetId, 'home-louvor-card-sample');
+                expect(steps[3].items.first.targetId, 'home-bottom-nav');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
 
     testWidgets(
         'stepsForRoute em RoutePaths.contribute alterna para passos do editor extraído quando ativo',
@@ -3585,5 +3615,88 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Ajuda da Central de Atalhos'), findsNothing);
     });
+
+    testWidgets(
+        'navega por todos os 4 passos do Tour Integrado de Boas-Vindas (Welcome Multi-Step Tour)',
+        (tester) async {
+      late ProviderContainer container;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: Consumer(
+            builder: (context, ref, _) {
+              container = ProviderScope.containerOf(context);
+              final tutorial = ref.watch(tutorialControllerProvider);
+
+              return MaterialApp(
+                home: SpotlightGuidePortal(
+                  controller: tutorial.portalController,
+                  autoStart: false,
+                  missingTargetBehavior:
+                      SpotlightGuideMissingTargetBehavior.wait,
+                  child: Scaffold(
+                    body: Column(
+                      children: [
+                        SpotlightGuideTarget(
+                          id: 'home-search-bar',
+                          child: const Text('Busca'),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'home-filter-chip-sample',
+                          child: const Text('Filtro'),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'home-louvor-card-sample',
+                          child: const Text('Card'),
+                        ),
+                        SpotlightGuideTarget(
+                          id: 'home-bottom-nav',
+                          child: const Text('Navegação'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      final tutorial = container.read(tutorialControllerProvider);
+      final context = tester.element(find.byType(Scaffold));
+
+      tutorial.startWelcomeTour(context);
+      await tester.pumpAndSettle();
+
+      // Passo 1: 1. Pesquise no Hinário
+      expect(find.text('1. Pesquise no Hinário'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: 2. Formatos Especializados
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('2. Formatos Especializados'), findsOneWidget);
+
+      // Passo 3: 3. Monte seu Repertório de Culto
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('3. Monte seu Repertório de Culto'), findsOneWidget);
+
+      // Passo 4: 4. Repertório Sempre com Você
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('4. Repertório Sempre com Você'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('4. Repertório Sempre com Você'), findsNothing);
+
+      // Verifica se gravou como visto nas preferências
+      final prefsState = container.read(tutorialPreferencesProvider);
+      expect(prefsState.hasSeen('welcome-tour'), isTrue);
+    });
   });
 }
+
