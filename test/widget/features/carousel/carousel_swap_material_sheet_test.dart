@@ -379,8 +379,6 @@ void main() {
 
     await tester.tap(find.text('Cifras'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Cifra I'));
-    await tester.pumpAndSettle();
 
     expect(harness.carousel.replaced, [
       ('pdf1', const PlaylistEntry(id: 'chord1', kind: MaterialKind.chord)),
@@ -403,10 +401,6 @@ void main() {
     final harness = await _pumpSwapSheet(tester, group: group);
 
     await tester.tap(find.text('Gestos'));
-    await tester.pumpAndSettle();
-    expect(find.text('Gestos I'), findsOneWidget);
-
-    await tester.tap(find.text('Gestos I'));
     await tester.pumpAndSettle();
 
     expect(harness.carousel.replaced, [
@@ -538,11 +532,6 @@ void main() {
       expect(find.text('YouTube'), findsOneWidget);
 
       await tester.tap(find.text('YouTube'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Vídeo Oficial'), findsOneWidget);
-
-      await tester.tap(find.text('Vídeo Oficial'));
       await tester.pumpAndSettle();
 
       expect(harness.openedYoutube.map((y) => y.id).toList(), ['yt1']);

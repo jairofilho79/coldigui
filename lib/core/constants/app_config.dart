@@ -22,9 +22,19 @@ abstract final class AppConfig {
     'GOOGLE_CLIENT_ID_WEB',
   );
 
+  /// Client ID OAuth iOS (Google).
+  ///
+  /// `--dart-define=GOOGLE_CLIENT_ID_IOS` ou `dart_defines/*.json`.
+  static const String googleClientIdIos = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID_IOS',
+  );
+
   /// `true` quando [apiBaseUrl] não foi injetado no build.
   static bool get isApiBaseUrlMissing => apiBaseUrl.isEmpty;
 
   /// `true` quando o Client ID Web não foi injetado no build.
   static bool get isGoogleClientIdMissing => googleClientIdWeb.isEmpty;
+
+  /// `true` quando o Client ID iOS não foi injetado no build.
+  static bool get isGoogleClientIdIosMissing => googleClientIdIos.isEmpty;
 }

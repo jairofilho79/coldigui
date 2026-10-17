@@ -17,7 +17,14 @@ cd "$ROOT_DIR"
 
 PACKAGE_ID="com.example.coldigui"
 DART_DEFINES_FILE="dart_defines/plpcg.json"
+PRIVATE_DEFINES_FILE="dart_defines/private.json"
 APK_PATH="build/app/outputs/flutter-apk/app-profile.apk"
+
+DEFINE_ARGS=(--dart-define-from-file="$DART_DEFINES_FILE")
+if [[ -f "$PRIVATE_DEFINES_FILE" ]]; then
+  echo "==> dart_defines privados: $PRIVATE_DEFINES_FILE"
+  DEFINE_ARGS+=(--dart-define-from-file="$PRIVATE_DEFINES_FILE")
+fi
 
 ensure_android_toolchain() {
   # shellcheck source=/dev/null
@@ -59,7 +66,7 @@ echo "==> Dependências Flutter..."
 "$ROOT_DIR/scripts/setup_deps.sh"
 
 echo "==> Build Android (profile — standalone, homologação)..."
-flutter build apk --profile --dart-define-from-file="$DART_DEFINES_FILE"
+flutter build apk --profile "${DEFINE_ARGS[@]}"
 
 if [[ ! -f "$APK_PATH" ]]; then
   echo "Erro: $APK_PATH não encontrado após flutter build." >&2

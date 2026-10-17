@@ -279,10 +279,8 @@ void main() {
 
     await tester.tap(find.text('trocar'));
     await tester.pumpAndSettle();
-    // A aba «Áudio» primeiro; a faixa tem a mesma categoria «Áudio».
-    await tester.tap(find.text('Áudio').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Áudio').last);
+    // A aba «Áudio»: como possui apenas 1 faixa, auto-seleciona ao tocar.
+    await tester.tap(find.text('Áudio'));
     await tester.pumpAndSettle();
 
     expect(audio.queue?.map((t) => t.audioId).toList(), [

@@ -18,6 +18,12 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 
+subprojects {
+    if (project.name != "app") {
+        project.evaluationDependsOn(":app")
+    }
+}
+
 // Plugins antigos (ex.: isar_flutter_libs) sem namespace/compileSdk — AGP 8+ exige.
 subprojects {
     pluginManager.withPlugin("com.android.library") {
@@ -27,12 +33,19 @@ subprojects {
             }
         }
     }
-    afterEvaluate {
+    val configureCompileSdk = {
         if (plugins.hasPlugin("com.android.library")) {
             extensions.configure<LibraryExtension> {
-                // isar_flutter_libs fixa compileSdkVersion 30; lStar exige API 31+.
-                compileSdk = 35
+                // isar_flutter_libs fixa 30; sqflite_android exige API 36 (BAKLAVA).
+                compileSdk = 36
             }
+        }
+    }
+    if (state.executed) {
+        configureCompileSdk()
+    } else {
+        afterEvaluate {
+            configureCompileSdk()
         }
     }
 }

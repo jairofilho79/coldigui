@@ -53,9 +53,33 @@ final authStateProvider = AsyncNotifierProvider<AuthNotifier, AuthUser?>(
 ///
 /// Usa [RetryableInit] para não memoizar falha: se a inicialização falhar,
 /// a próxima chamada tenta de novo em vez de re-aguardar o mesmo erro.
-final RetryableInit<void> _googleSignInInit = RetryableInit(
-  () => GoogleSignIn.instance.initialize(clientId: AppConfig.googleClientIdWeb),
-);
+final RetryableInit<void> _googleSignInInit = RetryableInit(() async {
+  if (kIsWeb) {
+    await GoogleSignIn.instance.initialize(
+      clientId: AppConfig.googleClientIdWeb,
+    );
+  } else if (defaultTargetPlatform == TargetPlatform.android) {
+    // Android (google_sign_in 7.x): serverClientId solicita o ID token com audiência do backend web.
+    await GoogleSignIn.instance.initialize(
+      serverClientId: AppConfig.googleClientIdWeb,
+    );
+  } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+    if (AppConfig.isGoogleClientIdIosMissing) {
+      debugPrint(
+        '[auth] GOOGLE_CLIENT_ID_IOS ausente no build iOS — login nativo indisponível',
+      );
+      throw StateError('google_client_id_ios_missing');
+    }
+    await GoogleSignIn.instance.initialize(
+      clientId: AppConfig.googleClientIdIos,
+      serverClientId: AppConfig.googleClientIdWeb,
+    );
+  } else {
+    await GoogleSignIn.instance.initialize(
+      clientId: AppConfig.googleClientIdWeb,
+    );
+  }
+});
 
 /// Inicializa o SDK do Google e devolve o stream de eventos de autenticação.
 typedef GoogleSignInInitializer =
@@ -72,6 +96,15 @@ final googleSignInInitializerProvider = Provider<GoogleSignInInitializer>((
         'login com Google indisponível',
       );
       throw StateError('google_client_id_missing');
+    }
+    if (!kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.iOS &&
+        AppConfig.isGoogleClientIdIosMissing) {
+      debugPrint(
+        '[auth] GOOGLE_CLIENT_ID_IOS ausente no build — '
+        'login com Google indisponível no iOS',
+      );
+      throw StateError('google_client_id_ios_missing');
     }
     await _googleSignInInit();
     return GoogleSignIn.instance.authenticationEvents;
