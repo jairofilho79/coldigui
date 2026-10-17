@@ -8,6 +8,7 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/widgets/actionable_empty_state.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../providers/my_contributions_provider.dart';
@@ -157,10 +158,14 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
               padding: const EdgeInsets.all(24),
               child: SpotlightGuideTarget(
                 id: 'my-contributions-empty',
-                child: Text(
-                  l10n.myContributionsEmpty,
-                  textAlign: TextAlign.center,
-                  style: AppTypography.body.copyWith(color: AppColors.textLight),
+                child: ActionableEmptyState(
+                  icon: Icons.volunteer_activism_outlined,
+                  title: l10n.myContributionsEmpty,
+                  description:
+                      'Você ainda não enviou nenhum arranjo, partitura ou cifra. Contribua com novos materiais para enriquecer o acervo!',
+                  primaryActionLabel: 'Enviar Nova Contribuição',
+                  primaryActionIcon: Icons.add_circle_outline_rounded,
+                  onPrimaryAction: () => context.go(RoutePaths.contribute),
                 ),
               ),
             ),

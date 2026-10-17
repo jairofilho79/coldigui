@@ -7,6 +7,7 @@ import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/providers/feature_flags_provider.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/widgets/actionable_empty_state.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -108,6 +109,60 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
       PlaylistTab.saved => l10n.playlistEmptySaved,
       PlaylistTab.favorites => l10n.playlistEmptyFavorites,
     };
+  }
+
+  Widget _buildEmptyTab(
+    BuildContext context,
+    AppLocalizations l10n,
+    PlaylistTab tab,
+  ) {
+    final (icon, description, primaryLabel, primaryIcon, onPrimary) =
+        switch (tab) {
+      PlaylistTab.unsaved => (
+        Icons.queue_music_rounded,
+        'Busque louvores pelo número ou título e adicione-os para montar o repertório do culto.',
+        'Buscar Louvores',
+        Icons.search_rounded,
+        () => context.go(RoutePaths.home),
+      ),
+      PlaylistTab.saved => (
+        Icons.bookmark_outline_rounded,
+        'Salve suas seleções de louvores para acessá-las rapidamente em cultos e ensaios.',
+        l10n.playlistImport,
+        Icons.download_rounded,
+        () => _importPlaylist(context),
+      ),
+      PlaylistTab.favorites => (
+        Icons.star_outline_rounded,
+        'Toque na estrela de qualquer lista salva para fixá-la nos seus favoritos e encontrá-la rapidamente.',
+        null,
+        null,
+        null,
+      ),
+    };
+
+    return _buildScrollableEmpty(
+      ActionableEmptyState(
+        icon: icon,
+        title: _emptyMessage(l10n, tab),
+        description: description,
+        primaryActionLabel: primaryLabel,
+        primaryActionIcon: primaryIcon,
+        onPrimaryAction: onPrimary != null ? () => onPrimary() : null,
+      ),
+    );
+  }
+
+  Widget _buildScrollableEmpty(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: child,
+        ),
+      ),
+    );
   }
 
   void _toggleLiveMenu() => setState(() => _liveMenuOpen = !_liveMenuOpen);
@@ -346,17 +401,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
                         .read(playlistsProvider.notifier)
                         .itemsForTab(tab);
                     if (items.isEmpty) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(
-                            _emptyMessage(l10n, tab),
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(color: AppColors.textLight),
-                          ),
-                        ),
-                      );
+                      return _buildEmptyTab(context, l10n, tab);
                     }
                     return ListView.builder(
                       padding: const EdgeInsets.fromLTRB(0, 8, 0, 88),
