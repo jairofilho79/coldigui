@@ -32,6 +32,7 @@ import '../steps/profile_tutorial_steps.dart';
 import '../steps/public_playlists_tutorial_steps.dart';
 import '../steps/reader_tutorial_steps.dart';
 import '../steps/welcome_tour_tutorial_steps.dart';
+import '../widgets/welcome_hero_dialog.dart';
 
 /// Controlador que orquestra a execução dos tutoriais no [SpotlightGuidePortal].
 class TutorialController {
@@ -275,6 +276,35 @@ class TutorialController {
       if (portalController.isShowing) return;
       startTutorialForRoute(context, routePath);
     });
+  }
+
+  /// Inicia o diálogo de boas-vindas no primeiríssimo acesso ou, se já visto,
+  /// o tutorial automático suave da página inicial.
+  void maybeAutoStartWelcomeFlow(
+    BuildContext context, {
+    Duration delay = const Duration(milliseconds: 500),
+  }) {
+    final autoTriggerEnabled =
+        _ref?.read(tutorialAutoTriggerEnabledProvider) ?? true;
+    if (!autoTriggerEnabled) return;
+
+    final prefsState = _ref?.read(tutorialPreferencesProvider);
+    if (prefsState?.dismissAll == true) return;
+
+    final portal =
+        context.findAncestorWidgetOfExactType<SpotlightGuidePortal>();
+    if (portal == null) return;
+
+    if (prefsState != null && !prefsState.hasSeenWelcomeHero) {
+      Future.delayed(delay, () {
+        if (!context.mounted) return;
+        if (portalController.isShowing) return;
+        WelcomeHeroDialog.show(context);
+      });
+      return;
+    }
+
+    maybeAutoStartTutorial(context, RoutePaths.home, delay: delay);
   }
 
   /// Restaura qualquer estado alterado durante a apresentação do tutorial.

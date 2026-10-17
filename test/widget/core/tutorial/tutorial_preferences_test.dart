@@ -4,6 +4,7 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/tutorial/presentation/providers/tutorial_preferences_provider.dart';
 import 'package:coldigui/core/tutorial/presentation/providers/tutorial_provider.dart';
 import 'package:coldigui/core/tutorial/presentation/widgets/coldigui_tutorial_hint.dart';
+import 'package:coldigui/core/tutorial/presentation/widgets/welcome_hero_dialog.dart';
 import 'package:coldigui/features/app_shell/presentation/pages/profile_screen.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
@@ -480,6 +481,175 @@ void main() {
       final state = container.read(tutorialPreferencesProvider);
       expect(state.dismissAll, isFalse);
       expect(state.hasSeen(RoutePaths.home), isFalse);
+    });
+  });
+
+  group('WelcomeHeroDialog & maybeAutoStartWelcomeFlow', () {
+    test('markWelcomeHeroSeen atualiza estado e persiste chave', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(tutorialPreferencesProvider.notifier);
+      expect(container.read(tutorialPreferencesProvider).hasSeenWelcomeHero, isFalse);
+
+      await notifier.markWelcomeHeroSeen();
+
+      final state = container.read(tutorialPreferencesProvider);
+      expect(state.hasSeenWelcomeHero, isTrue);
+      expect(prefs.getBool(StorageKeys.welcomeHeroSeen), isTrue);
+    });
+
+    testWidgets('WelcomeHeroDialog renderiza e botão Explorar marca como visto e fecha', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => WelcomeHeroDialog.show(context),
+                  child: const Text('Abrir'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Abrir'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('welcome-hero-dialog')), findsOneWidget);
+      expect(find.text('Bem-vindo ao Coldigui!'), findsOneWidget);
+      expect(find.text('Fazer Tour Rápido (1 min)'), findsOneWidget);
+      expect(find.text('Explorar por Conta Própria'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('welcome-hero-dismiss')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('welcome-hero-dialog')), findsNothing);
+      expect(container.read(tutorialPreferencesProvider).hasSeenWelcomeHero, isTrue);
+    });
+
+    testWidgets('WelcomeHeroDialog botão Fazer Tour aciona startWelcomeTour e marca como visto', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(tutorialControllerProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: SpotlightGuidePortal(
+              controller: controller.portalController,
+              child: Scaffold(
+                body: Builder(
+                  builder: (context) => Column(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'home-search-bar',
+                        child: const Text('Barra de Pesquisa'),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'home-filter-chip-sample',
+                        child: const Text('Filtro'),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'home-louvor-card-sample',
+                        child: const Text('Card'),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'home-bottom-nav',
+                        child: const Text('Nav'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => WelcomeHeroDialog.show(context),
+                        child: const Text('Abrir'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Abrir'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('welcome-hero-start-tour')));
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('welcome-hero-dialog')), findsNothing);
+      expect(container.read(tutorialPreferencesProvider).hasSeenWelcomeHero, isTrue);
+      // Tour de boas-vindas iniciado
+      expect(find.text('1. Pesquise no Hinário'), findsOneWidget);
+    });
+
+    testWidgets('maybeAutoStartWelcomeFlow exibe WelcomeHeroDialog no primeiro acesso', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(tutorialControllerProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: SpotlightGuidePortal(
+              controller: controller.portalController,
+              child: const Scaffold(body: Text('Home')),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final scaffoldContext = tester.element(find.byType(Scaffold));
+      controller.maybeAutoStartWelcomeFlow(
+        scaffoldContext,
+        delay: const Duration(milliseconds: 50),
+      );
+
+      await tester.pump(const Duration(milliseconds: 60));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('welcome-hero-dialog')), findsOneWidget);
+      expect(find.text('Bem-vindo ao Coldigui!'), findsOneWidget);
     });
   });
 }

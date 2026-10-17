@@ -17,6 +17,7 @@ class TutorialPreferencesState {
   const TutorialPreferencesState({
     this.dismissAll = false,
     this.seenTutorials = const {},
+    this.hasSeenWelcomeHero = false,
   });
 
   /// Se o usuário optou por não exibir mais nenhum tutorial automaticamente ("Não mostrar novamente").
@@ -24,6 +25,9 @@ class TutorialPreferencesState {
 
   /// Conjunto de identificadores de rotas ou modais cujos tutoriais já foram visualizados.
   final Set<String> seenTutorials;
+
+  /// Se o diálogo de boas-vindas do primeiro acesso já foi visualizado ou dispensado.
+  final bool hasSeenWelcomeHero;
 
   /// Retorna se o tutorial especificado já foi visualizado.
   bool hasSeen(String tutorialId) => seenTutorials.contains(tutorialId);
@@ -40,10 +44,12 @@ class TutorialPreferencesState {
   TutorialPreferencesState copyWith({
     bool? dismissAll,
     Set<String>? seenTutorials,
+    bool? hasSeenWelcomeHero,
   }) {
     return TutorialPreferencesState(
       dismissAll: dismissAll ?? this.dismissAll,
       seenTutorials: seenTutorials ?? this.seenTutorials,
+      hasSeenWelcomeHero: hasSeenWelcomeHero ?? this.hasSeenWelcomeHero,
     );
   }
 
@@ -52,10 +58,15 @@ class TutorialPreferencesState {
       identical(this, other) ||
       other is TutorialPreferencesState &&
           other.dismissAll == dismissAll &&
+          other.hasSeenWelcomeHero == hasSeenWelcomeHero &&
           setEquals(other.seenTutorials, seenTutorials);
 
   @override
-  int get hashCode => Object.hash(dismissAll, Object.hashAll(seenTutorials));
+  int get hashCode => Object.hash(
+        dismissAll,
+        hasSeenWelcomeHero,
+        Object.hashAll(seenTutorials),
+      );
 }
 
 /// Notifier que gerencia a persistência de preferências de tutorial em [SharedPreferences].
@@ -76,6 +87,8 @@ class TutorialPreferencesNotifier extends Notifier<TutorialPreferencesState> {
     }
 
     final dismissAll = prefs.getBool(StorageKeys.tutorialDismissAll) ?? false;
+    final welcomeHeroSeen =
+        prefs.getBool(StorageKeys.welcomeHeroSeen) ?? false;
     final seen = <String>{};
     for (final key in prefs.getKeys()) {
       if (key.startsWith(StorageKeys.tutorialSeenPrefix) &&
@@ -90,6 +103,7 @@ class TutorialPreferencesNotifier extends Notifier<TutorialPreferencesState> {
     return TutorialPreferencesState(
       dismissAll: dismissAll,
       seenTutorials: seen,
+      hasSeenWelcomeHero: welcomeHeroSeen,
     );
   }
 
@@ -108,6 +122,16 @@ class TutorialPreferencesNotifier extends Notifier<TutorialPreferencesState> {
     }
   }
 
+  /// Marca o diálogo de boas-vindas do primeiro acesso como visto.
+  Future<void> markWelcomeHeroSeen() async {
+    if (state.hasSeenWelcomeHero) return;
+    state = state.copyWith(hasSeenWelcomeHero: true);
+    final prefs = _prefs;
+    if (prefs != null) {
+      await prefs.setBool(StorageKeys.welcomeHeroSeen, true);
+    }
+  }
+
   /// Define se todos os tutoriais automáticos devem ser silenciados globalmente.
   Future<void> setDismissAll(bool value) async {
     state = state.copyWith(dismissAll: value);
@@ -122,6 +146,7 @@ class TutorialPreferencesNotifier extends Notifier<TutorialPreferencesState> {
     final prefs = _prefs;
     if (prefs != null) {
       await prefs.remove(StorageKeys.tutorialDismissAll);
+      await prefs.remove(StorageKeys.welcomeHeroSeen);
       final keysToRemove = prefs
           .getKeys()
           .where((k) => k.startsWith(StorageKeys.tutorialSeenPrefix))

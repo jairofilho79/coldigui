@@ -134,9 +134,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _urlSyncEnabled = true;
-        ref.read(tutorialControllerProvider).maybeAutoStartTutorial(
+        ref.read(tutorialControllerProvider).maybeAutoStartWelcomeFlow(
           context,
-          RoutePaths.home,
         );
       }
     });

@@ -90,5 +90,8 @@ abstract final class StorageKeys {
 
   /// Flag booleana que desativa a exibição automática de tutoriais ("Não mostrar novamente").
   static const String tutorialDismissAll = 'tutorial_dismiss_all';
+
+  /// Flag booleana que indica se o diálogo de boas-vindas do primeiro acesso já foi exibido.
+  static const String welcomeHeroSeen = 'welcome_hero_seen';
 }
 
