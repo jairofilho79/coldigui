@@ -138,12 +138,13 @@ void main() {
                 final controller = TutorialController();
                 final steps =
                     controller.stepsForRoute(context, RoutePaths.reader);
-                expect(steps.length, 5);
+                expect(steps.length, 6);
                 expect(steps[0].items.first.targetId, 'reader-fit-mode-button');
                 expect(steps[1].items.first.targetId, 'reader-fullscreen-button');
                 expect(steps[2].items.first.targetId, 'reader-page-indicator');
                 expect(steps[3].items.first.targetId, 'reader-pdf-view');
-                expect(steps[4].items.first.targetId, 'app-info-button');
+                expect(steps[4].items.first.targetId, 'reader-pdf-view');
+                expect(steps[5].items.first.targetId, 'app-info-button');
                 return const SizedBox();
               },
             ),
@@ -1324,12 +1325,17 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Indicador de Páginas'), findsOneWidget);
 
-      // Passo 4: Virada de Páginas
+      // Passo 4: Toque nas Bordas (Laterais)
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
-      expect(find.text('Virada de Páginas'), findsOneWidget);
+      expect(find.text('Toque nas Bordas (Laterais)'), findsOneWidget);
 
-      // Passo 5: Ajuda & Tutoriais
+      // Passo 5: Pedais Bluetooth & Teclado
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pedais Bluetooth & Teclado'), findsOneWidget);
+
+      // Passo 6: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda & Tutoriais'), findsOneWidget);

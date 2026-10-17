@@ -63,7 +63,7 @@ List<SpotlightGuideStep> buildReaderTutorialSteps(BuildContext context) {
       ),
     ),
 
-    // 4. Virada de Páginas
+    // 4. Toque nas Bordas (Laterais)
     SpotlightGuideStep.item(
       SpotlightGuideStepItem(
         targetId: 'reader-pdf-view',
@@ -75,14 +75,33 @@ List<SpotlightGuideStep> buildReaderTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Virada de Páginas',
+          title: 'Toque nas Bordas (Laterais)',
           message:
-              'Toque nas **laterais da tela**, use as **setas do teclado** ou conecte um **pedal Bluetooth** para avançar e voltar páginas sem tirar as mãos do instrumento.',
+              'Toque no **quinto lateral esquerdo** para voltar e no **quinto lateral direito** para avançar páginas instantaneamente, sem precisar arrastar a partitura.',
         ),
       ),
     ),
 
-    // 5. Ajuda & Tutoriais
+    // 5. Pedais Bluetooth & Teclado
+    SpotlightGuideStep.item(
+      SpotlightGuideStepItem(
+        targetId: 'reader-pdf-view',
+        placement: SpotlightGuidePlacement.verticalAuto,
+        missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
+        targetDecoration: coldiguiTargetDecoration(
+          borderRadius: 8,
+          padding: const EdgeInsets.all(4),
+        ),
+        hintBuilder: (context, guide) => ColdiguiTutorialHint(
+          guide: guide,
+          title: 'Pedais Bluetooth & Teclado',
+          message:
+              'Conecte qualquer **pedal virador de página Bluetooth** (AirTurn, PageFlip, Donner via PageUp/Down ou Setas) para avançar e trocar de louvor **sem tirar as mãos do instrumento**.',
+        ),
+      ),
+    ),
+
+    // 6. Ajuda & Tutoriais
     SpotlightGuideStep.item(
       SpotlightGuideStepItem(
         targetId: 'app-info-button',
