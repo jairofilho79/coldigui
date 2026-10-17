@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/app_typography.dart';
 import '../../../theme/color_extensions.dart';
+import '../../../utils/app_haptics.dart';
 import '../providers/tutorial_preferences_provider.dart';
 import '../providers/tutorial_provider.dart';
 
@@ -31,6 +32,7 @@ class WelcomeHeroDialog extends StatelessWidget {
   }
 
   void _onStartTour(BuildContext context) {
+    AppHaptics.lightImpact();
     ProviderContainer? container;
     try {
       container = ProviderScope.containerOf(context, listen: false);
@@ -41,6 +43,7 @@ class WelcomeHeroDialog extends StatelessWidget {
   }
 
   void _onDismiss(BuildContext context) {
+    AppHaptics.selectionClick();
     ProviderContainer? container;
     try {
       container = ProviderScope.containerOf(context, listen: false);

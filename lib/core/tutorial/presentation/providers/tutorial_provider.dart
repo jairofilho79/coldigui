@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
@@ -6,6 +8,7 @@ import 'tutorial_preferences_provider.dart';
 import '../../../../features/catalog/presentation/providers/catalog_filters_provider.dart';
 import '../../../../features/catalog/presentation/widgets/filters_panel.dart';
 import '../../../routing/route_paths.dart';
+import '../../../utils/app_haptics.dart';
 import '../steps/about_tutorial_steps.dart';
 import '../steps/app_shortcuts_tutorial_steps.dart';
 import '../steps/audio_tutorial_steps.dart';
@@ -181,6 +184,7 @@ class TutorialController {
       hide();
       return;
     }
+    unawaited(AppHaptics.lightImpact());
     portalController.showSteps(steps);
   }
 

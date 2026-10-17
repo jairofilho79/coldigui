@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../theme/color_extensions.dart';
+import '../../../utils/app_haptics.dart';
 import '../providers/tutorial_preferences_provider.dart';
 
 /// Layer customizada que força a limpeza transparente do furo do alvo via
@@ -165,6 +166,7 @@ class ColdiguiTutorialHint extends StatelessWidget {
                     TextButton(
                       key: const ValueKey('tutorial-hint-dismiss-forever'),
                       onPressed: () {
+                        AppHaptics.lightImpact();
                         onDismissForever?.call();
                         try {
                           final container =
@@ -190,7 +192,10 @@ class ColdiguiTutorialHint extends StatelessWidget {
                   if (showSkipButton)
                     TextButton(
                       key: const ValueKey('tutorial-hint-skip'),
-                      onPressed: guide.finish,
+                      onPressed: () {
+                        AppHaptics.selectionClick();
+                        guide.finish();
+                      },
                       style: TextButton.styleFrom(
                         foregroundColor:
                             AppColors.textLight.withValues(alpha: 0.8),
@@ -206,7 +211,10 @@ class ColdiguiTutorialHint extends StatelessWidget {
                   if (!guide.isFirst)
                     TextButton(
                       key: const ValueKey('tutorial-hint-previous'),
-                      onPressed: guide.previous,
+                      onPressed: () {
+                        AppHaptics.selectionClick();
+                        guide.previous();
+                      },
                       style: TextButton.styleFrom(
                         foregroundColor:
                             AppColors.textLight.withValues(alpha: 0.8),
@@ -221,7 +229,15 @@ class ColdiguiTutorialHint extends StatelessWidget {
                     ),
                   FilledButton(
                     key: const ValueKey('tutorial-hint-next'),
-                    onPressed: isLast ? guide.finish : guide.next,
+                    onPressed: () {
+                      if (isLast) {
+                        AppHaptics.mediumImpact();
+                        guide.finish();
+                      } else {
+                        AppHaptics.selectionClick();
+                        guide.next();
+                      }
+                    },
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.gold,
                       foregroundColor: AppColors.background,
