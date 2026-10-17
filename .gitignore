@@ -82,6 +82,7 @@ node_modules/
 *.ipr
 *.iws
 .vscode/
+.claude/
 *.swp
 *.swo
 *~
