@@ -77,7 +77,7 @@ List<SpotlightGuideStep> buildAppShortcutsTutorialSteps(BuildContext context) {
           guide: guide,
           title: 'Ajuda da Central de Atalhos',
           message:
-              'Toque neste ícone para rever as instruções sobre os **comandos e atalhos rápidos** do Coldigui.',
+              'Toque neste ícone para rever as instruções sobre os **comandos e atalhos rápidos** do PLPCG.',
         ),
       ),
     ),

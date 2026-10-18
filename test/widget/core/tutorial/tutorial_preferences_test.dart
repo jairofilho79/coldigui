@@ -536,7 +536,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('welcome-hero-dialog')), findsOneWidget);
-      expect(find.text('Bem-vindo ao Coldigui!'), findsOneWidget);
+      expect(find.text('Bem-vindo ao PLPCG!'), findsOneWidget);
       expect(find.text('Fazer Tour Rápido (1 min)'), findsOneWidget);
       expect(find.text('Explorar por Conta Própria'), findsOneWidget);
 
@@ -649,7 +649,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('welcome-hero-dialog')), findsOneWidget);
-      expect(find.text('Bem-vindo ao Coldigui!'), findsOneWidget);
+      expect(find.text('Bem-vindo ao PLPCG!'), findsOneWidget);
+      expect(
+        container.read(tutorialPreferencesProvider).hasSeenWelcomeHero,
+        isTrue,
+      );
     });
   });
 }

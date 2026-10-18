@@ -7,7 +7,7 @@ import '../../../utils/app_haptics.dart';
 import '../providers/tutorial_preferences_provider.dart';
 import '../providers/tutorial_provider.dart';
 
-/// Diálogo de boas-vindas exibido no primeiríssimo acesso do usuário ao Coldigui.
+/// Diálogo de boas-vindas exibido no primeiro acesso do usuário ao PLPCG.
 ///
 /// Oferece uma introdução amigável e convida para o Tour Integrado de 1 minuto
 /// ou permite explorar o aplicativo livremente.
@@ -16,6 +16,15 @@ class WelcomeHeroDialog extends StatelessWidget {
 
   /// Exibe o diálogo de boas-vindas caso o contexto seja válido.
   static Future<void> show(BuildContext context) async {
+    // Garante que a preferência seja gravada imediatamente antes de exibir,
+    // assegurando que NUNCA apareça repetidamente em recarregamentos ou navegações.
+    try {
+      final container = ProviderScope.containerOf(context, listen: false);
+      container
+          .read(tutorialPreferencesProvider.notifier)
+          .markWelcomeHeroSeen();
+    } catch (_) {}
+
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -93,7 +102,7 @@ class WelcomeHeroDialog extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Bem-vindo ao Coldigui!',
+                'Bem-vindo ao PLPCG!',
                 textAlign: TextAlign.center,
                 style: AppTypography.headline.copyWith(
                   fontSize: 20,

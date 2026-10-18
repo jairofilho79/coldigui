@@ -300,6 +300,7 @@ class TutorialController {
     if (portal == null) return;
 
     if (prefsState != null && !prefsState.hasSeenWelcomeHero) {
+      _ref?.read(tutorialPreferencesProvider.notifier).markWelcomeHeroSeen();
       Future.delayed(delay, () {
         if (!context.mounted) return;
         if (portalController.isShowing) return;
