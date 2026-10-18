@@ -121,16 +121,36 @@ final class TextLine extends GestureItem {
   final String text;
 }
 
+enum SectionLabelKind {
+  chorus,
+  verse,
+  pass,
+}
+
 /// Rótulo discreto que o linearizador insere entre trechos expandidos
-/// («coro», «2ª vez»). O parser nunca o produz; só
+/// («coro», «estrofe», «2ª vez»). O parser nunca o produz; só
 /// `linearizeGestureDocument`. Não é cartão (o `flatten` o pula) nem bloco.
 final class SectionLabel extends GestureItem {
-  const SectionLabel.chorus() : pass = null;
+  const SectionLabel.chorus()
+      : kind = SectionLabelKind.chorus,
+        pass = null;
 
-  const SectionLabel.pass(int this.pass) : assert(pass >= 2);
+  const SectionLabel.verse()
+      : kind = SectionLabelKind.verse,
+        pass = null;
 
-  /// `null` = «coro»; `k` (≥ 2) = «kª vez».
+  const SectionLabel.pass(int this.pass)
+      : kind = SectionLabelKind.pass,
+        assert(pass >= 2);
+
+  final SectionLabelKind kind;
+
+  /// Preenchido apenas quando [kind] == [SectionLabelKind.pass] (`k` ≥ 2).
   final int? pass;
 
-  bool get isChorus => pass == null;
+  bool get isChorus => kind == SectionLabelKind.chorus;
+
+  bool get isVerse => kind == SectionLabelKind.verse;
+
+  bool get isPass => kind == SectionLabelKind.pass;
 }

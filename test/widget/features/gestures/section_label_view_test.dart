@@ -48,4 +48,11 @@ void main() {
     await _pump(tester, const SectionLabel.pass(2), locale: const Locale('en'));
     expect(find.text('TIME 2'), findsOneWidget);
   });
+
+  testWidgets('«estrofe» em pt, «VERSE» em en', (tester) async {
+    await _pump(tester, const SectionLabel.verse());
+    expect(find.text('ESTROFE'), findsOneWidget);
+    await _pump(tester, const SectionLabel.verse(), locale: const Locale('en'));
+    expect(find.text('VERSE'), findsOneWidget);
+  });
 }

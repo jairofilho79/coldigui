@@ -29,7 +29,8 @@ String _shape(List<GestureItem> items) => items.map(_shapeOf).join(' ');
 
 String _shapeOf(GestureItem item) => switch (item) {
   GestureCard(:final lyrics) => 'g:${lyrics.first.trigger}',
-  SectionLabel(:final pass) => pass == null ? 'coro' : '$passª',
+  SectionLabel(:final isChorus, :final isVerse, :final pass) =>
+    isChorus ? 'coro' : isVerse ? 'estrofe' : '$passª',
   InstructionCard(:final kind) => '!${kind.name}',
   TextLine(:final text) => '~$text',
   LinkBlock(:final children) => 'link[${_shape(children)}]',
@@ -74,7 +75,7 @@ void main() {
         _g('b'),
       ]),
     );
-    expect(_shape(out.items), 'coro g:a g:b');
+    expect(_shape(out.items), 'coro g:a estrofe g:b');
   });
 
   test('«voltar ao coro» repete o último coro visto, com rótulo', () {
@@ -90,7 +91,7 @@ void main() {
     );
     expect(
       _shape(out.items),
-      'coro g:c1 g:c2 g:v coro g:c1 g:c2 g:w coro g:c1 g:c2 final[g:f]',
+      'coro g:c1 g:c2 estrofe g:v coro g:c1 g:c2 estrofe g:w coro g:c1 g:c2 final[g:f]',
     );
   });
 
@@ -168,9 +169,9 @@ void main() {
       _shape(out.items),
       'g:Jesus:caminho g:Eu:ceu 2ª g:Jesus:caminho g:Eu:ceu '
       '$chorusShape '
-      'g:Jesus:verdade g:Eu:ceu 2ª g:Jesus:verdade g:Eu:ceu '
+      'estrofe g:Jesus:verdade g:Eu:ceu 2ª g:Jesus:verdade g:Eu:ceu '
       '$chorusShape '
-      'g:Jesus:vida g:Eu:ceu 2ª g:Jesus:vida g:Eu:ceu '
+      'estrofe g:Jesus:vida g:Eu:ceu 2ª g:Jesus:vida g:Eu:ceu '
       '$chorusShape',
     );
   });
@@ -248,6 +249,7 @@ void main() {
     expect(flat, hasLength(24));
     expect(flat.every((f) => f.contexts.isEmpty), isTrue);
     expect(_shape(out.items).split(' ').where((s) => s == 'coro').length, 3);
+    expect(_shape(out.items).split(' ').where((s) => s == 'estrofe').length, 2);
     expect(out.items.whereType<InstructionCard>(), isEmpty);
   });
 
@@ -258,9 +260,29 @@ void main() {
       '!instruments '
       'g:Um link[g:Ligado g:seguinte] 2ª g:Um link[g:Ligado g:seguinte] 3ª g:Um link[g:Ligado g:seguinte] '
       'coro g:Coro 2ª g:Coro '
-      '~{"type":"hologram","foo":1} ~linha livre g:Id '
+      '~{"type":"hologram","foo":1} ~linha livre estrofe g:Id '
       'final[g:Fim]',
     );
+  });
+
+  test('coro no final do louvor não insere «estrofe» órfão', () {
+    final out = linearizeGestureDocument(
+      _doc([
+        _g('a'),
+        ChorusBlock(children: [_g('c')]),
+      ]),
+    );
+    expect(_shape(out.items), 'g:a coro g:c');
+  });
+
+  test('coro seguido de final não insere «estrofe» antes de final', () {
+    final out = linearizeGestureDocument(
+      _doc([
+        ChorusBlock(children: [_g('c')]),
+        FinalBlock(children: [_g('f')]),
+      ]),
+    );
+    expect(_shape(out.items), 'coro g:c final[g:f]');
   });
 
   test('é idempotente: linearizar o já linear não muda nada', () {

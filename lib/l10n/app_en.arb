@@ -361,6 +361,7 @@
   "gestureFocusEnd": "end",
   "gestureFocusClose": "Close",
   "gestureSectionChorus": "chorus",
+  "gestureSectionVerse": "verse",
   "gestureSectionPass": "time {n}",
   "@gestureSectionPass": {
     "placeholders": {
@@ -407,6 +408,8 @@
   "coldigomMetaRhythm": "Rhythm",
   "coldigomMetaBiblical": "Biblical Insight",
   "coldigomMetaTags": "Tags",
+  "coldigomMetaMoreDetails": "More details",
+  "coldigomMetaLessDetails": "Less details",
   "youtubeOpenError": "Could not open YouTube",
   "audioPlay": "Play",
   "audioPause": "Pause",

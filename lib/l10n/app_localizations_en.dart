@@ -714,6 +714,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gestureSectionChorus => 'chorus';
 
   @override
+  String get gestureSectionVerse => 'verse';
+
+  @override
   String gestureSectionPass(int n) {
     return 'time $n';
   }
@@ -786,6 +789,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coldigomMetaTags => 'Tags';
+
+  @override
+  String get coldigomMetaMoreDetails => 'More details';
+
+  @override
+  String get coldigomMetaLessDetails => 'Less details';
 
   @override
   String get youtubeOpenError => 'Could not open YouTube';

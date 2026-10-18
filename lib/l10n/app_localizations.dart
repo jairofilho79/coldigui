@@ -1292,6 +1292,12 @@ abstract class AppLocalizations {
   /// **'coro'**
   String get gestureSectionChorus;
 
+  /// No description provided for @gestureSectionVerse.
+  ///
+  /// In pt, this message translates to:
+  /// **'estrofe'**
+  String get gestureSectionVerse;
+
   /// No description provided for @gestureSectionPass.
   ///
   /// In pt, this message translates to:
@@ -1423,6 +1429,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Tags'**
   String get coldigomMetaTags;
+
+  /// No description provided for @coldigomMetaMoreDetails.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais detalhes'**
+  String get coldigomMetaMoreDetails;
+
+  /// No description provided for @coldigomMetaLessDetails.
+  ///
+  /// In pt, this message translates to:
+  /// **'Menos detalhes'**
+  String get coldigomMetaLessDetails;
 
   /// No description provided for @youtubeOpenError.
   ///

@@ -373,6 +373,7 @@
   "gestureFocusEnd": "fim",
   "gestureFocusClose": "Fechar",
   "gestureSectionChorus": "coro",
+  "gestureSectionVerse": "estrofe",
   "gestureSectionPass": "{n}ª vez",
   "@gestureSectionPass": {
     "placeholders": {
@@ -419,6 +420,8 @@
   "coldigomMetaRhythm": "Ritmo",
   "coldigomMetaBiblical": "Iluminação Bíblica",
   "coldigomMetaTags": "Tags",
+  "coldigomMetaMoreDetails": "Mais detalhes",
+  "coldigomMetaLessDetails": "Menos detalhes",
   "youtubeOpenError": "Não foi possível abrir o YouTube",
   "audioPlay": "Reproduzir",
   "audioPause": "Pausar",

@@ -392,13 +392,15 @@ void main() {
   });
 
   testWidgets(
-    'linear por padrão: 182 mostra o coro 3 vezes e nenhuma instrução',
+    'linear por padrão: 182 mostra o coro 3 vezes, 2 marcações de estrofe e nenhuma instrução',
     (tester) async {
       await _pump(
         tester,
         document: () async => _fixture('182_quero_viver.json'),
       );
-      expect(find.byType(SectionLabelView), findsNWidgets(3));
+      expect(find.byType(SectionLabelView), findsNWidgets(5));
+      expect(find.text('CORO'), findsNWidgets(3));
+      expect(find.text('ESTROFE'), findsNWidgets(2));
       expect(find.byType(InstructionCardView), findsNothing);
       expect(find.byType(GestureCardTile), findsNWidgets(24));
     },

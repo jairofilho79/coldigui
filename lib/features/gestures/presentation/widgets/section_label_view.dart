@@ -22,10 +22,11 @@ class SectionLabelView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final pass = label.pass;
-    final text = pass == null
-        ? l10n.gestureSectionChorus
-        : l10n.gestureSectionPass(pass);
+    final text = switch (label.kind) {
+      SectionLabelKind.chorus => l10n.gestureSectionChorus,
+      SectionLabelKind.verse => l10n.gestureSectionVerse,
+      SectionLabelKind.pass => l10n.gestureSectionPass(label.pass!),
+    };
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Text(

@@ -91,6 +91,8 @@ void main() {
       isFalse,
     );
     expect(const SectionLabel.chorus().isChorus, isTrue);
+    expect(const SectionLabel.verse().isVerse, isTrue);
+    expect(const SectionLabel.verse().isChorus, isFalse);
     expect(const SectionLabel.pass(2).isChorus, isFalse);
     expect(const SectionLabel.pass(2).pass, 2);
   });
