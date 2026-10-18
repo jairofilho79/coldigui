@@ -162,11 +162,60 @@ void main() {
       expect(b.top, a.bottom);
       expect(connector.top, a.top);
       expect(connector.bottom, b.bottom);
-      expect(
-        tester.widget<CustomPaint>(find.byKey(gestureLinkConnectorKey)).painter,
-        isA<LinkConnectorPainter>(),
-      );
+      final painter =
+          tester.widget<CustomPaint>(find.byKey(gestureLinkConnectorKey)).painter
+              as LinkConnectorPainter;
+      expect(painter.childCount, 2);
+      expect(painter.palette, _palette);
     });
+
+    testWidgets(
+      'renderiza arco 3D com esfera sem overflow em mobile, tablet e desktop (2 e 3 filhos, claro e escuro)',
+      (tester) async {
+        addTearDown(tester.view.reset);
+
+        for (final viewport in const [
+          Size(320, 568), // Mobile compacto (iPhone SE / Android pequeno)
+          Size(390, 844), // Mobile padrão (iOS / Android)
+          Size(834, 1194), // Tablet (iPad / Android Tablet)
+          Size(1440, 900), // Desktop (macOS / Web)
+        ]) {
+          tester.view.physicalSize = viewport;
+          tester.view.devicePixelRatio = 2.0;
+
+          for (final mode in GestureReaderMode.values) {
+            for (final count in [2, 3]) {
+              await _pump(
+                tester,
+                LinkBlockView(
+                  palette: mode.palette,
+                  children: [
+                    for (var i = 0; i < count; i++) _child('item-$i', 96),
+                  ],
+                ),
+              );
+
+              expect(tester.takeException(), isNull);
+              final connector = tester.getRect(
+                find.byKey(gestureLinkConnectorKey),
+              );
+              expect(connector.width, kGestureLinkWidth);
+              expect(connector.height, 96.0 * count);
+
+              final painter =
+                  tester
+                          .widget<CustomPaint>(
+                            find.byKey(gestureLinkConnectorKey),
+                          )
+                          .painter
+                      as LinkConnectorPainter;
+              expect(painter.childCount, count);
+              expect(painter.palette, mode.palette);
+            }
+          }
+        }
+      },
+    );
   });
 
   group('FinalSectionView', () {

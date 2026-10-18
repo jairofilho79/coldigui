@@ -65,10 +65,7 @@ Future<void> showMaterialSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.card,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
+    backgroundColor: Colors.transparent,
     builder: (context) {
       return MaterialSheet(
         group: group,
@@ -160,7 +157,6 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final maxHeight = MediaQuery.sizeOf(context).height * 0.75;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final group = _currentGroup;
     final meta = group.coldigomMeta;
@@ -171,97 +167,125 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     final index = ref.watch(coldigomSearchIndexProvider);
     final relatedPraises = resolveRelatedPraisesForGroup(group, index);
 
-    return SpotlightGuidePortal(
-      controller: _portalController,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxHeight),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 48,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.gold,
-                    borderRadius: BorderRadius.circular(2),
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.45,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) {
+        return SpotlightGuidePortal(
+          controller: _portalController,
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 12, bottom: 4),
+                    child: Container(
+                      width: 48,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.gold,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _SheetHeader(
-                group: group,
-                l10n: l10n,
-              ),
-              if (relatedPraises.length > 1) ...[
-                const SizedBox(height: 12),
-                SpotlightGuideTarget(
-                  id: 'material-sheet-related',
-                  child: RelatedPraisesBar(
-                    praises: relatedPraises,
-                    selectedPraise: group,
+                Padding(
+                  padding: const EdgeInsets.only(right: 12, bottom: 4),
+                  child: _SheetHeader(
+                    group: group,
                     l10n: l10n,
-                    onSelected: (target) async {
-                      if (target.groupId == group.groupId) return;
-                      final effectiveKey = widget.currentEntryKey;
-                      if (!widget.canAddToPlaylist && effectiveKey != null) {
-                        await swapToRelatedPraise(
-                          ref: ref,
-                          context: context,
-                          targetGroup: target,
-                          currentEntryKey: effectiveKey,
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    padding: EdgeInsets.fromLTRB(20, 4, 20, 20 + bottomInset),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (relatedPraises.length > 1) ...[
+                          SpotlightGuideTarget(
+                            id: 'material-sheet-related',
+                            child: RelatedPraisesBar(
+                              praises: relatedPraises,
+                              selectedPraise: group,
+                              l10n: l10n,
+                              onSelected: (target) async {
+                                if (target.groupId == group.groupId) return;
+                                final effectiveKey = widget.currentEntryKey;
+                                if (!widget.canAddToPlaylist && effectiveKey != null) {
+                                  await swapToRelatedPraise(
+                                    ref: ref,
+                                    context: context,
+                                    targetGroup: target,
+                                    currentEntryKey: effectiveKey,
+                                    currentMaterialId: widget.currentMaterialId,
+                                    allMembers: relatedPraises,
+                                  );
+                                }
+                                if (mounted) {
+                                  setState(() {
+                                    _currentGroup = ref
+                                        .read(catalogMaterialLookupProvider)
+                                        .withPraiseMeta(target);
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        SpotlightGuideTarget(
+                          id: 'material-sheet-meta',
+                          child: ColdigomMetaBlock(
+                            title: group.nome,
+                            number: group.numero,
+                            meta: meta,
+                            lyricsText: lyricsText,
+                            onOpenLyrics: _handleOpenLyrics,
+                            l10n: l10n,
+                            collapsibleDetails: true,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Divider(
+                          color: AppColors.gold,
+                          height: 1,
+                          thickness: 1.5,
+                        ),
+                        const SizedBox(height: 8),
+                        PraiseMaterialsView(
+                          group: group,
+                          canAddToPlaylist: widget.canAddToPlaylist,
+                          initialKind: widget.initialKind,
+                          onMaterialSelected: (m) async => _handleTap(m),
                           currentMaterialId: widget.currentMaterialId,
-                          allMembers: relatedPraises,
-                        );
-                      }
-                      if (mounted) {
-                        setState(() {
-                          _currentGroup = ref
-                              .read(catalogMaterialLookupProvider)
-                              .withPraiseMeta(target);
-                        });
-                      }
-                    },
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
-              if ((meta != null && meta.hasAnyField) || lyricsText.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                SpotlightGuideTarget(
-                  id: 'material-sheet-meta',
-                  child: ColdigomMetaBlock(
-                    meta: meta,
-                    lyricsText: lyricsText,
-                    onOpenLyrics: _handleOpenLyrics,
-                    l10n: l10n,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              const Divider(color: AppColors.gold, height: 1, thickness: 1.5),
-              const SizedBox(height: 8),
-              Expanded(
-                child: PraiseMaterialsView(
-                  group: group,
-                  canAddToPlaylist: widget.canAddToPlaylist,
-                  initialKind: widget.initialKind,
-                  onMaterialSelected: (m) async => _handleTap(m),
-                  currentMaterialId: widget.currentMaterialId,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
-
-/// Cabeçalho: número destacado, nome e o botão de fechar.
+/// Cabeçalho: ações do topo (abrir página completa, contribuir, tutorial, fechar).
 class _SheetHeader extends StatelessWidget {
   const _SheetHeader({
     required this.group,
@@ -274,42 +298,8 @@ class _SheetHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Expanded(
-          child: group.numero.isNotEmpty
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      group.numero,
-                      style: AppTypography.headline.copyWith(
-                        color: AppColors.title,
-                        fontSize: 22,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        group.nome,
-                        style: AppTypography.headline.copyWith(
-                          color: AppColors.title,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Text(
-                  group.nome,
-                  style: AppTypography.headline.copyWith(
-                    color: AppColors.title,
-                  ),
-                ),
-        ),
         IconButton(
           tooltip: l10n.praiseOpenDetailsTooltip,
           onPressed: () {
@@ -322,7 +312,7 @@ class _SheetHeader extends StatelessWidget {
           icon: const Icon(Icons.open_in_full, color: AppColors.title),
           style: IconButton.styleFrom(
             padding: EdgeInsets.zero,
-            minimumSize: const Size(44, 44),
+            minimumSize: const Size(40, 40),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
           ),
@@ -345,7 +335,7 @@ class _SheetHeader extends StatelessWidget {
             icon: const Icon(Icons.handshake_outlined, color: AppColors.title),
             style: IconButton.styleFrom(
               padding: EdgeInsets.zero,
-              minimumSize: const Size(44, 44),
+              minimumSize: const Size(40, 40),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
             ),
@@ -368,7 +358,7 @@ class _SheetHeader extends StatelessWidget {
             icon: const Icon(Icons.info_outline, color: AppColors.title),
             style: IconButton.styleFrom(
               padding: EdgeInsets.zero,
-              minimumSize: const Size(44, 44),
+              minimumSize: const Size(40, 40),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
             ),
@@ -381,7 +371,7 @@ class _SheetHeader extends StatelessWidget {
           icon: const Icon(Icons.close, color: AppColors.title),
           style: IconButton.styleFrom(
             padding: EdgeInsets.zero,
-            minimumSize: const Size(44, 44),
+            minimumSize: const Size(40, 40),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
           ),

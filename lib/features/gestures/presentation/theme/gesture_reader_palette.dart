@@ -83,7 +83,7 @@ const double kGestureBlockGap = 16;
 
 /// Largura da coluna da chave (`repeat`/`coro`) e do conector (`link`).
 const double kGestureBraceWidth = 28;
-const double kGestureLinkWidth = 20;
+const double kGestureLinkWidth = 26;
 
 /// Página: largura máxima e margens.
 const double kGesturePageMaxWidth = 720;

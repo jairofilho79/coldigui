@@ -134,4 +134,34 @@ void main() {
 
     expect(spy.opened, isA<LyricsMaterial>());
   });
+
+  testWidgets('no mobile o sheet abre com DraggableScrollableSheet e renderiza titulo dentro do card e materiais acessiveis', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final group = LouvorGroup.fromLouvores(
+      [_pdf],
+      lyricsByGroupId: {'p1': _lyrics},
+    ).single;
+    await _pumpSheet(tester, group);
+
+    // DraggableScrollableSheet presente
+    expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+
+    // Título e número dentro do card
+    final metaBlock = find.byType(ColdigomMetaBlock);
+    expect(metaBlock, findsOneWidget);
+    expect(find.descendant(of: metaBlock, matching: find.text('692')), findsOneWidget);
+    expect(find.descendant(of: metaBlock, matching: find.text('Comigo habita')), findsOneWidget);
+
+    // Botões de ação no topo
+    expect(find.byIcon(Icons.close), findsOneWidget);
+    expect(find.byIcon(Icons.open_in_full), findsOneWidget);
+
+    // Materiais visíveis e acessíveis
+    expect(find.text('Partitura'), findsOneWidget);
+  });
 }

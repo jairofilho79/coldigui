@@ -32,7 +32,10 @@ class LinkBlockView extends StatelessWidget {
           width: kGestureLinkWidth,
           child: CustomPaint(
             key: gestureLinkConnectorKey,
-            painter: LinkConnectorPainter(palette: palette),
+            painter: LinkConnectorPainter(
+              palette: palette,
+              childCount: children.length,
+            ),
           ),
         ),
       ],

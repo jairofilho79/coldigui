@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mockups — Conector de Ligação (Leitor de Gestos) · PLPCG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@700;800&family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #4b2d2b;
+      --bg-dark: #38201e;
+      --btn: #6a3b39;
+      --card: #fff8e1;
+      --title: #6a2f2f;
+      --gold: #d4af37;
+      --gold-light: #f4d03f;
+      --text: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Open Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px 80px;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      border-bottom: 2px solid rgba(212, 175, 55, 0.35);
+      padding-bottom: 18px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-family: "EB Garamond", Georgia, serif;
+      color: #f0e68c;
+      font-weight: 800;
+      font-size: 2.2rem;
+      margin: 0 0 6px;
+    }
+    .lede {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.85);
+      max-width: 68ch;
+      font-size: 0.96rem;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      background: var(--bg-dark);
+      border: 1.5px solid var(--gold);
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .control-group label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gold-light);
+      margin-right: 4px;
+    }
+    .seg-btn {
+      background: var(--btn);
+      color: #fff;
+      border: 1px solid var(--gold);
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .seg-btn:hover {
+      background: #7d4745;
+    }
+    .seg-btn.active {
+      background: var(--gold);
+      color: var(--bg-dark);
+    }
+    .divider-v {
+      width: 1px;
+      height: 24px;
+      background: rgba(212, 175, 55, 0.4);
+      margin: 0 4px;
+    }
+
+    .options-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .option-card {
+      background: var(--bg-dark);
+      border: 2px solid rgba(212, 175, 55, 0.55);
+      border-radius: 16px;
+      padding: 20px 22px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .option-card.recommended {
+      border-color: var(--gold-light);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+    }
+    .option-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .badge {
+      background: var(--gold);
+      color: var(--bg-dark);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 999px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .badge.rec {
+      background: #f4d03f;
+      box-shadow: 0 0 12px rgba(244, 208, 63, 0.45);
+    }
+    .badge.curr {
+      background: #9e8576;
+      color: #231413;
+    }
+    .option-title {
+      font-family: "EB Garamond", Georgia, serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--gold-light);
+      margin: 0;
+    }
+    .option-desc {
+      margin: 0 0 16px;
+      color: rgba(255, 255, 255, 0.84);
+      font-size: 0.92rem;
+      max-width: 85ch;
+    }
+
+    .panels-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    body.mode-light-only .panels-row { grid-template-columns: 1fr; max-width: 640px; }
+    body.mode-light-only .panel-dark { display: none; }
+    body.mode-dark-only .panels-row { grid-template-columns: 1fr; max-width: 640px; }
+    body.mode-dark-only .panel-light { display: none; }
+
+    @media (max-width: 860px) {
+      .panels-row { grid-template-columns: 1fr; }
+    }
+
+    /* Reader Paper Simulation */
+    .reader-paper {
+      border-radius: 12px;
+      padding: 16px 18px 18px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+    }
+    .reader-paper.panel-light {
+      background: #FFF8E1;
+      color: #2B1B17;
+      border: 1px solid rgba(106, 47, 47, 0.18);
+    }
+    .reader-paper.panel-dark {
+      background: #2A2A2A;
+      color: #F5F5F5;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+    .panel-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      opacity: 0.65;
+    }
+
+    /* LinkBlockView Structure */
+    .link-block {
+      position: relative;
+      padding-left: 34px;
+    }
+    .link-connector-slot {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 34px;
+      pointer-events: none;
+    }
+    .link-connector-slot svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+    }
+    .gesture-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 10px;
+      border-radius: 6px;
+    }
+    .panel-light .gesture-card.odd {
+      background: rgba(106, 47, 47, 0.055);
+    }
+    .panel-dark .gesture-card.odd {
+      background: rgba(255, 255, 255, 0.07);
+    }
+    .card-third {
+      display: none;
+    }
+    body.show-3-cards .card-third {
+      display: flex;
+    }
+
+    .gesture-fig {
+      width: 72px;
+      height: 72px;
+      background: #ffffff;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 0, 0, 0.14);
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+    }
+    .gesture-lyric {
+      font-size: 17px;
+      line-height: 1.35;
+    }
+    .panel-light .trigger {
+      color: #C62828;
+      font-weight: 700;
+    }
+    .panel-dark .trigger {
+      color: #FF5252;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <!-- Shared SVG Gradients & 3D Filters -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <filter id="drop3d" x="-35%" y="-20%" width="180%" height="150%">
+        <feDropShadow dx="1.5" dy="2.5" stdDeviation="1.8" flood-color="#000000" flood-opacity="0.38" />
+      </filter>
+      <linearGradient id="amberTubeLight" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FFD54F" />
+        <stop offset="35%" stop-color="#F59E0B" />
+        <stop offset="72%" stop-color="#E08A1E" />
+        <stop offset="100%" stop-color="#B45309" />
+      </linearGradient>
+      <linearGradient id="amberTubeDark" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FFE082" />
+        <stop offset="38%" stop-color="#FBBF24" />
+        <stop offset="75%" stop-color="#F0B35A" />
+        <stop offset="100%" stop-color="#C27803" />
+      </linearGradient>
+      <linearGradient id="ribbon3D" x1="0%" y1="15%" x2="100%" y2="85%">
+        <stop offset="0%" stop-color="#FFE082" />
+        <stop offset="28%" stop-color="#F59E0B" />
+        <stop offset="68%" stop-color="#D97706" />
+        <stop offset="100%" stop-color="#92400E" />
+      </linearGradient>
+      <radialGradient id="sphere3D" cx="35%" cy="32%" r="65%">
+        <stop offset="0%" stop-color="#FFFFFF" />
+        <stop offset="25%" stop-color="#FFE082" />
+        <stop offset="68%" stop-color="#E08A1E" />
+        <stop offset="100%" stop-color="#9A3412" />
+      </radialGradient>
+    </defs>
+  </svg>
+
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Conector de Ligação — Leitor de Gestos</h1>
+        <p class="lede">
+          Comparativo da seta reta atual com <strong>6 opções arqueadas e com efeito 3D</strong> (volume cilíndrico/chanfrado, brilho especular, sombra suave e ponta facetada). Use os controles ao lado para testar com 2 ou 3 gestos ligados.
+        </p>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <label>Filhos no bloco:</label>
+          <button class="seg-btn active" onclick="setCards(2, this)">2 gestos</button>
+          <button class="seg-btn" onclick="setCards(3, this)">3 gestos</button>
+        </div>
+        <div class="divider-v"></div>
+        <div class="control-group">
+          <label>Tema:</label>
+          <button class="seg-btn active" onclick="setTheme('both', this)">Ambos</button>
+          <button class="seg-btn" onclick="setTheme('light', this)">Só Claro</button>
+          <button class="seg-btn" onclick="setTheme('dark', this)">Só Escuro</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="options-grid" id="optionsContainer"></div>
+  </div>
+
+  <script>
+    const fig1Svg = `
+      <svg width="56" height="56" viewBox="0 0 76 76">
+        <circle cx="38" cy="24" r="14" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"/>
+        <path d="M 30 26 Q 38 14 46 26" fill="none" stroke="#2E7D32" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M 38 38 L 38 58" stroke="#6D4C41" stroke-width="3.4" stroke-linecap="round"/>
+        <path d="M 24 52 Q 31 44 36 48" fill="none" stroke="#D84315" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M 52 52 Q 45 44 40 48" fill="none" stroke="#D84315" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M 27 62 L 49 62" stroke="#8D6E63" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>`;
+
+    const fig2Svg = `
+      <svg width="56" height="56" viewBox="0 0 76 76">
+        <path d="M 16 46 Q 26 30 34 42" fill="none" stroke="#1565C0" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M 60 46 Q 50 30 42 42" fill="none" stroke="#1565C0" stroke-width="2.6" stroke-linecap="round"/>
+        <circle cx="38" cy="48" r="6.5" fill="#FFB300" stroke="#E65100" stroke-width="1.8"/>
+        <path d="M 38 20 L 38 35" stroke="#C62828" stroke-width="2.4" stroke-linecap="round"/>
+        <polygon points="33.5,32 38,39 42.5,32" fill="#C62828"/>
+        <path d="M 20 60 Q 38 66 56 60" fill="none" stroke="#2E7D32" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>`;
+
+    const fig3Svg = `
+      <svg width="56" height="56" viewBox="0 0 76 76">
+        <path d="M 22 52 C 22 30, 54 30, 54 52" fill="none" stroke="#6A1B9A" stroke-width="2.6" stroke-linecap="round"/>
+        <circle cx="38" cy="24" r="6" fill="#FFF176" stroke="#F57F17" stroke-width="1.8"/>
+        <path d="M 26 58 L 50 58" stroke="#4E342E" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>`;
+
+    const OPTIONS = [
+      {
+        badge: "ATUAL",
+        badgeClass: "curr",
+        title: "Como está hoje — Seta Reta Simples (2dp)",
+        desc: "Linha vertical reta de 2dp com triângulo chapado no final. Não cria sensação de abraçar os cartões ligados nem possui relevo.",
+        recommended: false,
+        renderSvg: (isDark) => {
+          const col = isDark ? "#F0B35A" : "#E08A1E";
+          return `
+            <svg viewBox="0 0 34 180" preserveAspectRatio="none">
+              <line x1="17" y1="6" x2="17" y2="168" stroke="${col}" stroke-width="2.2" stroke-linecap="round" />
+              <polygon points="11,166 17,176 23,166" fill="${col}" />
+            </svg>`;
+        }
+      },
+      {
+        badge: "OPÇÃO 1 · RECOMENDADO",
+        badgeClass: "rec",
+        title: "Arco Tubular Cilíndrico 3D (Curva em 'C')",
+        desc: "Sai da altura do 1º gesto, faz um arco contínuo elegante à esquerda e aponta na diagonal para o último gesto ligado. Possui volume cilíndrico (borda âmbar escura + centro vibrante + filete de brilho especular branco) e ponta facetada em 3D com sombra suave.",
+        recommended: true,
+        renderSvg: (isDark) => {
+          const grad = isDark ? "url(#amberTubeDark)" : "url(#amberTubeLight)";
+          const lightFacet = isDark ? "#FFE082" : "#FFB74D";
+          const darkFacet = isDark ? "#C66900" : "#B25E00";
+          return `
+            <svg viewBox="0 0 34 180">
+              <g filter="url(#drop3d)">
+                <path d="M 28 38 C 3 48, 3 132, 25 140" fill="none" stroke="${darkFacet}" stroke-width="6.4" stroke-linecap="round"/>
+                <path d="M 28 38 C 3 48, 3 132, 25 140" fill="none" stroke="${grad}" stroke-width="5.0" stroke-linecap="round"/>
+                <path d="M 27.5 36.8 C 2.2 46.8, 2.2 130.8, 24 138.8" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="1.5" stroke-linecap="round"/>
+                <g transform="translate(30, 141) rotate(16)">
+                  <polygon points="0,0 -15,-7.5 -10.8,0" fill="${lightFacet}"/>
+                  <polygon points="0,0 -10.8,0 -15,7.5" fill="${darkFacet}"/>
+                  <line x1="0" y1="0" x2="-10.8" y2="0" stroke="rgba(255,255,255,0.75)" stroke-width="1.1"/>
+                </g>
+              </g>
+            </svg>`;
+        }
+      },
+      {
+        badge: "OPÇÃO 2",
+        badgeClass: "",
+        title: "Fita Curva Esculpida 3D (Ribbon / Ligadura Musical)",
+        desc: "Inspirada na ligadura de expressão (slur) das partituras: começa afilada, ganha corpo no centro da curva e afila novamente antes da ponta 3D, com chanfro escuro interno e borda externa iluminada.",
+        recommended: false,
+        renderSvg: (isDark) => {
+          const lightFacet = isDark ? "#FFE082" : "#FFB74D";
+          const darkFacet = isDark ? "#B25E00" : "#9E4F00";
+          return `
+            <svg viewBox="0 0 34 180">
+              <g filter="url(#drop3d)">
+                <path d="M 29 36 C 0 46, 0 134, 23 141 L 24 135 C 9 128, 9 52, 29 41 Z" fill="url(#ribbon3D)" stroke="${darkFacet}" stroke-width="0.8"/>
+                <path d="M 29 41 C 9 52, 9 128, 24 135" fill="none" stroke="${darkFacet}" stroke-width="1.6" stroke-linecap="round"/>
+                <path d="M 29 36.5 C 1 46.5, 1 133.5, 23 140.5" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-linecap="round"/>
+                <g transform="translate(31, 140) rotate(12)">
+                  <polygon points="0,0 -16,-8.5 -11.5,0" fill="${lightFacet}"/>
+                  <polygon points="0,0 -11.5,0 -16,8.5" fill="${darkFacet}"/>
+                  <line x1="0" y1="0" x2="-11.5" y2="0" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+                </g>
+              </g>
+            </svg>`;
+        }
+      },
+      {
+        badge: "OPÇÃO 3",
+        badgeClass: "",
+        title: "Arco com Esfera de Ancoragem 3D (Pin Bridge)",
+        desc: "Nasce de uma esfera âmbar 3D posicionada exatamente no centro do 1º gesto, arqueia para fora e mergulha com seta facetada 3D apontando para o gesto seguinte.",
+        recommended: false,
+        renderSvg: (isDark) => {
+          const grad = isDark ? "url(#amberTubeDark)" : "url(#amberTubeLight)";
+          const lightFacet = isDark ? "#FFE082" : "#FFB74D";
+          const darkFacet = isDark ? "#C66900" : "#B25E00";
+          return `
+            <svg viewBox="0 0 34 180">
+              <g filter="url(#drop3d)">
+                <path d="M 26 42 C 3 52, 3 128, 24 138" fill="none" stroke="${darkFacet}" stroke-width="5.6" stroke-linecap="round"/>
+                <path d="M 26 42 C 3 52, 3 128, 24 138" fill="none" stroke="${grad}" stroke-width="4.4" stroke-linecap="round"/>
+                <path d="M 25.5 41 C 2.2 51, 2.2 127, 23.5 137" fill="none" stroke="rgba(255,255,255,0.68)" stroke-width="1.4" stroke-linecap="round"/>
+                <circle cx="26" cy="42" r="5.8" fill="url(#sphere3D)" stroke="${darkFacet}" stroke-width="0.7"/>
+                <circle cx="24.2" cy="40.2" r="1.8" fill="rgba(255,255,255,0.88)"/>
+                <g transform="translate(30, 140) rotate(18)">
+                  <polygon points="0,0 -15,-7.5 -10.5,0" fill="${lightFacet}"/>
+                  <polygon points="0,0 -10.5,0 -15,7.5" fill="${darkFacet}"/>
+                  <line x1="0" y1="0" x2="-10.5" y2="0" stroke="rgba(255,255,255,0.7)" stroke-width="1.1"/>
+                </g>
+              </g>
+            </svg>`;
+        }
+      },
+      {
+        badge: "OPÇÃO 4",
+        badgeClass: "",
+        title: "Arco Duplo Chanfrado em Relevo (Bevel Clássico)",
+        desc: "Combina o arco principal 3D com um segundo filete interno mais fino que acompanha a curvatura, criando estética de gravura clássica e ponta de lança lapidada.",
+        recommended: false,
+        renderSvg: (isDark) => {
+          const grad = isDark ? "url(#amberTubeDark)" : "url(#amberTubeLight)";
+          const lightFacet = isDark ? "#FFE082" : "#FFB74D";
+          const darkFacet = isDark ? "#C66900" : "#B25E00";
+          const innerCol = isDark ? "rgba(240,179,90,0.78)" : "rgba(224,138,30,0.75)";
+          return `
+            <svg viewBox="0 0 34 180">
+              <g filter="url(#drop3d)">
+                <path d="M 28 30 C 2 46, 2 134, 24 148" fill="none" stroke="${darkFacet}" stroke-width="4.4" stroke-linecap="round"/>
+                <path d="M 28 30 C 2 46, 2 134, 24 148" fill="none" stroke="${grad}" stroke-width="3.3" stroke-linecap="round"/>
+                <path d="M 27.5 29.2 C 1.3 45.2, 1.3 133.2, 23.5 147.2" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.1" stroke-linecap="round"/>
+                <path d="M 28 37 C 9.5 52, 9.5 128, 23 141" fill="none" stroke="${innerCol}" stroke-width="2.0" stroke-linecap="round"/>
+                <g transform="translate(30, 150) rotate(22)">
+                  <polygon points="0,0 -15,-7.5 -10,0" fill="${lightFacet}"/>
+                  <polygon points="0,0 -10,0 -15,7.5" fill="${darkFacet}"/>
+                  <line x1="0" y1="0" x2="-10" y2="0" stroke="rgba(255,255,255,0.75)" stroke-width="1.1"/>
+                </g>
+              </g>
+            </svg>`;
+        }
+      },
+      {
+        badge: "OPÇÃO 5",
+        badgeClass: "",
+        title: "Alça / Colchete Arqueado 3D",
+        desc: "Abraça quase toda a altura do bloco com ombros curvos 3D (conversando com a chave azul de repetição à direita) e entra na horizontal apontando para o gesto final.",
+        recommended: false,
+        renderSvg: (isDark) => {
+          const grad = isDark ? "url(#amberTubeDark)" : "url(#amberTubeLight)";
+          const lightFacet = isDark ? "#FFE082" : "#FFB74D";
+          const darkFacet = isDark ? "#C66900" : "#B25E00";
+          return `
+            <svg viewBox="0 0 34 180">
+              <g filter="url(#drop3d)">
+                <path d="M 29 18 Q 6 18, 6 50 L 6 130 Q 6 160, 24 160" fill="none" stroke="${darkFacet}" stroke-width="5.8" stroke-linecap="round"/>
+                <path d="M 29 18 Q 6 18, 6 50 L 6 130 Q 6 160, 24 160" fill="none" stroke="${grad}" stroke-width="4.5" stroke-linecap="round"/>
+                <path d="M 28.5 17 Q 5 17, 5 49 L 5 129 Q 5 159, 23.5 159" fill="none" stroke="rgba(255,255,255,0.68)" stroke-width="1.4" stroke-linecap="round"/>
+                <g transform="translate(31, 160) rotate(0)">
+                  <polygon points="0,0 -15,-7.5 -10.5,0" fill="${lightFacet}"/>
+                  <polygon points="0,0 -10.5,0 -15,7.5" fill="${darkFacet}"/>
+                  <line x1="0" y1="0" x2="-10.5" y2="0" stroke="rgba(255,255,255,0.75)" stroke-width="1.1"/>
+                </g>
+              </g>
+            </svg>`;
+        }
+      },
+      {
+        badge: "OPÇÃO 6",
+        badgeClass: "",
+        title: "Arco Vertical com Mergulho 3D",
+        desc: "Mantém a leitura de cima para baixo da seta atual, mas substitui a haste reta por um arco cilíndrico 3D que mergulha na extremidade inferior.",
+        recommended: false,
+        renderSvg: (isDark) => {
+          const grad = isDark ? "url(#amberTubeDark)" : "url(#amberTubeLight)";
+          const lightFacet = isDark ? "#FFE082" : "#FFB74D";
+          const darkFacet = isDark ? "#C66900" : "#B25E00";
+          return `
+            <svg viewBox="0 0 34 180">
+              <g filter="url(#drop3d)">
+                <path d="M 25 14 C 4 38, 4 124, 19 160" fill="none" stroke="${darkFacet}" stroke-width="5.8" stroke-linecap="round"/>
+                <path d="M 25 14 C 4 38, 4 124, 19 160" fill="none" stroke="${grad}" stroke-width="4.5" stroke-linecap="round"/>
+                <path d="M 24.2 13.2 C 3 37.2, 3 123.2, 18.2 159.2" fill="none" stroke="rgba(255,255,255,0.68)" stroke-width="1.4" stroke-linecap="round"/>
+                <g transform="translate(22, 168) rotate(68)">
+                  <polygon points="0,0 -15,-7.5 -10.5,0" fill="${lightFacet}"/>
+                  <polygon points="0,0 -10.5,0 -15,7.5" fill="${darkFacet}"/>
+                  <line x1="0" y1="0" x2="-10.5" y2="0" stroke="rgba(255,255,255,0.75)" stroke-width="1.1"/>
+                </g>
+              </g>
+            </svg>`;
+        }
+      }
+    ];
+
+    function buildReaderPanel(isDark, svgContent) {
+      const modeClass = isDark ? "panel-dark" : "panel-light";
+      const modeLabel = isDark ? "Tema Escuro (Palco)" : "Tema Claro (Papel Creme)";
+      return `
+        <div class="reader-paper ${modeClass}">
+          <div class="panel-tag">${modeLabel}</div>
+          <div class="link-block">
+            <div class="link-connector-slot">
+              ${svgContent}
+            </div>
+            <div class="gesture-card even">
+              <div class="gesture-fig">${fig1Svg}</div>
+              <div class="gesture-lyric"><span class="trigger">A árvore</span> da vida</div>
+            </div>
+            <div class="gesture-card odd">
+              <div class="gesture-fig">${fig2Svg}</div>
+              <div class="gesture-lyric"><span class="trigger">no meio</span> do jardim</div>
+            </div>
+            <div class="gesture-card even card-third">
+              <div class="gesture-fig">${fig3Svg}</div>
+              <div class="gesture-lyric"><span class="trigger">É certeza</span> que Jesus me prometeu.</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function renderAll() {
+      const container = document.getElementById("optionsContainer");
+      container.innerHTML = OPTIONS.map(opt => `
+        <section class="option-card ${opt.recommended ? 'recommended' : ''}">
+          <div class="option-header">
+            <span class="badge ${opt.badgeClass}">${opt.badge}</span>
+            <h2 class="option-title">${opt.title}</h2>
+          </div>
+          <p class="option-desc">${opt.desc}</p>
+          <div class="panels-row">
+            ${buildReaderPanel(false, opt.renderSvg(false))}
+            ${buildReaderPanel(true, opt.renderSvg(true))}
+          </div>
+        </section>
+      `).join("");
+    }
+
+    function setCards(n, btn) {
+      document.body.classList.toggle("show-3-cards", n === 3);
+      btn.parentElement.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    }
+
+    function setTheme(mode, btn) {
+      document.body.classList.remove("mode-light-only", "mode-dark-only");
+      if (mode === "light") document.body.classList.add("mode-light-only");
+      if (mode === "dark") document.body.classList.add("mode-dark-only");
+      btn.parentElement.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
