@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
@@ -7,6 +8,7 @@ import '../widgets/coldigui_tutorial_hint.dart';
 List<SpotlightGuideStep> buildCarouselSelectionTutorialSteps(
   BuildContext context,
 ) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Reordenar Repertório
     SpotlightGuideStep.item(
@@ -20,8 +22,9 @@ List<SpotlightGuideStep> buildCarouselSelectionTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Reordenar Repertório',
+          title: l10n?.tutorialCarouselSelectionStep1Title ?? 'Reordenar Repertório',
           message:
+              l10n?.tutorialCarouselSelectionStep1Message ??
               'Segure e arraste o ícone de **alça de ordenação** para mudar a sequência dos louvores em tempo real durante o culto ou ensaio.',
         ),
       ),
@@ -39,8 +42,9 @@ List<SpotlightGuideStep> buildCarouselSelectionTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Navegação Rápida',
+          title: l10n?.tutorialCarouselSelectionStep2Title ?? 'Navegação Rápida',
           message:
+              l10n?.tutorialCarouselSelectionStep2Message ??
               'Toque no **corpo do louvor** para saltar imediatamente para ele no leitor de partituras ou cifras ativo.',
         ),
       ),
@@ -58,8 +62,9 @@ List<SpotlightGuideStep> buildCarouselSelectionTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Remover da Seleção',
+          title: l10n?.tutorialCarouselSelectionStep3Title ?? 'Remover da Seleção',
           message:
+              l10n?.tutorialCarouselSelectionStep3Message ??
               'Toque no botão **×** para retirar o louvor da lista temporária de culto sem apagar suas playlists salvas.',
         ),
       ),
@@ -77,8 +82,9 @@ List<SpotlightGuideStep> buildCarouselSelectionTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Limpar ou Reiniciar Lista',
+          title: l10n?.tutorialCarouselSelectionStep4Title ?? 'Limpar ou Reiniciar Lista',
           message:
+              l10n?.tutorialCarouselSelectionStep4Message ??
               'Use esta ação para **limpar a lista ativa** e iniciar uma nova seleção do zero ou descartar o rascunho atual.',
         ),
       ),
@@ -96,8 +102,9 @@ List<SpotlightGuideStep> buildCarouselSelectionTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda da Lista Ativa',
+          title: l10n?.tutorialCarouselSelectionStep5Title ?? 'Ajuda da Lista Ativa',
           message:
+              l10n?.tutorialCarouselSelectionStep5Message ??
               'Consulte este **guia rápido** sempre que tiver dúvidas sobre como reorganizar e operar seu repertório.',
         ),
       ),

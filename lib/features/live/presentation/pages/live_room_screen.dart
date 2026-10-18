@@ -69,7 +69,7 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline),
-            tooltip: 'Como usar esta tela',
+            tooltip: l10n.tutorialHowToUseScreen,
             onPressed: () {
               try {
                 final container =

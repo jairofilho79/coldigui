@@ -10,6 +10,7 @@ import '../../../playlists/presentation/providers/active_playlist_provider.dart'
 import '../../../playlists/presentation/providers/playlists_provider.dart';
 import '../../domain/entities/carousel_item.dart';
 import '../providers/carousel_items_provider.dart';
+import '../providers/currently_open_item_provider.dart';
 import 'active_list_panel.dart';
 import 'carousel_clear_choice_dialog.dart';
 
@@ -113,7 +114,8 @@ class _CarouselSelectionDialogState
   Future<void> _handleRemoved(CarouselItem item) async {
     if (!mounted) return;
 
-    if (ref.read(carouselItemsProvider).isEmpty) {
+    if (ref.read(carouselItemsProvider).isEmpty &&
+        ref.read(currentlyOpenItemProvider) == null) {
       Navigator.of(context).pop();
       return;
     }
@@ -134,7 +136,7 @@ class _CarouselSelectionDialogState
             SpotlightGuideTarget(
               id: 'active-list-info',
               child: IconButton(
-                tooltip: 'Como gerenciar a lista',
+                tooltip: l10n.tutorialTooltipHowToManageList,
                 onPressed: () {
                   try {
                     final container =

@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/routing/reading_navigation.dart';
 import '../../../../core/utils/gesture_reader_url_builder.dart';
 import '../../../../core/utils/material_id_kind.dart';
-import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/gesture_material.dart';
 
 /// Resultado de decodificar um id de material como documento de gestos.
@@ -51,12 +50,6 @@ Future<void> openGestureInReader({
   required BuildContext context,
   required GestureMaterial gesture,
 }) async {
-  await ref
-      .read(activePlaylistEditorProvider.notifier)
-      .addToActive(gesture.gestureId, kind: MaterialKind.gesture);
-
-  if (!context.mounted) return;
-
   openReadingLocation(
     context,
     buildGestureReaderLocation(

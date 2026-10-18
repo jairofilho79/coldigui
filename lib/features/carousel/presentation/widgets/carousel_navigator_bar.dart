@@ -41,6 +41,8 @@ class CarouselNavigatorBar extends StatelessWidget {
     this.swapMaterial,
     this.loading = false,
     this.trailingActions = const [],
+    this.onAdd,
+    this.isAdded = false,
     super.key,
   });
 
@@ -71,6 +73,10 @@ class CarouselNavigatorBar extends StatelessWidget {
   final bool loading;
   final List<Widget> trailingActions;
 
+  /// Adicionar item à lista ativa quando não estiver nela.
+  final VoidCallback? onAdd;
+  final bool isAdded;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -88,6 +94,8 @@ class CarouselNavigatorBar extends StatelessWidget {
             onPrevious: loading ? null : onPrevious,
             onNext: loading ? null : onNext,
             onTap: loading ? null : onChipTap,
+            onAdd: loading ? null : onAdd,
+            isAdded: isAdded,
           ),
         ),
         const SizedBox(width: 6),

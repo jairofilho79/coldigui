@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
 /// Passos do tutorial da tela de Sala ao Vivo ([LiveRoomScreen]).
 List<SpotlightGuideStep> buildLiveRoomTutorialSteps(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Código e QR Code da Sala (modo líder)
     SpotlightGuideStep.item(
@@ -18,8 +20,9 @@ List<SpotlightGuideStep> buildLiveRoomTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Código e QR Code da Sala',
+          title: l10n?.tutorialLiveRoomStep1Title ?? 'Código e QR Code da Sala',
           message:
+              l10n?.tutorialLiveRoomStep1Message ??
               'Os participantes podem ler este **código QR** com a câmera do celular ou acessar o **link direto** para acompanhar o culto.',
         ),
       ),
@@ -37,8 +40,9 @@ List<SpotlightGuideStep> buildLiveRoomTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Compartilhar e Gerenciar',
+          title: l10n?.tutorialLiveRoomStep2Title ?? 'Compartilhar e Gerenciar',
           message:
+              l10n?.tutorialLiveRoomStep2Message ??
               'Copie ou **compartilhe o link** da transmissão com o grupo ou toque em **gerar novo link** caso precise redefinir o acesso.',
         ),
       ),
@@ -56,8 +60,9 @@ List<SpotlightGuideStep> buildLiveRoomTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Participantes Conectados',
+          title: l10n?.tutorialLiveRoomStep3Title ?? 'Participantes Conectados',
           message:
+              l10n?.tutorialLiveRoomStep3Message ??
               'Acompanhe em tempo real o **número de irmãos** que estão sintonizados e seguindo as cifras e letras na sua sala.',
         ),
       ),
@@ -75,8 +80,9 @@ List<SpotlightGuideStep> buildLiveRoomTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Finalizar Transmissão',
+          title: l10n?.tutorialLiveRoomStep4Title ?? 'Finalizar Transmissão',
           message:
+              l10n?.tutorialLiveRoomStep4Message ??
               'Toque em **Encerrar** para concluir a sessão ao vivo com os participantes e retornar para as suas listas.',
         ),
       ),
@@ -94,8 +100,9 @@ List<SpotlightGuideStep> buildLiveRoomTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Status da Transmissão',
+          title: l10n?.tutorialLiveRoomStep5Title ?? 'Status da Transmissão',
           message:
+              l10n?.tutorialLiveRoomStep5Message ??
               'Acompanhe o andamento da sessão: veja se o líder está **ao vivo**, aguardando o culto ou se a conexão está **sincronizando**.',
         ),
       ),
@@ -113,8 +120,9 @@ List<SpotlightGuideStep> buildLiveRoomTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Guardar Cópia',
+          title: l10n?.tutorialLiveRoomStep6Title ?? 'Guardar Cópia',
           message:
+              l10n?.tutorialLiveRoomStep6Message ??
               'Ao fim do culto, toque em **Guardar cópia** para salvar a lista de louvores executada diretamente nas suas listas pessoais.',
         ),
       ),
@@ -132,8 +140,9 @@ List<SpotlightGuideStep> buildLiveRoomTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialLiveRoomStep7Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialLiveRoomStep7Message ??
               'Toque neste ícone a qualquer momento para rever este **guia passo a passo** da sala ao vivo.',
         ),
       ),

@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/routing/route_paths.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/tutorial/presentation/providers/tutorial_provider.dart';
 import '../../../../core/utils/material_id_kind.dart';
@@ -345,7 +344,7 @@ class _SheetHeader extends StatelessWidget {
         SpotlightGuideTarget(
           id: 'material-sheet-info',
           child: IconButton(
-            tooltip: 'Como usar este seletor',
+            tooltip: l10n.tutorialTooltipHowToUseMaterialSheet,
             onPressed: () {
               try {
                 final container =

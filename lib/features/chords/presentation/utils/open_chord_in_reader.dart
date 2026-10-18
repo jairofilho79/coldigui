@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/routing/reading_navigation.dart';
 import '../../../../core/utils/chord_reader_url_builder.dart';
 import '../../../../core/utils/material_id_kind.dart';
-import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/chord_material.dart';
 
 /// Resultado de decodificar um id de material como cifra.
@@ -62,12 +61,6 @@ Future<void> openChordInReader({
   required BuildContext context,
   required ChordMaterial chord,
 }) async {
-  await ref
-      .read(activePlaylistEditorProvider.notifier)
-      .addToActive(chord.chordId, kind: MaterialKind.chord);
-
-  if (!context.mounted) return;
-
   openReadingLocation(
     context,
     buildChordReaderLocation(

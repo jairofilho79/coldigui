@@ -2133,4 +2133,1430 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get praiseDecreaseFontSizeTooltip => 'Decrease font size';
+
+  @override
+  String get confirm => 'Confirm';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get backTooltip => 'Back';
+
+  @override
+  String get homeTooltip => 'Home';
+
+  @override
+  String get placeholderComingSoon => 'Coming soon';
+
+  @override
+  String get degradedStorageBannerMessage =>
+      'Local storage unavailable. The online catalog continues to work; playlists and offline mode are disabled.';
+
+  @override
+  String get tabEvents => 'Events';
+
+  @override
+  String get tabPlaylists => 'Playlists';
+
+  @override
+  String get tabSearch => 'Search';
+
+  @override
+  String get tabProfile => 'Profile';
+
+  @override
+  String get tabAbout => 'About';
+
+  @override
+  String get tabPraise => 'Praise';
+
+  @override
+  String get tabPublicPlaylists => 'Public playlists';
+
+  @override
+  String get aboutTitle => 'About';
+
+  @override
+  String get profileResetTutorials => 'Reset Tutorials';
+
+  @override
+  String get profileResetTutorialsDialogTitle => 'Reset Tutorials';
+
+  @override
+  String get profileResetTutorialsDialogContent =>
+      'Do you want to reset all tutorials? Introductory guides will be shown again automatically when accessing app screens.';
+
+  @override
+  String get profileResetTutorialsConfirm => 'Reset';
+
+  @override
+  String get profileResetTutorialsSuccess => 'Tutorials reset successfully!';
+
+  @override
+  String get profileSyncPromptTitle => 'Sign in to sync your data';
+
+  @override
+  String get profileSyncPromptBody =>
+      'Use your Google account to sync playlists and other features.';
+
+  @override
+  String get profileSignOut => 'Sign out';
+
+  @override
+  String get shortcutsTitle => 'Keyboard Shortcuts';
+
+  @override
+  String get shortcutsSubtitle =>
+      'Fast productivity commands for Desktop and Web';
+
+  @override
+  String get shortcutsAboutDescription =>
+      'View high-productivity quick commands for Desktop and Web.';
+
+  @override
+  String get welcomeTourAboutTitle => 'Welcome Tour';
+
+  @override
+  String get welcomeTourAboutDescription =>
+      'Take the 4-step guided tour learning the flow from catalog to worship.';
+
+  @override
+  String get shortcutsTabAll => 'All';
+
+  @override
+  String get shortcutsTabNavigation => 'Navigation';
+
+  @override
+  String get shortcutsTabRepertoireAudio => 'Repertoire & Audio';
+
+  @override
+  String get shortcutsTabSheetMusic => 'Sheet Music';
+
+  @override
+  String get shortcutsTabChordsGestures => 'Chords & Gestures';
+
+  @override
+  String get shortcutsFooterTip =>
+      'Press ? on any screen to open this panel at any time.';
+
+  @override
+  String get shortcutsGotIt => 'Got it';
+
+  @override
+  String get shortcutsEmpty => 'No shortcuts found.';
+
+  @override
+  String get shortcutsOr => 'or';
+
+  @override
+  String get shortcutCatNavigation => 'Navigation & Search';
+
+  @override
+  String get shortcutCatRepertoireAudio => 'Repertoire & Audio';
+
+  @override
+  String get shortcutCatSheetMusic => 'Sheet Music (PDF)';
+
+  @override
+  String get shortcutCatChordsGestures => 'Chords & Gestures';
+
+  @override
+  String get shortcutActionHomeSearch => 'Go to Home and focus search field';
+
+  @override
+  String get shortcutActionOpenShortcuts =>
+      'Open this Keyboard Shortcuts Center';
+
+  @override
+  String get shortcutActionEscape =>
+      'Exit full screen, clear search, or close dialogs';
+
+  @override
+  String get shortcutActionNextPraise => 'Go to next praise in repertoire';
+
+  @override
+  String get shortcutActionPreviousPraise =>
+      'Go to previous praise in repertoire';
+
+  @override
+  String get shortcutActionCarouselQueue => 'Navigate praise carousel queue';
+
+  @override
+  String get shortcutActionToggleAudio => 'Play or pause praise audio';
+
+  @override
+  String get shortcutActionToggleAudioPdf =>
+      'Play or pause audio even with sheet music open';
+
+  @override
+  String get shortcutActionSeekAudioBack => 'Rewind audio 10 seconds';
+
+  @override
+  String get shortcutActionSeekAudioForward => 'Fast-forward audio 10 seconds';
+
+  @override
+  String get shortcutActionToggleFullscreen => 'Toggle full-screen mode';
+
+  @override
+  String get shortcutActionNextPagePdf => 'Next page or scroll sheet music';
+
+  @override
+  String get shortcutActionPrevPagePdf => 'Previous sheet music page';
+
+  @override
+  String get shortcutActionFirstPagePdf => 'Go to first page';
+
+  @override
+  String get shortcutActionLastPagePdf => 'Go to last page';
+
+  @override
+  String get shortcutActionFitModePdf => 'Toggle fit mode (width / height)';
+
+  @override
+  String get shortcutActionPageGridPdf => 'Open quick page grid selector';
+
+  @override
+  String get shortcutActionToggleAutoscroll => 'Toggle autoscroll on or off';
+
+  @override
+  String get shortcutActionAdjustAutoscrollSpeed =>
+      'Decrease or increase scroll speed';
+
+  @override
+  String get shortcutActionTransposePitch =>
+      'Transpose praise pitch (+1 / -1 semitone)';
+
+  @override
+  String get shortcutActionNextGesture => 'Next or previous conducting gesture';
+
+  @override
+  String get shortcutBadgeReader => 'Reader';
+
+  @override
+  String get shortcutBadgeGeneral => 'General';
+
+  @override
+  String get shortcutBadgeReaderPdf => 'PDF Reader';
+
+  @override
+  String get shortcutBadgeChordsLyrics => 'Chords/Lyrics';
+
+  @override
+  String get shortcutBadgeAutoscroll => 'Autoscroll';
+
+  @override
+  String get shortcutBadgeChords => 'Chords';
+
+  @override
+  String get shortcutBadgeFocusModeCias => 'Focus Mode CIAs';
+
+  @override
+  String get materialKindChordExtracted => 'Extracted (chords)';
+
+  @override
+  String get materialKindGestureExtracted => 'Extracted (gestures)';
+
+  @override
+  String offlineKindVariantsCount(int count) {
+    return '$count var.';
+  }
+
+  @override
+  String offlineKindVariantsTitle(String name, int count) {
+    return 'Variants of $name ($count):';
+  }
+
+  @override
+  String get offlineSearchMaterialTypeHint => 'Search material type...';
+
+  @override
+  String get offlineClearSearchTooltip => 'Clear search';
+
+  @override
+  String get offlineFilterButton => 'Filter';
+
+  @override
+  String offlineSearchNoResults(String query) {
+    return 'No material types found for \"$query\"';
+  }
+
+  @override
+  String get tutorialTooltipHowToShare => 'How to share';
+
+  @override
+  String get tutorialTooltipHowToPublish => 'How to publish';
+
+  @override
+  String get tutorialTooltipHowToUseFilters => 'How to use filters';
+
+  @override
+  String get tutorialTooltipHowToUseMaterialSheet => 'How to use this selector';
+
+  @override
+  String get tutorialTooltipHowToManageList => 'How to manage list';
+
+  @override
+  String get tutorialTooltipHowToUseFocusMode => 'How to use Focus Mode';
+
+  @override
+  String get tutorialTooltipHowToJoinLive => 'How to join';
+
+  @override
+  String get tutorialTooltipHowToUseShortcuts => 'How to use shortcuts';
+
+  @override
+  String get contributeNeedHelp => 'Need help?';
+
+  @override
+  String get contributeHelpIntro =>
+      'This page allows you to submit contributions and help us improve the app and the PLPCG catalog. Choose the option that best describes your case:';
+
+  @override
+  String get contributeHelpDescBug =>
+      'App issues (crashes, black screen, unresponsive buttons, or audio/reader failure). Attach a screenshot if possible.';
+
+  @override
+  String get contributeHelpDescWrongInfo =>
+      'Incorrect data in an existing praise (number, key, title, author, rhythm, or duplicate entry).';
+
+  @override
+  String get contributeHelpDescContent =>
+      'Submitting or suggesting new materials (chords, sheet music, audio, or lyrics) or improvements to existing files.';
+
+  @override
+  String get contributeHelpDescImprovement =>
+      'Feature suggestions, visual changes, or ideas to make the app more practical for rehearsals and worship services.';
+
+  @override
+  String get contributeHelpDescOther =>
+      'General questions, notes for the team, or any other topic not listed above.';
+
+  @override
+  String get contributeHelpTipAttachments =>
+      'You can also attach files (up to 32 MB) or paste Google Drive and YouTube links to support your submission.';
+
+  @override
+  String get contributeEditorChordProExampleHint =>
+      '[G]Example of [D]ChordPro chords...';
+
+  @override
+  String contributeEditorLinesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count lines',
+      one: '1 line',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get contributeEditorGestureEmptyDocument =>
+      'No items in document. Add a line above.';
+
+  @override
+  String contributeEditorGestureBlocksCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count blocks/lines',
+      one: '1 block/line',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String contributeEditorGestureInstructionLabel(String kind) {
+    return 'Instruction: $kind';
+  }
+
+  @override
+  String authGoogleSignInError(String error) {
+    return 'Failed to sign in: $error';
+  }
+
+  @override
+  String tutorialStepCounter(int current, int total) {
+    return 'Step $current of $total';
+  }
+
+  @override
+  String get tutorialDismissForever => 'Don\'t show again';
+
+  @override
+  String get tutorialSkip => 'Skip';
+
+  @override
+  String get tutorialPrevious => 'Back';
+
+  @override
+  String get tutorialNext => 'Next';
+
+  @override
+  String get tutorialFinish => 'Finish';
+
+  @override
+  String get tutorialHowToUseScreen => 'How to use this screen';
+
+  @override
+  String get welcomeHeroTitle => 'Welcome to PLPCG!';
+
+  @override
+  String get welcomeHeroSubtitle =>
+      'The digital hymnal and praise organizer for musicians, instrumentalists, and worship teams.';
+
+  @override
+  String get welcomeHeroFeatureSearch =>
+      'Fast search by number, title, rhythm, and tags.';
+
+  @override
+  String get welcomeHeroFeaturePlaylists =>
+      'Create playlists and setlists for worship services.';
+
+  @override
+  String get welcomeHeroFeatureReader =>
+      'Sheet music and chord reader with Bluetooth pedals.';
+
+  @override
+  String get welcomeHeroPrompt =>
+      'Would you like a quick 1-minute tour to explore the main features?';
+
+  @override
+  String get welcomeHeroStartTour => 'Take Quick Tour (1 min)';
+
+  @override
+  String get welcomeHeroDismiss => 'Explore on My Own';
+
+  @override
+  String get authSigningIn => 'Signing in…';
+
+  @override
+  String get aboutWhoWeAreTitle => 'Who we are';
+
+  @override
+  String get aboutWhoWeAreBody =>
+      'The Peace of the Lord Jesus. We are brothers and sisters from the Maranatha Christian Church in the Triângulo Mineiro region serving at the Maanaim of Uberlândia-MG. This application is not an official church application, but its purpose is to help all those in the praise ministry serving in the Work, following Church guidelines, 100% free of charge.';
+
+  @override
+  String get aboutObjectiveTitle => 'Objective';
+
+  @override
+  String get aboutObjectiveParagraph1 =>
+      'The goal of this application — called Praise Researcher in Sheet Music, Chords in General — is to assist worship team members with essential praise materials. To make it easy to search, access, and work offline, as many churches lack internet access.';
+
+  @override
+  String get aboutObjectiveParagraph2 =>
+      'Therefore, let us remain in prayer for all brethren involved in this project, whether in app development, content creation, app testing, or related efforts.';
+
+  @override
+  String get tutorialAboutStep1Title => 'About Us';
+
+  @override
+  String get tutorialAboutStep1Message =>
+      'Learn about the history and the team behind the application. A **100% free** and collaborative initiative built to assist worship teams.';
+
+  @override
+  String get tutorialAboutStep2Title => 'Our Mission';
+
+  @override
+  String get tutorialAboutStep2Message =>
+      'The main purpose is to facilitate access to **sheet music, chords, gestures, and audio**, with guaranteed **offline** operation even in places without internet.';
+
+  @override
+  String get tutorialAboutStep3Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialAboutStep3Message =>
+      'Tap the **(i) icon** anytime you want to review this guide or check detailed instructions on any screen of the app!';
+
+  @override
+  String get tutorialAppShortcutsStep1Title => 'Shortcut Categories';
+
+  @override
+  String get tutorialAppShortcutsStep1Message =>
+      'Navigate between tabs to explore commands grouped by context: **Navigation & Search**, **Setlist & Audio**, **Sheet Music**, and **Chords & Gestures**.';
+
+  @override
+  String get tutorialAppShortcutsStep2Title => 'High-Productivity Shortcuts';
+
+  @override
+  String get tutorialAppShortcutsStep2Message =>
+      'Review shortcut keys and their actions. Side badges highlight the **contexts and viewers where each command operates**.';
+
+  @override
+  String get tutorialAppShortcutsStep3Title => 'Quick Access with the ? Key';
+
+  @override
+  String get tutorialAppShortcutsStep3Message =>
+      'Press **?** (or **Shift + /**) on any app screen to open this **shortcuts center instantly** on Desktop and Web.';
+
+  @override
+  String get tutorialAppShortcutsStep4Title => 'Shortcuts Center Help';
+
+  @override
+  String get tutorialAppShortcutsStep4Message =>
+      'Tap this icon to review instructions on PLPCG\'s **quick commands and shortcuts**.';
+
+  @override
+  String get tutorialAudioStep1Title => 'Track Information';
+
+  @override
+  String get tutorialAudioStep1Message =>
+      'View the **title**, **number**, **author**, and **classification** of the praise or audio currently playing.';
+
+  @override
+  String get tutorialAudioStep2Title => 'Actions and Synchronization';
+
+  @override
+  String get tutorialAudioStep2Message =>
+      'Access the **linked sheet music**, add **audio markers**, enable **follow audio** mode in the reader, and adjust **playback speed**.';
+
+  @override
+  String get tutorialAudioStep3Title => 'Progress Bar';
+
+  @override
+  String get tutorialAudioStep3Message =>
+      'Track **current time**, **total duration**, and drag the slider to seek forward or backward. Registered **markers** are highlighted on the timeline.';
+
+  @override
+  String get tutorialAudioStep4Title => 'Playback Controls';
+
+  @override
+  String get tutorialAudioStep4Message =>
+      'Control playback with **Play/Pause**, skip to the **previous or next track**, and quickly seek forward or backward by **10 seconds**.';
+
+  @override
+  String get tutorialAudioStep5Title => 'Practice Markers';
+
+  @override
+  String get tutorialAudioStep5Message =>
+      'See all **timestamped markers** added to the track. Tap any marker to jump directly to that point in the rehearsal.';
+
+  @override
+  String get tutorialAudioStep6Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialAudioStep6Message =>
+      'Whenever you have questions about the audio player, tap this **(i) icon** to review this step-by-step tutorial!';
+
+  @override
+  String get tutorialCarouselSelectionStep1Title => 'Reorder Setlist';
+
+  @override
+  String get tutorialCarouselSelectionStep1Message =>
+      'Hold and drag the **drag handle** icon to change the order of praises in real time during the service or rehearsal.';
+
+  @override
+  String get tutorialCarouselSelectionStep2Title => 'Quick Navigation';
+
+  @override
+  String get tutorialCarouselSelectionStep2Message =>
+      'Tap the **body of the praise** to jump immediately to it in the active sheet music or chord reader.';
+
+  @override
+  String get tutorialCarouselSelectionStep3Title => 'Remove from Selection';
+
+  @override
+  String get tutorialCarouselSelectionStep3Message =>
+      'Tap the **×** button to remove the praise from the temporary service list without deleting your saved playlists.';
+
+  @override
+  String get tutorialCarouselSelectionStep4Title => 'Clear or Reset List';
+
+  @override
+  String get tutorialCarouselSelectionStep4Message =>
+      'Use this action to **clear the active list** and start a new selection from scratch or discard the current draft.';
+
+  @override
+  String get tutorialCarouselSelectionStep5Title => 'Active Setlist Help';
+
+  @override
+  String get tutorialCarouselSelectionStep5Message =>
+      'Check this **quick guide** whenever you have questions about organizing and operating your setlist.';
+
+  @override
+  String get tutorialChordsStep1Title => 'Key Transposition';
+
+  @override
+  String get tutorialChordsStep1Message =>
+      'Raise or lower the song key in **semitones** using the **+** and **-** buttons (or keyboard). Tap the key number to **restore the original key**.';
+
+  @override
+  String get tutorialChordsStep2Title => 'Font Size';
+
+  @override
+  String get tutorialChordsStep2Message =>
+      'Adjust the **text and chord size** for optimal reading on your screen using the **decrease** and **increase font** buttons.';
+
+  @override
+  String get tutorialChordsStep3Title => 'Auto-Scroll';
+
+  @override
+  String get tutorialChordsStep3Message =>
+      'Start **auto-scroll** (**S** key) to play hands-free. Adjust **speed** with the speedometer icon or with the **[** and **]** keys.';
+
+  @override
+  String get tutorialChordsStep4Title => 'Theme and Fullscreen';
+
+  @override
+  String get tutorialChordsStep4Message =>
+      'Switch between **light and dark mode** for better ambient visibility, and use **fullscreen** (**F** key) to focus exclusively on chords.';
+
+  @override
+  String get tutorialChordsStep5Title => 'Reading and Layout';
+
+  @override
+  String get tutorialChordsStep5Message =>
+      'On wide screens, the **chords** are automatically arranged into **two columns**. Tapping or manually scrolling the screen **automatically pauses** auto-scroll.';
+
+  @override
+  String get tutorialChordsStep6Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialChordsStep6Message =>
+      'Whenever you want to review this guide or clarify questions about using the Chord Reader, tap this **(i) icon**!';
+
+  @override
+  String get tutorialCollaborationDialogsStep1Title => 'Illustrated Bulletin';
+
+  @override
+  String get tutorialCollaborationDialogsStep1Message =>
+      'Generates and shares an **image with the praise list** along with the direct link for viewing.';
+
+  @override
+  String get tutorialCollaborationDialogsStep2Title => 'Direct Link';
+
+  @override
+  String get tutorialCollaborationDialogsStep2Message =>
+      'Copies or shares only the **shortened link**, ideal for quick messaging.';
+
+  @override
+  String get tutorialCollaborationDialogsStep3Title => 'Sharing Help';
+
+  @override
+  String get tutorialCollaborationDialogsStep3Message =>
+      'Tap this icon to review **setlist sharing** options.';
+
+  @override
+  String get tutorialCollaborationDialogsStep4Title => 'Setlist Category';
+
+  @override
+  String get tutorialCollaborationDialogsStep4Message =>
+      'Classify the setlist as **Evangelism**, **Learning**, **Medleys**, or **Special Service** to help others find it easily.';
+
+  @override
+  String get tutorialCollaborationDialogsStep5Title => 'Setlist Scope';
+
+  @override
+  String get tutorialCollaborationDialogsStep5Message =>
+      'Check as **one-time** for sporadic events or leave unchecked if it is a **regular selection for regular services**.';
+
+  @override
+  String get tutorialCollaborationDialogsStep6Title => 'Community Publishing';
+
+  @override
+  String get tutorialCollaborationDialogsStep6Message =>
+      'Tap **Publish** to make the list available on the public tab. The list can be accessed and imported by the entire church.';
+
+  @override
+  String get tutorialCollaborationDialogsStep7Title => 'Publishing Help';
+
+  @override
+  String get tutorialCollaborationDialogsStep7Message =>
+      'Tap this icon to review instructions on **publishing setlists** in the community.';
+
+  @override
+  String get tutorialCollaborationDialogsStep8Title => 'Room Code or Link';
+
+  @override
+  String get tutorialCollaborationDialogsStep8Message =>
+      'Type or paste the **7-character code** or **full URL** provided by the live room leader.';
+
+  @override
+  String get tutorialCollaborationDialogsStep9Title => 'Paste from Clipboard';
+
+  @override
+  String get tutorialCollaborationDialogsStep9Message =>
+      'Tap **Paste** to instantly fill with the link you just copied from WhatsApp or messaging.';
+
+  @override
+  String get tutorialCollaborationDialogsStep10Title => 'Connect to Room';
+
+  @override
+  String get tutorialCollaborationDialogsStep10Message =>
+      'Tap **Join** to enter the broadcast and follow **praise changes in real time**.';
+
+  @override
+  String get tutorialCollaborationDialogsStep11Title => 'Live Room Help';
+
+  @override
+  String get tutorialCollaborationDialogsStep11Message =>
+      'Tap this icon to review instructions for **syncing as a follower** in a live room.';
+
+  @override
+  String get tutorialContributeStep1Title => 'Submission Context';
+
+  @override
+  String get tutorialContributeStep1Message =>
+      'Indicate whether your contribution is **linked to a specific praise** or is a **general suggestion** for the app.';
+
+  @override
+  String get tutorialContributeStep2Title => 'Suggestion Description';
+
+  @override
+  String get tutorialContributeStep2Message =>
+      'Describe in detail the **problem encountered**, **lyric or key correction**, or the **improvement** you would like to propose.';
+
+  @override
+  String get tutorialContributeStep3Title => 'Device Diagnostics';
+
+  @override
+  String get tutorialContributeStep3Message =>
+      'Keep enabled to send **anonymous technical data** (system, browser, resolution), speeding up bug resolution.';
+
+  @override
+  String get tutorialContributeStep4Title => 'Attachments and Links';
+
+  @override
+  String get tutorialContributeStep4Message =>
+      'Add **supporting files** (audio, sheet music, or screenshots up to 32 MB) and YouTube or Google Drive **links**.';
+
+  @override
+  String get tutorialContributeStep5Title => 'Submit Contribution';
+
+  @override
+  String get tutorialContributeStep5Message =>
+      'Tap **Submit** to send your report. If you are not signed in, sign in with your **Google account** to submit.';
+
+  @override
+  String get tutorialContributeStep6Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialContributeStep6Message =>
+      'Tap this icon anytime to review this **step-by-step guide** for the suggestion submission screen.';
+
+  @override
+  String get tutorialContributionDetailStep1Title =>
+      'Submission Title and Status';
+
+  @override
+  String get tutorialContributionDetailStep1Message =>
+      'Track the **contribution title** and its current status (**Pending**, **Approved**, or **Rejected**).';
+
+  @override
+  String get tutorialContributionDetailStep2Title => 'Contribution Type';
+
+  @override
+  String get tutorialContributionDetailStep2Message =>
+      'Indicates the category of collaboration sent, such as **Chords**, **Lyrics**, **Sheet Music**, or **Information Correction**.';
+
+  @override
+  String get tutorialContributionDetailStep3Title => 'Description and Notes';
+
+  @override
+  String get tutorialContributionDetailStep3Message =>
+      'Here you can see the **descriptive text**, justifications, and external links added when the proposal was submitted.';
+
+  @override
+  String get tutorialContributionDetailStep4Title => 'Changed Fields';
+
+  @override
+  String get tutorialContributionDetailStep4Message =>
+      'When the contribution proposes correcting data, see the direct comparison between the **current** and **proposed** value.';
+
+  @override
+  String get tutorialContributionDetailStep5Title =>
+      'Files and Antivirus Check';
+
+  @override
+  String get tutorialContributionDetailStep5Message =>
+      'View the list of **submitted attachments** and real-time security check status (**Clean**, **Scanning**, or **Blocked**).';
+
+  @override
+  String get tutorialContributionDetailStep6Title => 'Moderation Feedback';
+
+  @override
+  String get tutorialContributionDetailStep6Message =>
+      'When the PLPCG team evaluates the submission, the **reviewers\' feedback and justification** will appear in this area.';
+
+  @override
+  String get tutorialContributionDetailStep7Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialContributionDetailStep7Message =>
+      'Whenever you have questions about contribution details, tap this **(i) icon** to review this step-by-step tutorial!';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep1Title => 'Toolbar & Shortcuts';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep1Message =>
+      'Use quick shortcuts to **add verses**, **remove lines**, **insert chords or annotations**, and restore original text.';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep2Title => 'Editing Area';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep2Message =>
+      'Edit content directly. For chords, use the **[Chord]** syntax immediately before the syllable to sync placement with lyrics.';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep3Title =>
+      'Children\'s Gestures Selector';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep3Message =>
+      'Tap **Change Gesture** to open the official dictionary and link the movement to the corresponding trigger phrase.';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep4Title => 'Live Preview';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep4Message =>
+      'Track changes **in real time** with rendering identical to what users will see in the praise reader.';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep5Title => 'Proposal Submission';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep5Message =>
+      'Add notes if desired and tap **Submit** to make your suggestion available for community review.';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep6Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep6Message =>
+      'Tap this icon anytime to review this **step-by-step guide** for the material editor.';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep1Title => 'Material Priority';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep1Message =>
+      'Set up to **4 favorite materials** to prioritize your instruments and voices at the top of search results and in the reader.';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep2Title =>
+      'Your Favorites and Order';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep2Message =>
+      'Track your selected materials. Drag by the **side handle** to set priority, toggle **preferred format**, or tap **(X)** to remove.';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep3Title => 'Add New Materials';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep3Message =>
+      'Search for instruments (e.g., **guitar**, **bass**, **organ**) or voices and tap the **(+)** icon to add them to your priority list.';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep4Title => 'Cloud Sync';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep4Message =>
+      'Sign in with your **Google account** to save and synchronize your material preferences across any device.';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep5Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep5Message =>
+      'Tap the **(i) icon** anytime to review this guide or learn more about application features!';
+
+  @override
+  String get tutorialFiltersStep1Title => 'Key Filter';
+
+  @override
+  String get tutorialFiltersStep1Message =>
+      'Filter the catalog by **musical key** (C, D, E...) and accidentals to find praises in your team\'s exact key.';
+
+  @override
+  String get tutorialFiltersStep2Title => 'Rhythm Filter';
+
+  @override
+  String get tutorialFiltersStep2Message =>
+      'Select specific time signatures and rhythms such as **Waltz**, **March**, **Basic**, or **Toada** to tailor setlists to the service.';
+
+  @override
+  String get tutorialFiltersStep3Title => 'Worship Categories and Tags';
+
+  @override
+  String get tutorialFiltersStep3Message =>
+      'Refine hymns by **service occasion**, such as **Communion**, **Lord\'s Supper**, **Children**, or devotional moments.';
+
+  @override
+  String get tutorialFiltersStep4Title => 'Material Types';
+
+  @override
+  String get tutorialFiltersStep4Message =>
+      'Restrict results to display only praises that have **Chords**, **Sheet Music**, **Children\'s Gestures**, or **Audio** available.';
+
+  @override
+  String get tutorialFiltersStep5Title => 'Clear Filters';
+
+  @override
+  String get tutorialFiltersStep5Message =>
+      'Tap **Clear** to instantly reset all applied filters and view the full collection.';
+
+  @override
+  String get tutorialFiltersStep6Title => 'Filters Help';
+
+  @override
+  String get tutorialFiltersStep6Message =>
+      'Tap this icon whenever you want to review guidelines on **combining advanced filters**.';
+
+  @override
+  String get tutorialGestureFocusStep1Title => 'Featured Gesture Card';
+
+  @override
+  String get tutorialGestureFocusStep1Message =>
+      'View the gesture movement in an **enlarged size**, with animation or illustration for easy following by the conductor.';
+
+  @override
+  String get tutorialGestureFocusStep2Title => 'Trigger Phrase & Lyric';
+
+  @override
+  String get tutorialGestureFocusStep2Message =>
+      'Follow the associated lyric, highlighted in **red on the trigger** where the gesture should be executed by the worship group.';
+
+  @override
+  String get tutorialGestureFocusStep3Title => 'Gesture Navigation';
+
+  @override
+  String get tutorialGestureFocusStep3Message =>
+      'Tap the **sides of the screen**, **swipe horizontally**, or use the **keyboard arrows (← and →)** to step forward or backward.';
+
+  @override
+  String get tutorialGestureFocusStep4Title => 'Next Trigger';
+
+  @override
+  String get tutorialGestureFocusStep4Message =>
+      'Check the footer for the **word or phrase of the next gesture**, preparing the transition before it happens.';
+
+  @override
+  String get tutorialGestureFocusStep5Title => 'Focus Mode Help';
+
+  @override
+  String get tutorialGestureFocusStep5Message =>
+      'Tap this icon to review this **step-by-step guide** or press **Esc** to close and return to the reader at any time.';
+
+  @override
+  String get tutorialGesturesStep1Title => 'Lyrics Font Size';
+
+  @override
+  String get tutorialGesturesStep1Message =>
+      'Increase or decrease the **text size** of praises for more comfortable reading during rehearsals or services.';
+
+  @override
+  String get tutorialGesturesStep2Title => 'Auto-Scroll';
+
+  @override
+  String get tutorialGesturesStep2Message =>
+      'Enable **auto-scroll** (**S** key) to follow gestures without touching the screen. Adjust **speed** on the speedometer or with **[** and **]**.';
+
+  @override
+  String get tutorialGesturesStep3Title => 'Linear vs. Structured Mode';
+
+  @override
+  String get tutorialGesturesStep3Message =>
+      'Switch between **structured** display (grouped by stanzas and choruses) and **linear** reading (continuous sequence with all full repeats).';
+
+  @override
+  String get tutorialGesturesStep4Title => 'Theme and Fullscreen';
+
+  @override
+  String get tutorialGesturesStep4Message =>
+      'Switch between **light and dark mode** for better visibility, and use **fullscreen** mode (**F** key) to hide bars and focus on gestures.';
+
+  @override
+  String get tutorialGesturesStep5Title => 'Gesture Cards';
+
+  @override
+  String get tutorialGesturesStep5Message =>
+      'Gestures appear synchronized with corresponding words. Tap any **gesture card** to open **focus view** with enlarged image and detailed description.';
+
+  @override
+  String get tutorialGesturesStep6Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialGesturesStep6Message =>
+      'Whenever you have questions about using the gesture reader, tap this **(i) icon** to review this step-by-step tutorial!';
+
+  @override
+  String get tutorialHomeStep1Title => 'Smart Search';
+
+  @override
+  String get tutorialHomeStep1Message =>
+      'Type the **number** of the praise, the **title**, or an **excerpt of the lyrics** to locate it instantly in the catalog.';
+
+  @override
+  String get tutorialHomeStep2Title => 'Active Filters';
+
+  @override
+  String get tutorialHomeStep2Message =>
+      'When **active**, the selected filter button gets a **golden highlight**. The header displays the **active filters** count and you can tap **\'Clear filters\'** to reset.';
+
+  @override
+  String get tutorialHomeStep3Title => 'Inactive Filters';
+
+  @override
+  String get tutorialHomeStep3Message =>
+      'With filters **inactive** (unselected), search covers **the entire catalog**. Tap any button to **activate it** or collapse the panel to save space.';
+
+  @override
+  String get tutorialHomeStep4Title => 'Main Navigation';
+
+  @override
+  String get tutorialHomeStep4Message =>
+      'Easily switch between the Praise **Search**, your saved **Playlists**, and your user **Profile**.';
+
+  @override
+  String get tutorialHomeStep5Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialHomeStep5Message =>
+      'Whenever you have questions about using any screen, tap this **(i) icon** to review step-by-step explanations!';
+
+  @override
+  String get tutorialLibraryStep1Title => 'Catalog Filters';
+
+  @override
+  String get tutorialLibraryStep1Message =>
+      'Refine the full library by **musical key**, **rhythm**, **categories/tags**, or **material type** (sheet music, chords, audio). Tap the header to **expand or collapse** filters.';
+
+  @override
+  String get tutorialLibraryStep2Title => 'Catalog Sorting';
+
+  @override
+  String get tutorialLibraryStep2Message =>
+      'Quickly switch the order of praises between **\'By number\'** (official hymnal number) or **\'By name\'** (alphabetical order of titles).';
+
+  @override
+  String get tutorialLibraryStep3Title => 'Pagination and Display';
+
+  @override
+  String get tutorialLibraryStep3Message =>
+      'Check the **total praises** found, select the **items per page** (10, 20, 50...), and use the **navigation arrows** to browse the catalog.';
+
+  @override
+  String get tutorialLibraryStep4Title => 'Praise Cards';
+
+  @override
+  String get tutorialLibraryStep4Message =>
+      'Each card shows the praise number, title, and details. Tap it to directly access its **sheet music**, **chords**, **audio**, and **full details**.';
+
+  @override
+  String get tutorialLibraryStep5Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialLibraryStep5Message =>
+      'Whenever you have questions about navigating or using the Library, tap this **(i) icon** to review this step-by-step guide!';
+
+  @override
+  String get tutorialLiveRoomStep1Title => 'Room Code and QR Code';
+
+  @override
+  String get tutorialLiveRoomStep1Message =>
+      'Participants can scan this **QR code** with their phone camera or use the **direct link** to follow the service.';
+
+  @override
+  String get tutorialLiveRoomStep2Title => 'Share and Manage';
+
+  @override
+  String get tutorialLiveRoomStep2Message =>
+      'Copy or **share the link** to the broadcast with the group or tap **generate new link** if you need to reset access.';
+
+  @override
+  String get tutorialLiveRoomStep3Title => 'Connected Participants';
+
+  @override
+  String get tutorialLiveRoomStep3Message =>
+      'Track in real time the **number of members** who are tuned in and following chords and lyrics in your room.';
+
+  @override
+  String get tutorialLiveRoomStep4Title => 'End Broadcast';
+
+  @override
+  String get tutorialLiveRoomStep4Message =>
+      'Tap **End** to conclude the live session with participants and return to your playlists.';
+
+  @override
+  String get tutorialLiveRoomStep5Title => 'Broadcast Status';
+
+  @override
+  String get tutorialLiveRoomStep5Message =>
+      'Track session progress: see if the leader is **live**, waiting for the service, or if the connection is **syncing**.';
+
+  @override
+  String get tutorialLiveRoomStep6Title => 'Save Copy';
+
+  @override
+  String get tutorialLiveRoomStep6Message =>
+      'At the end of the service, tap **Save copy** to save the setlist directly to your personal playlists.';
+
+  @override
+  String get tutorialLiveRoomStep7Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialLiveRoomStep7Message =>
+      'Tap this icon anytime to review this **step-by-step guide** for the live room.';
+
+  @override
+  String get tutorialLyricsStep1Title => 'Lyrics Font Size';
+
+  @override
+  String get tutorialLyricsStep1Message =>
+      'Increase or decrease the **font size** of lyrics for more comfortable reading during rehearsals or services. You can also use **Ctrl + ↑ / ↓** (or **Cmd + ↑ / ↓**).';
+
+  @override
+  String get tutorialLyricsStep2Title => 'Auto-Scroll';
+
+  @override
+  String get tutorialLyricsStep2Message =>
+      'Enable **auto-scroll** (**S** key) to read lyrics hands-free. Tap the **speedometer** to adjust speed (or use the **[** and **]** keys).';
+
+  @override
+  String get tutorialLyricsStep3Title => 'Fullscreen Mode';
+
+  @override
+  String get tutorialLyricsStep3Message =>
+      'Tap the **fullscreen** button (or **F** key) to hide all bars and focus entirely on reading lyrics.';
+
+  @override
+  String get tutorialLyricsStep4Title => 'Text Reading and Selection';
+
+  @override
+  String get tutorialLyricsStep4Message =>
+      'Lyrics are available **completely offline**. Text is selectable for copying excerpts, and scrolling smoothly pauses when you touch the screen.';
+
+  @override
+  String get tutorialLyricsStep5Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialLyricsStep5Message =>
+      'Whenever you have questions about using the lyrics reader, tap this **(i) icon** to review this step-by-step tutorial!';
+
+  @override
+  String get tutorialMaterialSheetStep1Title => 'Available Formats';
+
+  @override
+  String get tutorialMaterialSheetStep1Message =>
+      'Switch between **Sheet Music**, **Chords**, **Children\'s Gestures**, **Audio**, and **YouTube** videos to choose the ideal format for service or rehearsal.';
+
+  @override
+  String get tutorialMaterialSheetStep2Title => 'Add to Setlist';
+
+  @override
+  String get tutorialMaterialSheetStep2Message =>
+      'Tap the **+** button to include this arrangement directly in your active **Service Carousel** list or one of your **Playlists**.';
+
+  @override
+  String get tutorialMaterialSheetStep3Title => 'Metadata and Lyrics';
+
+  @override
+  String get tutorialMaterialSheetStep3Message =>
+      'Check the **original key**, **rhythm**, **worship categories**, and preview the praise lyrics.';
+
+  @override
+  String get tutorialMaterialSheetStep4Title => 'Related Versions';
+
+  @override
+  String get tutorialMaterialSheetStep4Message =>
+      'Quickly select **alternative arrangements**, versions in other keys, or hymns related to the selected praise.';
+
+  @override
+  String get tutorialMaterialSheetStep5Title => 'Suggest Improvement';
+
+  @override
+  String get tutorialMaterialSheetStep5Message =>
+      'Found any discrepancy in chords, lyrics, or sheet music? Tap here to send a **correction suggestion** to curators.';
+
+  @override
+  String get tutorialMaterialSheetStep6Title => 'Selector Help';
+
+  @override
+  String get tutorialMaterialSheetStep6Message =>
+      'Tap this icon whenever you need guidance on how to **choose materials** and **organize your setlist**.';
+
+  @override
+  String get tutorialMyContributionsStep1Title => 'Sign-In Required';
+
+  @override
+  String get tutorialMyContributionsStep1Message =>
+      'Sign in with your **Google account** to access the history of suggestions, corrections, and materials you submitted.';
+
+  @override
+  String get tutorialMyContributionsStep2Title => 'No Submissions Yet';
+
+  @override
+  String get tutorialMyContributionsStep2Message =>
+      'All **lyric, sheet music, or correction suggestions** submitted by you via the **Contribute** button will be listed on this screen.';
+
+  @override
+  String get tutorialMyContributionsStep3Title => 'Submission History';
+
+  @override
+  String get tutorialMyContributionsStep3Message =>
+      'View the title, material type, and date of your collaboration. Tap any row to open the **details screen** and view team notes.';
+
+  @override
+  String get tutorialMyContributionsStep4Title => 'Review Status';
+
+  @override
+  String get tutorialMyContributionsStep4Message =>
+      'Track the progress of your request: **pending**, **under review**, **approved**, or **rejected**.';
+
+  @override
+  String get tutorialMyContributionsStep5Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialMyContributionsStep5Message =>
+      'Tap the **(i) icon** anytime to review this guide or learn more about application screens!';
+
+  @override
+  String get tutorialOfflineStep1Title => 'Status and Disk Usage';
+
+  @override
+  String get tutorialOfflineStep1Message =>
+      'Track total praises in the **local catalog**, the **last sync** date, and the **used and free space** on the device. Tap **Refresh** to recalculate data.';
+
+  @override
+  String get tutorialOfflineStep2Title => 'Material Search';
+
+  @override
+  String get tutorialOfflineStep2Message =>
+      'Use the search field to quickly find specific types of sheet music or chords (e.g., **guitar**, **collection**, **choir**) and enable **Filter** to display only matching results.';
+
+  @override
+  String get tutorialOfflineStep3Title => 'Format Selection';
+
+  @override
+  String get tutorialOfflineStep3Message =>
+      'Select the **material types** you want to keep available offline. On each item you can individually toggle between **sheet music (PDF)**, **chords**, and **audio**.';
+
+  @override
+  String get tutorialOfflineStep4Title => 'Download and Manage Storage';
+
+  @override
+  String get tutorialOfflineStep4Message =>
+      'Tap **Download selected** to save files to the device for offline use. When you need to free disk space, tap **Remove downloads**.';
+
+  @override
+  String get tutorialOfflineStep5Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialOfflineStep5Message =>
+      'Whenever you have questions about offline storage, tap this **(i) icon** to review this step-by-step tutorial!';
+
+  @override
+  String get tutorialPlaylistsStep1Title => 'Setlist Tabs';
+
+  @override
+  String get tutorialPlaylistsStep1Message =>
+      'Switch between your **Unsaved** lists (quick rehearsal picks), **Saved** lists (stored and synced setlists), and **Favorites** (for quick access).';
+
+  @override
+  String get tutorialPlaylistsStep2Title => 'Import Setlist';
+
+  @override
+  String get tutorialPlaylistsStep2Message =>
+      'Received a shared list? Tap **Import setlist** and paste the link or code to load praises into your app.';
+
+  @override
+  String get tutorialPlaylistsStep3Title => 'Live Room';
+
+  @override
+  String get tutorialPlaylistsStep3Message =>
+      'Open a room or connect to church rehearsal. All musicians follow the **real-time praise switching** during worship.';
+
+  @override
+  String get tutorialPlaylistsStep4Title => 'Create New Setlists';
+
+  @override
+  String get tutorialPlaylistsStep4Message =>
+      'To assemble a new list, go to **Search** and tap the **\'+\'** button on any praise or sheet music version.';
+
+  @override
+  String get tutorialPlaylistsStep5Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialPlaylistsStep5Message =>
+      'Tap the **(i)** icon whenever you have questions about using any screen in the app!';
+
+  @override
+  String get tutorialPraiseStep1Title => 'Praise Information';
+
+  @override
+  String get tutorialPraiseStep1Message =>
+      'See the **number** and **title** of the praise. Tap **Share** to copy the direct link or **Suggest improvement** to send us corrections.';
+
+  @override
+  String get tutorialPraiseStep2Title => 'Related Versions';
+
+  @override
+  String get tutorialPraiseStep2Message =>
+      'When there are different **arrangements, keys, or variants**, you can easily switch between them by tapping related praise buttons.';
+
+  @override
+  String get tutorialPraiseStep3Title => 'Materials and Sheet Music';
+
+  @override
+  String get tutorialPraiseStep3Message =>
+      'Access all **sheet music**, **chords**, **gestures**, and **audio** available for this praise. Tap an item to open or **+** to add it to your active list.';
+
+  @override
+  String get tutorialPraiseStep4Title => 'Lyrics and Metadata';
+
+  @override
+  String get tutorialPraiseStep4Message =>
+      'View full **praise lyrics**, adjust font size, copy text, or tap the play button to open in the **dedicated reader** with auto-scroll.';
+
+  @override
+  String get tutorialPraiseStep5Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialPraiseStep5Message =>
+      'Whenever you have questions about praise details, tap this **(i) icon** to review this step-by-step tutorial!';
+
+  @override
+  String get tutorialProfileStep1Title => 'Account & Sync';
+
+  @override
+  String get tutorialProfileStep1Message =>
+      'Connect your **Google** account to automatically sync your **praise lists**, preferences, and favorite materials across devices.';
+
+  @override
+  String get tutorialProfileStep2Title => 'Full Library';
+
+  @override
+  String get tutorialProfileStep2Message =>
+      'Access the **Library** to explore the entire catalog in a **paginated list** format, with detailed instrument and category filters.';
+
+  @override
+  String get tutorialProfileStep3Title => 'Contribute';
+
+  @override
+  String get tutorialProfileStep3Message =>
+      'Submit **new sheet music**, chords, gestures, or lyric corrections. Community collaboration keeps the collection updated and accurate!';
+
+  @override
+  String get tutorialProfileStep4Title => 'Offline Mode';
+
+  @override
+  String get tutorialProfileStep4Message =>
+      'Download sheet music and lyrics files to use the app **without internet** during services and rehearsals with maximum speed.';
+
+  @override
+  String get tutorialProfileStep5Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialProfileStep5Message =>
+      'Tap the **(i)** icon anytime you want to review instructions and tips for this screen!';
+
+  @override
+  String get tutorialPublicPlaylistsStep1Title => 'Your Username';
+
+  @override
+  String get tutorialPublicPlaylistsStep1Message =>
+      'Sign in with your Google account and create your **@username** to share your own public lists with the church.';
+
+  @override
+  String get tutorialPublicPlaylistsStep2Title => 'Search Members and Teams';
+
+  @override
+  String get tutorialPublicPlaylistsStep2Message =>
+      'Type the **@username** of other team members to locate their public lists and shared setlists.';
+
+  @override
+  String get tutorialPublicPlaylistsStep3Title => 'Setlists and Import';
+
+  @override
+  String get tutorialPublicPlaylistsStep3Message =>
+      'In results, view published lists and tap **import** to add praises to your active list.';
+
+  @override
+  String get tutorialPublicPlaylistsStep4Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialPublicPlaylistsStep4Message =>
+      'Tap the **(i) icon** anytime to review this step-by-step guide!';
+
+  @override
+  String get tutorialReaderStep1Title => 'Screen Fit';
+
+  @override
+  String get tutorialReaderStep1Message =>
+      'Switch between fitting to **screen width** (great for enlarging sheet music) or **full page**. You can also press the **Z** key.';
+
+  @override
+  String get tutorialReaderStep2Title => 'Fullscreen Mode';
+
+  @override
+  String get tutorialReaderStep2Message =>
+      'Tap to hide all bars and **focus on sheet music** during rehearsal or service. Use the **F** key to enter or **Esc** to exit.';
+
+  @override
+  String get tutorialReaderStep3Title => 'Page Indicator';
+
+  @override
+  String get tutorialReaderStep3Message =>
+      'Displays the **current page** and **total pages**. Tap to jump to a page or **long press** to return directly to the **first page**!';
+
+  @override
+  String get tutorialReaderStep4Title => 'Tap on Margins (Sides)';
+
+  @override
+  String get tutorialReaderStep4Message =>
+      'Tap the **left outer fifth** to go back and the **right outer fifth** to advance pages instantly, without dragging sheet music.';
+
+  @override
+  String get tutorialReaderStep5Title => 'Bluetooth Pedals & Keyboard';
+
+  @override
+  String get tutorialReaderStep5Message =>
+      'Connect any **Bluetooth page-turner pedal** (AirTurn, PageFlip, Donner via PageUp/Down or Arrows) to turn pages and switch praises **hands-free**.';
+
+  @override
+  String get tutorialReaderStep6Title => 'Help & Tutorials';
+
+  @override
+  String get tutorialReaderStep6Message =>
+      'Tap the **(i)** icon whenever you have questions about using the reader tools!';
+
+  @override
+  String get tutorialWelcomeTourStep1Title => '1. Search the Hymnal';
+
+  @override
+  String get tutorialWelcomeTourStep1Message =>
+      'Type the **number**, the **title**, or any **lyric excerpt** to instantly locate hymns and songs in the collection.';
+
+  @override
+  String get tutorialWelcomeTourStep2Title => '2. Specialized Formats';
+
+  @override
+  String get tutorialWelcomeTourStep2Message =>
+      'Tap the praise to select between **Sheet Music**, **Chords**, **Children\'s Gestures**, or **Lyrics**, with key transposition and auto-scroll.';
+
+  @override
+  String get tutorialWelcomeTourStep3Title => '3. Build Your Worship Setlist';
+
+  @override
+  String get tutorialWelcomeTourStep3Message =>
+      'Tap the **(+)** button to include praises in the **Active Carousel**, allowing you to quickly switch between sheets during worship.';
+
+  @override
+  String get tutorialWelcomeTourStep4Title => '4. Setlist Always with You';
+
+  @override
+  String get tutorialWelcomeTourStep4Message =>
+      'Access the **Playlists** tab to organize rehearsal playlists and open **Offline Storage** in Profile to praise **offline** anywhere!';
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
@@ -7,6 +8,7 @@ import '../widgets/coldigui_tutorial_hint.dart';
 List<SpotlightGuideStep> buildContributionDetailTutorialSteps(
   BuildContext context,
 ) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Título e Estado do Envio
     SpotlightGuideStep.item(
@@ -20,8 +22,9 @@ List<SpotlightGuideStep> buildContributionDetailTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Título e Estado do Envio',
+          title: l10n?.tutorialContributionDetailStep1Title ?? 'Título e Estado do Envio',
           message:
+              l10n?.tutorialContributionDetailStep1Message ??
               'Acompanhe o **título da contribuição** e seu status atual (**Em análise**, **Aprovada** ou **Recusada**).',
         ),
       ),
@@ -39,8 +42,9 @@ List<SpotlightGuideStep> buildContributionDetailTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Tipo de Contribuição',
+          title: l10n?.tutorialContributionDetailStep2Title ?? 'Tipo de Contribuição',
           message:
+              l10n?.tutorialContributionDetailStep2Message ??
               'Indica a categoria da colaboração enviada, como **Cifra**, **Letra**, **Partitura** ou **Correção de informações**.',
         ),
       ),
@@ -58,8 +62,9 @@ List<SpotlightGuideStep> buildContributionDetailTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Descrição e Observações',
+          title: l10n?.tutorialContributionDetailStep3Title ?? 'Descrição e Observações',
           message:
+              l10n?.tutorialContributionDetailStep3Message ??
               'Aqui você confere o **texto descritivo**, justificativas e links externos adicionados na submissão da proposta.',
         ),
       ),
@@ -77,8 +82,9 @@ List<SpotlightGuideStep> buildContributionDetailTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Campos Alterados',
+          title: l10n?.tutorialContributionDetailStep4Title ?? 'Campos Alterados',
           message:
+              l10n?.tutorialContributionDetailStep4Message ??
               'Quando a contribuição propõe corrigir dados, veja a comparação direta entre o valor **atual** e o **proposto**.',
         ),
       ),
@@ -96,8 +102,9 @@ List<SpotlightGuideStep> buildContributionDetailTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Arquivos e Verificação Antivírus',
+          title: l10n?.tutorialContributionDetailStep5Title ?? 'Arquivos e Verificação Antivírus',
           message:
+              l10n?.tutorialContributionDetailStep5Message ??
               'Consulte a lista de **anexos enviados** e o status da verificação de segurança em tempo real (**Limpa**, **Verificando** ou **Bloqueada**).',
         ),
       ),
@@ -115,8 +122,9 @@ List<SpotlightGuideStep> buildContributionDetailTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Parecer da Moderação',
+          title: l10n?.tutorialContributionDetailStep6Title ?? 'Parecer da Moderação',
           message:
+              l10n?.tutorialContributionDetailStep6Message ??
               'Quando a equipe do PLPCG avaliar o envio, o **parecer e justificativa dos revisores** serão exibidos nesta área.',
         ),
       ),
@@ -134,8 +142,9 @@ List<SpotlightGuideStep> buildContributionDetailTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialContributionDetailStep7Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialContributionDetailStep7Message ??
               'Sempre que tiver dúvidas sobre os detalhes da contribuição, toque neste **ícone (i)** para rever este tutorial passo a passo!',
         ),
       ),

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
 /// Passos do tutorial da tela Sobre ([AboutScreen]).
 List<SpotlightGuideStep> buildAboutTutorialSteps(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Quem somos
     SpotlightGuideStep.item(
@@ -18,8 +20,9 @@ List<SpotlightGuideStep> buildAboutTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Quem Somos',
+          title: l10n?.tutorialAboutStep1Title ?? 'Quem Somos',
           message:
+              l10n?.tutorialAboutStep1Message ??
               'Conheça a história e a equipe por trás da aplicação. Uma iniciativa **100% gratuita** e colaborativa desenvolvida para auxiliar equipes de louvor.',
         ),
       ),
@@ -37,8 +40,9 @@ List<SpotlightGuideStep> buildAboutTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Nosso Objetivo',
+          title: l10n?.tutorialAboutStep2Title ?? 'Nosso Objetivo',
           message:
+              l10n?.tutorialAboutStep2Message ??
               'O propósito central é facilitar o acesso a **partituras, cifras, gestos e áudios**, com funcionamento **offline** garantido mesmo em locais sem internet.',
         ),
       ),
@@ -56,8 +60,9 @@ List<SpotlightGuideStep> buildAboutTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialAboutStep3Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialAboutStep3Message ??
               'Toque no **ícone (i)** sempre que quiser rever este guia ou conferir instruções detalhadas em qualquer tela do aplicativo!',
         ),
       ),

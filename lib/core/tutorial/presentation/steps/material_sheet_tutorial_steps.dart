@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
@@ -7,6 +8,7 @@ import '../widgets/coldigui_tutorial_hint.dart';
 List<SpotlightGuideStep> buildMaterialSheetTutorialSteps(
   BuildContext context,
 ) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Abas de Formatos
     SpotlightGuideStep.item(
@@ -20,8 +22,9 @@ List<SpotlightGuideStep> buildMaterialSheetTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Formatos Disponíveis',
+          title: l10n?.tutorialMaterialSheetStep1Title ?? 'Formatos Disponíveis',
           message:
+              l10n?.tutorialMaterialSheetStep1Message ??
               'Alterne entre **Partituras**, **Cifras**, **Gestos CIAs**, **Áudios** e vídeos do **YouTube** para escolher o formato ideal para o culto ou ensaio.',
         ),
       ),
@@ -39,8 +42,9 @@ List<SpotlightGuideStep> buildMaterialSheetTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Adicionar ao Repertório',
+          title: l10n?.tutorialMaterialSheetStep2Title ?? 'Adicionar ao Repertório',
           message:
+              l10n?.tutorialMaterialSheetStep2Message ??
               'Toque no botão **+** para incluir este arranjo diretamente na sua lista ativa do **Carrossel de culto** ou em uma de suas **Playlists**.',
         ),
       ),
@@ -58,8 +62,9 @@ List<SpotlightGuideStep> buildMaterialSheetTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Metadados e Letra',
+          title: l10n?.tutorialMaterialSheetStep3Title ?? 'Metadados e Letra',
           message:
+              l10n?.tutorialMaterialSheetStep3Message ??
               'Consulte a **tonalidade original**, **ritmo**, **categorias de culto** e confira a prévia da letra do louvor.',
         ),
       ),
@@ -77,8 +82,9 @@ List<SpotlightGuideStep> buildMaterialSheetTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Versões Relacionadas',
+          title: l10n?.tutorialMaterialSheetStep4Title ?? 'Versões Relacionadas',
           message:
+              l10n?.tutorialMaterialSheetStep4Message ??
               'Selecione rapidamente **arranjos alternativos**, versões com outras tonalidades ou hinos correlacionados ao louvor selecionado.',
         ),
       ),
@@ -96,8 +102,9 @@ List<SpotlightGuideStep> buildMaterialSheetTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Sugerir Melhoria',
+          title: l10n?.tutorialMaterialSheetStep5Title ?? 'Sugerir Melhoria',
           message:
+              l10n?.tutorialMaterialSheetStep5Message ??
               'Encontrou alguma divergência na cifra, letra ou partitura? Toque aqui para enviar uma **sugestão de correção** aos curadores.',
         ),
       ),
@@ -115,8 +122,9 @@ List<SpotlightGuideStep> buildMaterialSheetTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda deste Seletor',
+          title: l10n?.tutorialMaterialSheetStep6Title ?? 'Ajuda deste Seletor',
           message:
+              l10n?.tutorialMaterialSheetStep6Message ??
               'Toque neste ícone sempre que precisar de orientação sobre como **escolher materiais** e **organizar o repertório**.',
         ),
       ),

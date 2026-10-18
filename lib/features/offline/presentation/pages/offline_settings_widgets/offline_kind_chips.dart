@@ -17,8 +17,8 @@ import 'coldigom_section.dart' show coldigomSizeLabel;
 String offlineMaterialKindLabel(AppLocalizations l10n, MaterialKind kind) {
   return switch (kind) {
     MaterialKind.pdf => 'PDF',
-    MaterialKind.chord => 'Extraídos (chords)',
-    MaterialKind.gesture => 'Extraídos (gestos)',
+    MaterialKind.chord => l10n.materialKindChordExtracted,
+    MaterialKind.gesture => l10n.materialKindGestureExtracted,
     MaterialKind.audio => l10n.audioMaterialSection,
     MaterialKind.youtube => l10n.youtubeMaterialSection,
     MaterialKind.lyrics => l10n.lyricsTab,
@@ -732,6 +732,7 @@ class OfflineKindFamilyChip extends StatelessWidget {
   final bool isHighlighted;
 
   Widget _buildFamilyCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isSelected = state == MaterialKindFamilyState.selected;
     final isPartial = state == MaterialKindFamilyState.refined;
     final isFullyDownloaded = unit.total > 0 && unit.downloaded == unit.total;
@@ -843,7 +844,7 @@ class OfflineKindFamilyChip extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            '${unit.children.length} var.',
+                            l10n.offlineKindVariantsCount(unit.children.length),
                             style: AppTypography.label.copyWith(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -1020,6 +1021,7 @@ class OfflineKindFamilyGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -1049,7 +1051,7 @@ class OfflineKindFamilyGroup extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Variantes de ${unit.name} (${unit.children.length}):',
+                  l10n.offlineKindVariantsTitle(unit.name, unit.children.length),
                   style: AppTypography.label.copyWith(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,

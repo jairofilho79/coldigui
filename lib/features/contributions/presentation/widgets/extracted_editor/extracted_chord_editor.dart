@@ -176,7 +176,7 @@ class _ExtractedChordEditorState extends State<ExtractedChordEditor> {
                 height: 1.5,
               ),
               decoration: InputDecoration(
-                hintText: '[G]Exemplo de [D]cifra ChordPro...',
+                hintText: l10n.contributeEditorChordProExampleHint,
                 hintStyle: AppTypography.hint(italic: true),
                 border: InputBorder.none,
                 isDense: true,
@@ -219,7 +219,7 @@ class _ExtractedChordEditorState extends State<ExtractedChordEditor> {
               ),
               const Spacer(),
               Text(
-                '${song.lines.length} linhas',
+                l10n.contributeEditorLinesCount(song.lines.length),
                 style: AppTypography.label.copyWith(
                   fontSize: 12,
                   color: AppColors.title.withValues(alpha: 0.6),

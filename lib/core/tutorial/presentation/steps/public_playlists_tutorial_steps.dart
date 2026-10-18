@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
@@ -7,6 +8,7 @@ import '../widgets/coldigui_tutorial_hint.dart';
 List<SpotlightGuideStep> buildPublicPlaylistsTutorialSteps(
   BuildContext context,
 ) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Banner de Autenticação / Nome de Usuário (quando necessário)
     SpotlightGuideStep.item(
@@ -20,8 +22,9 @@ List<SpotlightGuideStep> buildPublicPlaylistsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Seu Nome de Usuário',
+          title: l10n?.tutorialPublicPlaylistsStep1Title ?? 'Seu Nome de Usuário',
           message:
+              l10n?.tutorialPublicPlaylistsStep1Message ??
               'Faça login com sua conta Google e crie seu **@usuário** para compartilhar suas próprias listas públicas com a igreja.',
         ),
       ),
@@ -39,8 +42,9 @@ List<SpotlightGuideStep> buildPublicPlaylistsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Buscar Irmãos e Equipes',
+          title: l10n?.tutorialPublicPlaylistsStep2Title ?? 'Buscar Irmãos e Equipes',
           message:
+              l10n?.tutorialPublicPlaylistsStep2Message ??
               'Digite o **@usuário** de outros membros da equipe para localizar suas listas públicas e repertórios compartilhados.',
         ),
       ),
@@ -58,8 +62,9 @@ List<SpotlightGuideStep> buildPublicPlaylistsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Listas e Importação',
+          title: l10n?.tutorialPublicPlaylistsStep3Title ?? 'Listas e Importação',
           message:
+              l10n?.tutorialPublicPlaylistsStep3Message ??
               'Nos resultados, visualize as listas publicadas e toque em **importar** para adicionar os louvores à sua lista ativa.',
         ),
       ),
@@ -77,8 +82,9 @@ List<SpotlightGuideStep> buildPublicPlaylistsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialPublicPlaylistsStep4Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialPublicPlaylistsStep4Message ??
               'Toque no **ícone (i)** a qualquer momento para rever este guia passo a passo!',
         ),
       ),

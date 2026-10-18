@@ -660,13 +660,13 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Pesquisar tipo de material...',
+                      hintText: widget.l10n.offlineSearchMaterialTypeHint,
                       hintStyle: AppTypography.hint(),
                       prefixIcon: const Icon(Icons.search, size: 20),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear, size: 18),
-                              tooltip: 'Limpar pesquisa',
+                              tooltip: widget.l10n.offlineClearSearchTooltip,
                               onPressed: () {
                                 setState(() {
                                   _searchController.clear();
@@ -713,7 +713,7 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
                 const SizedBox(width: 8),
                 FilterChip(
                   selected: _filterOnlyMatches,
-                  label: const Text('Filtrar'),
+                  label: Text(widget.l10n.offlineFilterButton),
                   avatar: Icon(
                     _filterOnlyMatches
                         ? Icons.filter_alt
@@ -873,7 +873,7 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Center(
                     child: Text(
-                      'Nenhum tipo de material encontrado para "$_searchQuery"',
+                      widget.l10n.offlineSearchNoResults(_searchQuery),
                       style: AppTypography.hint(),
                     ),
                   ),

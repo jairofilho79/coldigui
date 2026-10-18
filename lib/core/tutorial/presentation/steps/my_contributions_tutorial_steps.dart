@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
@@ -7,6 +8,7 @@ import '../widgets/coldigui_tutorial_hint.dart';
 List<SpotlightGuideStep> buildMyContributionsTutorialSteps(
   BuildContext context,
 ) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Prompt de Login (quando não autenticado)
     SpotlightGuideStep.item(
@@ -20,8 +22,9 @@ List<SpotlightGuideStep> buildMyContributionsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Identificação Necessária',
+          title: l10n?.tutorialMyContributionsStep1Title ?? 'Identificação Necessária',
           message:
+              l10n?.tutorialMyContributionsStep1Message ??
               'Faça login com sua **conta Google** para acessar o histórico de sugestões, correções e materiais que você enviou.',
         ),
       ),
@@ -39,8 +42,9 @@ List<SpotlightGuideStep> buildMyContributionsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Nenhum Envio Ainda',
+          title: l10n?.tutorialMyContributionsStep2Title ?? 'Nenhum Envio Ainda',
           message:
+              l10n?.tutorialMyContributionsStep2Message ??
               'Todas as **sugestões de letras, partituras ou correções** enviadas por você através do botão **Contribuir** aparecerão listadas nesta tela.',
         ),
       ),
@@ -58,8 +62,9 @@ List<SpotlightGuideStep> buildMyContributionsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Histórico de Envios',
+          title: l10n?.tutorialMyContributionsStep3Title ?? 'Histórico de Envios',
           message:
+              l10n?.tutorialMyContributionsStep3Message ??
               'Visualize o título, tipo de material e data da sua colaboração. Toque em qualquer linha para abrir a **tela de detalhes** e ver anotações da equipe.',
         ),
       ),
@@ -77,8 +82,9 @@ List<SpotlightGuideStep> buildMyContributionsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Status da Análise',
+          title: l10n?.tutorialMyContributionsStep4Title ?? 'Status da Análise',
           message:
+              l10n?.tutorialMyContributionsStep4Message ??
               'Acompanhe o andamento da sua solicitação: **pendente**, **em análise**, **aprovada** ou **rejeitada**.',
         ),
       ),
@@ -96,8 +102,9 @@ List<SpotlightGuideStep> buildMyContributionsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialMyContributionsStep5Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialMyContributionsStep5Message ??
               'Toque no **ícone (i)** a qualquer momento para rever este guia ou aprender mais sobre as telas do aplicativo!',
         ),
       ),

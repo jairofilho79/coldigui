@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
 /// Passos do tutorial da tela do Leitor de Partituras / PDF ([PdfReaderScreen]).
 List<SpotlightGuideStep> buildReaderTutorialSteps(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Ajuste de Tela (Largura vs. Página)
     SpotlightGuideStep.item(
@@ -18,8 +20,9 @@ List<SpotlightGuideStep> buildReaderTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuste de Tela',
+          title: l10n?.tutorialReaderStep1Title ?? 'Ajuste de Tela',
           message:
+              l10n?.tutorialReaderStep1Message ??
               'Alterne entre ajustar à **largura da tela** (ótimo para ampliar a partitura) ou à **página inteira**. Você também pode pressionar a tecla **Z**.',
         ),
       ),
@@ -37,8 +40,9 @@ List<SpotlightGuideStep> buildReaderTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Modo Tela Cheia',
+          title: l10n?.tutorialReaderStep2Title ?? 'Modo Tela Cheia',
           message:
+              l10n?.tutorialReaderStep2Message ??
               'Toque para ocultar todas as barras e **focar na partitura** durante o ensaio ou culto. Use a tecla **F** para entrar ou **Esc** para sair.',
         ),
       ),
@@ -56,8 +60,9 @@ List<SpotlightGuideStep> buildReaderTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Indicador de Páginas',
+          title: l10n?.tutorialReaderStep3Title ?? 'Indicador de Páginas',
           message:
+              l10n?.tutorialReaderStep3Message ??
               'Exibe a **página atual** e o **total de páginas**. Toque para saltar de página ou **segure o toque** para voltar direto à **primeira página**!',
         ),
       ),
@@ -75,8 +80,9 @@ List<SpotlightGuideStep> buildReaderTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Toque nas Bordas (Laterais)',
+          title: l10n?.tutorialReaderStep4Title ?? 'Toque nas Bordas (Laterais)',
           message:
+              l10n?.tutorialReaderStep4Message ??
               'Toque no **quinto lateral esquerdo** para voltar e no **quinto lateral direito** para avançar páginas instantaneamente, sem precisar arrastar a partitura.',
         ),
       ),
@@ -94,8 +100,9 @@ List<SpotlightGuideStep> buildReaderTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Pedais Bluetooth & Teclado',
+          title: l10n?.tutorialReaderStep5Title ?? 'Pedais Bluetooth & Teclado',
           message:
+              l10n?.tutorialReaderStep5Message ??
               'Conecte qualquer **pedal virador de página Bluetooth** (AirTurn, PageFlip, Donner via PageUp/Down ou Setas) para avançar e trocar de louvor **sem tirar as mãos do instrumento**.',
         ),
       ),
@@ -113,8 +120,9 @@ List<SpotlightGuideStep> buildReaderTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialReaderStep6Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialReaderStep6Message ??
               'Toque no ícone **(i)** sempre que tiver dúvidas sobre como utilizar as ferramentas do leitor!',
         ),
       ),

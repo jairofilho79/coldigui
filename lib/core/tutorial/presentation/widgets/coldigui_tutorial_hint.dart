@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../theme/color_extensions.dart';
 import '../../../utils/app_haptics.dart';
 import '../providers/tutorial_preferences_provider.dart';
@@ -98,6 +99,16 @@ class ColdiguiTutorialHint extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLast = guide.isLast && guide.isLastItem;
 
+    final l10n = AppLocalizations.of(context);
+    final stepCounterText = l10n?.tutorialStepCounter(guide.index + 1, guide.total) ??
+        'Passo ${guide.index + 1} de ${guide.total}';
+    final dismissForeverText = l10n?.tutorialDismissForever ?? 'Não mostrar novamente';
+    final skipText = l10n?.tutorialSkip ?? 'Pular';
+    final previousText = l10n?.tutorialPrevious ?? 'Voltar';
+    final actionText = isLast
+        ? (l10n?.tutorialFinish ?? 'Concluir')
+        : (l10n?.tutorialNext ?? 'Próximo');
+
     return SpotlightGuideBubbleHint(
       guide: guide,
       decoration: const SpotlightGuideBubbleDecoration(
@@ -124,7 +135,7 @@ class ColdiguiTutorialHint extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Passo ${guide.index + 1} de ${guide.total}',
+                        stepCounterText,
                         style: const TextStyle(
                           color: AppColors.goldLight,
                           fontSize: 11.5,
@@ -187,7 +198,7 @@ class ColdiguiTutorialHint extends StatelessWidget {
                         ),
                         visualDensity: VisualDensity.compact,
                       ),
-                      child: const Text('Não mostrar novamente'),
+                      child: Text(dismissForeverText),
                     ),
                   if (showSkipButton)
                     TextButton(
@@ -206,7 +217,7 @@ class ColdiguiTutorialHint extends StatelessWidget {
                         ),
                         visualDensity: VisualDensity.compact,
                       ),
-                      child: const Text('Pular'),
+                      child: Text(skipText),
                     ),
                   if (!guide.isFirst)
                     TextButton(
@@ -225,7 +236,7 @@ class ColdiguiTutorialHint extends StatelessWidget {
                         ),
                         visualDensity: VisualDensity.compact,
                       ),
-                      child: const Text('Voltar'),
+                      child: Text(previousText),
                     ),
                   FilledButton(
                     key: const ValueKey('tutorial-hint-next'),
@@ -251,7 +262,7 @@ class ColdiguiTutorialHint extends StatelessWidget {
                       ),
                       visualDensity: VisualDensity.compact,
                     ),
-                    child: Text(isLast ? 'Concluir' : 'Próximo'),
+                    child: Text(actionText),
                   ),
                 ],
               ),

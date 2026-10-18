@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
 /// Passos do tutorial da tela de Detalhes do Louvor ([PraiseScreen]).
 List<SpotlightGuideStep> buildPraiseTutorialSteps(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Informações do Louvor
     SpotlightGuideStep.item(
@@ -18,8 +20,9 @@ List<SpotlightGuideStep> buildPraiseTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Informações do Louvor',
+          title: l10n?.tutorialPraiseStep1Title ?? 'Informações do Louvor',
           message:
+              l10n?.tutorialPraiseStep1Message ??
               'Veja o **número** e o **título** do louvor. Toque em **Compartilhar** para copiar o link direto ou em **Sugerir melhoria** para nos enviar correções.',
         ),
       ),
@@ -37,8 +40,9 @@ List<SpotlightGuideStep> buildPraiseTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Versões Relacionadas',
+          title: l10n?.tutorialPraiseStep2Title ?? 'Versões Relacionadas',
           message:
+              l10n?.tutorialPraiseStep2Message ??
               'Quando houver diferentes **arranjos, tonalidades ou variantes**, você pode alternar facilmente entre elas tocando nos botões de louvores relacionados.',
         ),
       ),
@@ -56,8 +60,9 @@ List<SpotlightGuideStep> buildPraiseTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Materiais e Partituras',
+          title: l10n?.tutorialPraiseStep3Title ?? 'Materiais e Partituras',
           message:
+              l10n?.tutorialPraiseStep3Message ??
               'Acesse todas as **partituras**, **cifras**, **gestos** e **áudios** disponíveis para este louvor. Toque em um item para abrir ou no **+** para adicioná-lo à sua lista ativa.',
         ),
       ),
@@ -75,8 +80,9 @@ List<SpotlightGuideStep> buildPraiseTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Letra e Metadados',
+          title: l10n?.tutorialPraiseStep4Title ?? 'Letra e Metadados',
           message:
+              l10n?.tutorialPraiseStep4Message ??
               'Consulte a **letra completa** do louvor, ajuste o tamanho da fonte, copie o texto ou toque no botão de reprodução para abrir no **leitor dedicado** com rolagem automática.',
         ),
       ),
@@ -94,8 +100,9 @@ List<SpotlightGuideStep> buildPraiseTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialPraiseStep5Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialPraiseStep5Message ??
               'Sempre que tiver dúvidas sobre os detalhes do louvor, toque neste **ícone (i)** para rever este tutorial passo a passo!',
         ),
       ),

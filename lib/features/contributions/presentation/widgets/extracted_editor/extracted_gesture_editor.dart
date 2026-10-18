@@ -218,7 +218,7 @@ class _ExtractedGestureEditorState extends ConsumerState<ExtractedGestureEditor>
                   ),
                   child: Center(
                     child: Text(
-                      'Nenhum item no documento. Adicione uma linha acima.',
+                      l10n.contributeEditorGestureEmptyDocument,
                       style: AppTypography.body.copyWith(
                         color: AppColors.title.withValues(alpha: 0.7),
                       ),
@@ -271,7 +271,7 @@ class _ExtractedGestureEditorState extends ConsumerState<ExtractedGestureEditor>
               ),
               const Spacer(),
               Text(
-                '${_document.items.length} blocos/linhas',
+                l10n.contributeEditorGestureBlocksCount(_document.items.length),
                 style: AppTypography.label.copyWith(
                   fontSize: 12,
                   color: AppColors.title.withValues(alpha: 0.6),
@@ -422,7 +422,7 @@ class _ExtractedGestureEditorState extends ConsumerState<ExtractedGestureEditor>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Instrução: ${kind.name}',
+                  l10n.contributeEditorGestureInstructionLabel(kind.name),
                   style: AppTypography.body.copyWith(color: AppColors.title),
                 ),
               ),

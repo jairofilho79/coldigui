@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
@@ -11,6 +12,7 @@ import '../widgets/coldigui_tutorial_hint.dart';
 /// 3. Adição e gerenciamento no Carrossel ativo de culto.
 /// 4. Listas salvas e uso offline sem internet.
 List<SpotlightGuideStep> buildWelcomeTourTutorialSteps(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Pesquise um louvor na Home
     SpotlightGuideStep.item(
@@ -24,8 +26,9 @@ List<SpotlightGuideStep> buildWelcomeTourTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: '1. Pesquise no Hinário',
+          title: l10n?.tutorialWelcomeTourStep1Title ?? '1. Pesquise no Hinário',
           message:
+              l10n?.tutorialWelcomeTourStep1Message ??
               'Digite o **número**, o **título** ou qualquer **trecho da letra** para localizar instantaneamente hinos e cânticos no acervo.',
         ),
       ),
@@ -43,8 +46,9 @@ List<SpotlightGuideStep> buildWelcomeTourTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: '2. Formatos Especializados',
+          title: l10n?.tutorialWelcomeTourStep2Title ?? '2. Formatos Especializados',
           message:
+              l10n?.tutorialWelcomeTourStep2Message ??
               'Toque no louvor para selecionar entre **Partitura**, **Cifra**, **Gestos para Crianças** ou **Letra**, com transposição de tom e autoscroll.',
         ),
       ),
@@ -62,8 +66,9 @@ List<SpotlightGuideStep> buildWelcomeTourTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: '3. Monte seu Repertório de Culto',
+          title: l10n?.tutorialWelcomeTourStep3Title ?? '3. Monte seu Repertório de Culto',
           message:
+              l10n?.tutorialWelcomeTourStep3Message ??
               'Toque no botão **(+)** para incluir louvores no **Carrossel Ativo**, permitindo alternar rapidamente entre partituras durante a ministração.',
         ),
       ),
@@ -81,8 +86,9 @@ List<SpotlightGuideStep> buildWelcomeTourTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: '4. Repertório Sempre com Você',
+          title: l10n?.tutorialWelcomeTourStep4Title ?? '4. Repertório Sempre com Você',
           message:
+              l10n?.tutorialWelcomeTourStep4Message ??
               'Acesse a aba **Listas** para organizar playlists de ensaio e abra o **Armazenamento Offline** no Perfil para louvar **sem internet** em qualquer lugar!',
         ),
       ),

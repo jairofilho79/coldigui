@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
@@ -7,6 +8,7 @@ import '../widgets/coldigui_tutorial_hint.dart';
 List<SpotlightGuideStep> buildExtractedMaterialEditorTutorialSteps(
   BuildContext context,
 ) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Barra de Ferramentas e Atalhos
     SpotlightGuideStep.item(
@@ -20,8 +22,9 @@ List<SpotlightGuideStep> buildExtractedMaterialEditorTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Barra de Ferramentas & Atalhos',
+          title: l10n?.tutorialExtractedMaterialEditorStep1Title ?? 'Barra de Ferramentas & Atalhos',
           message:
+              l10n?.tutorialExtractedMaterialEditorStep1Message ??
               'Utilize os atalhos rápidos para **adicionar versos**, **remover linhas**, **inserir acordes ou anotações** e restaurar o texto original.',
         ),
       ),
@@ -39,8 +42,9 @@ List<SpotlightGuideStep> buildExtractedMaterialEditorTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Área de Edição',
+          title: l10n?.tutorialExtractedMaterialEditorStep2Title ?? 'Área de Edição',
           message:
+              l10n?.tutorialExtractedMaterialEditorStep2Message ??
               'Edite o conteúdo diretamente. Na cifra, use a sintaxe **[Acorde]** imediatamente antes da sílaba para sincronizar a posição com a letra.',
         ),
       ),
@@ -58,8 +62,9 @@ List<SpotlightGuideStep> buildExtractedMaterialEditorTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Seletor de Gestos CIAs',
+          title: l10n?.tutorialExtractedMaterialEditorStep3Title ?? 'Seletor de Gestos CIAs',
           message:
+              l10n?.tutorialExtractedMaterialEditorStep3Message ??
               'Toque em **Trocar Gesto** para abrir o dicionário oficial e vincular o movimento e a frase disparadora correspondente.',
         ),
       ),
@@ -77,8 +82,9 @@ List<SpotlightGuideStep> buildExtractedMaterialEditorTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Pré-visualização ao Vivo',
+          title: l10n?.tutorialExtractedMaterialEditorStep4Title ?? 'Pré-visualização ao Vivo',
           message:
+              l10n?.tutorialExtractedMaterialEditorStep4Message ??
               'Acompanhe as mudanças **em tempo real** com a renderização idêntica à que os usuários verão no leitor de louvores.',
         ),
       ),
@@ -96,8 +102,9 @@ List<SpotlightGuideStep> buildExtractedMaterialEditorTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Submissão da Proposta',
+          title: l10n?.tutorialExtractedMaterialEditorStep5Title ?? 'Submissão da Proposta',
           message:
+              l10n?.tutorialExtractedMaterialEditorStep5Message ??
               'Adicione observações se desejar e toque em **Enviar** para disponibilizar sua sugestão para revisão pela comunidade.',
         ),
       ),
@@ -115,8 +122,9 @@ List<SpotlightGuideStep> buildExtractedMaterialEditorTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialExtractedMaterialEditorStep6Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialExtractedMaterialEditorStep6Message ??
               'Toque neste ícone a qualquer momento para rever este **guia passo a passo** do editor de materiais.',
         ),
       ),

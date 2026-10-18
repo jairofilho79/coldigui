@@ -83,9 +83,10 @@ class ShellScaffold extends ConsumerWidget {
   List<PlpcgBottomNavDestination> _destinations(
     WidgetRef ref,
     List<AppTab> tabs,
+    AppLocalizations l10n,
   ) {
     final user = ref.watch(authStateProvider).asData?.value;
-    final profileLabel = user?.displayFirstName ?? 'Perfil';
+    final profileLabel = user?.displayFirstName ?? l10n.tabProfile;
     final profileAvatar = user?.pictureUrl != null
         ? NetworkImage(user!.pictureUrl!)
         : null;
@@ -93,17 +94,17 @@ class ShellScaffold extends ConsumerWidget {
     return [
       for (final tab in tabs)
         switch (tab) {
-          AppTab.events => const PlpcgBottomNavDestination(
+          AppTab.events => PlpcgBottomNavDestination(
             icon: Icons.event,
-            label: 'Eventos',
+            label: l10n.tabEvents,
           ),
-          AppTab.playlists => const PlpcgBottomNavDestination(
+          AppTab.playlists => PlpcgBottomNavDestination(
             icon: Icons.playlist_play,
-            label: 'Listas',
+            label: l10n.tabPlaylists,
           ),
-          AppTab.home => const PlpcgBottomNavDestination(
+          AppTab.home => PlpcgBottomNavDestination(
             svgAsset: 'assets/branding/logo_colorido_no_bg_logo_only.svg',
-            label: 'Pesquisar',
+            label: l10n.tabSearch,
           ),
           AppTab.profile => PlpcgBottomNavDestination(
             icon: profileAvatar == null ? Icons.person : null,
@@ -116,19 +117,19 @@ class ShellScaffold extends ConsumerWidget {
 
   /// Rótulo da aba corrente para [browserTitle] — mesmos nomes de
   /// [_destinations] fora do leitor/cifra/áudio (que têm rótulo próprio).
-  String _tabLabel(String path) {
+  String _tabLabel(String path, AppLocalizations l10n) {
     return switch (path) {
-      RoutePaths.events => 'Eventos',
-      RoutePaths.library => 'Biblioteca',
-      RoutePaths.home => 'Pesquisar',
-      RoutePaths.profile => 'Perfil',
-      RoutePaths.about => 'Sobre',
-      RoutePaths.offline => 'Offline',
-      RoutePaths.favoriteMaterialKinds => 'Materiais favoritos',
-      RoutePaths.playlists => 'Listas',
-      RoutePaths.publicPlaylists => 'Listas públicas',
-      RoutePaths.audio => 'Áudio',
-      String p when p.startsWith('/louvor/') => 'Louvor',
+      RoutePaths.events => l10n.tabEvents,
+      RoutePaths.library => l10n.libraryTitle,
+      RoutePaths.home => l10n.tabSearch,
+      RoutePaths.profile => l10n.tabProfile,
+      RoutePaths.about => l10n.tabAbout,
+      RoutePaths.offline => l10n.offlineTitle,
+      RoutePaths.favoriteMaterialKinds => l10n.favoriteMaterialKindsTitle,
+      RoutePaths.playlists => l10n.tabPlaylists,
+      RoutePaths.publicPlaylists => l10n.tabPublicPlaylists,
+      RoutePaths.audio => l10n.audioMaterialSection,
+      String p when p.startsWith('/louvor/') => l10n.tabPraise,
       _ => 'PLPCG',
     };
   }
@@ -194,13 +195,13 @@ class ShellScaffold extends ConsumerWidget {
       trackTitle: path == RoutePaths.audio
           ? _trackTitleLabel(currentTrack)
           : null,
-      tabLabel: _tabLabel(path),
+      tabLabel: _tabLabel(path, l10n),
     );
 
     final showMiniPlayer = !hideChrome && currentTrack != null;
 
     final tabs = appTabsFor(ref.read(featureFlagsProvider));
-    final destinations = _destinations(ref, tabs);
+    final destinations = _destinations(ref, tabs, l10n);
     // C6: rail substitui a bottom bar ≥ kRailBreakpoint; nenhuma das duas em
     // rotas imersivas (leitor/áudio/cifra têm navegação própria).
     final showRail =

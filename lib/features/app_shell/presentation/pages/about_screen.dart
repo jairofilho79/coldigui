@@ -7,6 +7,7 @@ import '../../../../core/routing/shell_navigation.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/tutorial/presentation/providers/tutorial_provider.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../widgets/about_info_card.dart';
 import '../widgets/app_shortcuts_dialog.dart';
 
@@ -16,35 +17,15 @@ import '../widgets/app_shortcuts_dialog.dart';
 /// [LibraryScreen] / [HomeScreen]). Dois [AboutInfoCard]: "Quem somos"
 /// (1 parágrafo) e "Objetivo" (2 parágrafos).
 ///
-/// Conteúdo institucional fixo em PT — sem [AppLocalizations] nesta entrega.
-///
 /// Consumidores: [appRouterProvider] → branch Perfil ([RoutePaths.about]).
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
   static const double _maxContentWidth = 896;
 
-  static const _quemSomosBody =
-      'A Paz do Senhor Jesus. Somos irmãos da Igreja Cristã Maranata '
-      'da Região do Triângulo Mineiro e servimos no Maanaim de Uberlândia-MG. '
-      'Esta aplicação não é oficial da ICM, mas o objetivo é ajudar a todos '
-      'que estão no louvor ajudando na Obra. Seguindo as orientações da Igreja. '
-      'De forma 100% gratuita.';
-
-  static const _objetivoParagraph1 =
-      'O objetivo da aplicação - chamada Pesquisador de Louvores em Partitura, '
-      'Cifra em Geral - é ajudar aos irmãos da equipe de louvor '
-      'com os materiais mais básicos pro louvor. Que seja fácil de pesquisar, '
-      'consumir e que funcione offline, pois muita igrejas não tem internet ou '
-      'é muito difícil o acesso em ESFs.';
-
-  static const _objetivoParagraph2 =
-      'Portanto, estejamos em oração por todos os irmãos que estão envolvidos '
-      'nesse projeto. Quer seja diretamente no desenvolvimento da aplicação, '
-      'quer seja na produção dos materiais, no uso/teste da aplicação e afins.';
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
@@ -52,19 +33,19 @@ class AboutScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            const SpotlightGuideTarget(
+            SpotlightGuideTarget(
               id: 'about-who-we-are',
               child: AboutInfoCard(
-                title: 'Quem somos',
-                paragraphs: [_quemSomosBody],
+                title: l10n.aboutWhoWeAreTitle,
+                paragraphs: [l10n.aboutWhoWeAreBody],
               ),
             ),
             const SizedBox(height: 16),
-            const SpotlightGuideTarget(
+            SpotlightGuideTarget(
               id: 'about-mission',
               child: AboutInfoCard(
-                title: 'Objetivo',
-                paragraphs: [_objetivoParagraph1, _objetivoParagraph2],
+                title: l10n.aboutObjectiveTitle,
+                paragraphs: [l10n.aboutObjectiveParagraph1, l10n.aboutObjectiveParagraph2],
               ),
             ),
             const SizedBox(height: 16),
@@ -99,13 +80,13 @@ class AboutScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Atalhos de Teclado',
-                                style: TextStyle(
+                                l10n.shortcutsTitle,
+                                style: const TextStyle(
                                   fontFamily: AppTypography.garamondFamily,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 18,
@@ -113,10 +94,10 @@ class AboutScreen extends StatelessWidget {
                                   color: AppColors.title,
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
-                                'Consulte os comandos rápidos de alta produtividade para Desktop e Web.',
-                                style: TextStyle(
+                                l10n.shortcutsAboutDescription,
+                                style: const TextStyle(
                                   fontFamily: AppTypography.sansFamily,
                                   fontSize: 13,
                                   color: AppColors.textDark,
@@ -184,13 +165,13 @@ class AboutScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Tour de Boas-Vindas',
-                                style: TextStyle(
+                                l10n.welcomeTourAboutTitle,
+                                style: const TextStyle(
                                   fontFamily: AppTypography.garamondFamily,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 18,
@@ -198,10 +179,10 @@ class AboutScreen extends StatelessWidget {
                                   color: AppColors.title,
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
-                                'Faça o tour guiado de 4 passos conhecendo o fluxo do acervo ao culto.',
-                                style: TextStyle(
+                                l10n.welcomeTourAboutDescription,
+                                style: const TextStyle(
                                   fontFamily: AppTypography.sansFamily,
                                   fontSize: 13,
                                   color: AppColors.textDark,

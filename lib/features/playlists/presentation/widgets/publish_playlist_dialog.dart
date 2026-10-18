@@ -97,7 +97,7 @@ class _PublishPlaylistDialogState extends State<_PublishPlaylistDialog> {
               id: 'publish-playlist-info',
               child: IconButton(
                 icon: const Icon(Icons.info_outline, size: 20),
-                tooltip: 'Como publicar',
+                tooltip: l10n.tutorialTooltipHowToPublish,
                 onPressed: () => _tutorialController
                     ?.startPublishPlaylistTutorial(context),
               ),

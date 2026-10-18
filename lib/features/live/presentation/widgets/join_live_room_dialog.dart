@@ -106,7 +106,7 @@ class _JoinLiveRoomDialogState extends State<_JoinLiveRoomDialog> {
               id: 'join-live-info',
               child: IconButton(
                 icon: const Icon(Icons.info_outline, size: 20),
-                tooltip: 'Como ingressar',
+                tooltip: l10n.tutorialTooltipHowToJoinLive,
                 onPressed: () => _tutorialController
                     ?.startJoinLiveRoomTutorial(context),
               ),

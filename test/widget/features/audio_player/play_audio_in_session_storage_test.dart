@@ -94,7 +94,7 @@ void main() {
   ];
 
   group('playAudioInSession', () {
-    Future<AddToActiveOutcome> pumpAndPlay(
+    Future<void> pumpAndPlay(
       WidgetTester tester, {
       required _FakeSession session,
       required _StubActiveEditor editor,
@@ -113,18 +113,17 @@ void main() {
           ),
         ),
       );
-      final outcome = await playAudioInSession(ref: capturedRef, track: _track);
+      await playAudioInSession(ref: capturedRef, track: _track);
       await tester.pump();
-      return outcome;
     }
 
-    testWidgets('sem storage toca mesmo assim e devolve storageUnavailable', (
+    testWidgets('toca a faixa na sessão sem adicionar ao editor', (
       tester,
     ) async {
       final session = _FakeSession();
       final editor = _StubActiveEditor(AddToActiveOutcome.storageUnavailable);
 
-      final outcome = await pumpAndPlay(
+      await pumpAndPlay(
         tester,
         session: session,
         editor: editor,
@@ -132,24 +131,7 @@ void main() {
 
       expect(session.played, hasLength(1));
       expect(session.played.single.single.audioId, 'audio1');
-      expect(outcome, AddToActiveOutcome.storageUnavailable);
-    });
-
-    testWidgets('com o Isar abrindo, entra pelo editor com kind de áudio', (
-      tester,
-    ) async {
-      final session = _FakeSession();
-      final editor = _StubActiveEditor(AddToActiveOutcome.added);
-
-      final outcome = await pumpAndPlay(
-        tester,
-        session: session,
-        editor: editor,
-      );
-
-      expect(session.played, hasLength(1));
-      expect(editor.added, [(id: 'audio1', kind: MaterialKind.audio)]);
-      expect(outcome, AddToActiveOutcome.added);
+      expect(editor.added, isEmpty);
     });
   });
 
@@ -209,7 +191,7 @@ void main() {
       expect(find.text(pt.playlistStorageUnavailable), findsNothing);
     });
 
-    testWidgets('storageUnavailable do editor mostra a snackbar de storage', (
+    testWidgets('não adiciona à playlist ativa nem mostra snackbar de storage', (
       tester,
     ) async {
       final session = _FakeSession();
@@ -217,10 +199,10 @@ void main() {
 
       await pumpAndOpen(tester, session: session, editor: editor);
 
-      // Tocar continua valendo (o áudio vem da rede); só a lista não gravou.
       expect(session.played, hasLength(1));
+      expect(editor.added, isEmpty);
       expect(find.text('player'), findsOneWidget);
-      expect(find.text(pt.playlistStorageUnavailable), findsOneWidget);
+      expect(find.text(pt.playlistStorageUnavailable), findsNothing);
     });
   });
 }

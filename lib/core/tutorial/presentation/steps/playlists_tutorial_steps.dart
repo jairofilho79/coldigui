@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
 /// Passos do tutorial da tela de Listas e Repertórios ([PlaylistsScreen]).
 List<SpotlightGuideStep> buildPlaylistsTutorialSteps(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Abas de Repertório
     SpotlightGuideStep.item(
@@ -18,8 +20,9 @@ List<SpotlightGuideStep> buildPlaylistsTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Abas de Repertório',
+          title: l10n?.tutorialPlaylistsStep1Title ?? 'Abas de Repertório',
           message:
+              l10n?.tutorialPlaylistsStep1Message ??
               'Alterne entre suas listas **Não Salvas** (seleções rápidas de ensaio), listas **Salvas** (repertórios guardados e sincronizados) e **Favoritas** (para acesso rápido).',
         ),
       ),
@@ -37,8 +40,9 @@ List<SpotlightGuideStep> buildPlaylistsTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Importar Lista',
+          title: l10n?.tutorialPlaylistsStep2Title ?? 'Importar Lista',
           message:
+              l10n?.tutorialPlaylistsStep2Message ??
               'Recebeu uma lista compartilhada? Toque em **Importar lista** e cole o link ou código recebido para carregar os louvores no seu aplicativo.',
         ),
       ),
@@ -56,8 +60,9 @@ List<SpotlightGuideStep> buildPlaylistsTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Sala ao Vivo',
+          title: l10n?.tutorialPlaylistsStep3Title ?? 'Sala ao Vivo',
           message:
+              l10n?.tutorialPlaylistsStep3Message ??
               'Abra uma sala ou conecte-se ao ensaio da igreja. Todos os músicos acompanham a **troca de louvores em tempo real** durante a ministração.',
         ),
       ),
@@ -75,8 +80,9 @@ List<SpotlightGuideStep> buildPlaylistsTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Criar Novas Listas',
+          title: l10n?.tutorialPlaylistsStep4Title ?? 'Criar Novas Listas',
           message:
+              l10n?.tutorialPlaylistsStep4Message ??
               'Para montar uma nova lista, vá ao **Pesquisador** e toque no botão **"+"** de qualquer louvor ou versão de partitura.',
         ),
       ),
@@ -94,8 +100,9 @@ List<SpotlightGuideStep> buildPlaylistsTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialPlaylistsStep5Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialPlaylistsStep5Message ??
               'Toque no ícone **(i)** sempre que tiver dúvidas sobre como utilizar qualquer tela do aplicativo!',
         ),
       ),

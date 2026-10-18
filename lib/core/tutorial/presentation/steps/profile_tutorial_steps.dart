@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
 /// Passos do tutorial da tela de Perfil e Ajustes ([ProfileScreen]).
 List<SpotlightGuideStep> buildProfileTutorialSteps(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Painel de Conta / Sincronização
     SpotlightGuideStep.item(
@@ -18,8 +20,9 @@ List<SpotlightGuideStep> buildProfileTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Conta & Sincronização',
+          title: l10n?.tutorialProfileStep1Title ?? 'Conta & Sincronização',
           message:
+              l10n?.tutorialProfileStep1Message ??
               'Conecte sua conta **Google** para sincronizar suas **listas de louvores**, preferências e materiais favoritos automaticamente entre seus aparelhos.',
         ),
       ),
@@ -37,8 +40,9 @@ List<SpotlightGuideStep> buildProfileTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Biblioteca Completa',
+          title: l10n?.tutorialProfileStep2Title ?? 'Biblioteca Completa',
           message:
+              l10n?.tutorialProfileStep2Message ??
               'Acesse a **Biblioteca** para explorar o catálogo completo em formato de **lista paginada**, com filtros detalhados de instrumentos e categorias.',
         ),
       ),
@@ -56,8 +60,9 @@ List<SpotlightGuideStep> buildProfileTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Contribuir',
+          title: l10n?.tutorialProfileStep3Title ?? 'Contribuir',
           message:
+              l10n?.tutorialProfileStep3Message ??
               'Envie **novas partituras**, cifras, gestos ou correções de letras. A colaboração da irmandade mantém o acervo sempre atualizado e preciso!',
         ),
       ),
@@ -75,8 +80,9 @@ List<SpotlightGuideStep> buildProfileTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Modo Offline',
+          title: l10n?.tutorialProfileStep4Title ?? 'Modo Offline',
           message:
+              l10n?.tutorialProfileStep4Message ??
               'Baixe os arquivos de partituras e letras para usar o aplicativo **sem internet** durante cultos e ensaios com total rapidez.',
         ),
       ),
@@ -94,8 +100,9 @@ List<SpotlightGuideStep> buildProfileTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialProfileStep5Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialProfileStep5Message ??
               'Toque no ícone **(i)** sempre que quiser rever as instruções e dicas desta tela!',
         ),
       ),

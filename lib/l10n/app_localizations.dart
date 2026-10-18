@@ -3709,6 +3709,2448 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Diminuir fonte'**
   String get praiseDecreaseFontSizeTooltip;
+
+  /// No description provided for @confirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmar'**
+  String get confirm;
+
+  /// No description provided for @cancel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar'**
+  String get cancel;
+
+  /// No description provided for @close.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar'**
+  String get close;
+
+  /// No description provided for @back.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar'**
+  String get back;
+
+  /// No description provided for @backTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar'**
+  String get backTooltip;
+
+  /// No description provided for @homeTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Início'**
+  String get homeTooltip;
+
+  /// No description provided for @placeholderComingSoon.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em breve'**
+  String get placeholderComingSoon;
+
+  /// No description provided for @degradedStorageBannerMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Armazenamento local indisponível. O catálogo online continua funcionando; listas e offline ficam desativados.'**
+  String get degradedStorageBannerMessage;
+
+  /// No description provided for @tabEvents.
+  ///
+  /// In pt, this message translates to:
+  /// **'Eventos'**
+  String get tabEvents;
+
+  /// No description provided for @tabPlaylists.
+  ///
+  /// In pt, this message translates to:
+  /// **'Listas'**
+  String get tabPlaylists;
+
+  /// No description provided for @tabSearch.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pesquisar'**
+  String get tabSearch;
+
+  /// No description provided for @tabProfile.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perfil'**
+  String get tabProfile;
+
+  /// No description provided for @tabAbout.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sobre'**
+  String get tabAbout;
+
+  /// No description provided for @tabPraise.
+  ///
+  /// In pt, this message translates to:
+  /// **'Louvor'**
+  String get tabPraise;
+
+  /// No description provided for @tabPublicPlaylists.
+  ///
+  /// In pt, this message translates to:
+  /// **'Listas públicas'**
+  String get tabPublicPlaylists;
+
+  /// No description provided for @aboutTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sobre'**
+  String get aboutTitle;
+
+  /// No description provided for @profileResetTutorials.
+  ///
+  /// In pt, this message translates to:
+  /// **'Redefinir Tutoriais'**
+  String get profileResetTutorials;
+
+  /// No description provided for @profileResetTutorialsDialogTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Redefinir Tutoriais'**
+  String get profileResetTutorialsDialogTitle;
+
+  /// No description provided for @profileResetTutorialsDialogContent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Deseja redefinir todos os tutoriais? Os guias de introdução voltarão a ser exibidos automaticamente ao acessar as telas do aplicativo.'**
+  String get profileResetTutorialsDialogContent;
+
+  /// No description provided for @profileResetTutorialsConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Redefinir'**
+  String get profileResetTutorialsConfirm;
+
+  /// No description provided for @profileResetTutorialsSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tutoriais redefinidos com sucesso!'**
+  String get profileResetTutorialsSuccess;
+
+  /// No description provided for @profileSyncPromptTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entrar para sincronizar seus dados'**
+  String get profileSyncPromptTitle;
+
+  /// No description provided for @profileSyncPromptBody.
+  ///
+  /// In pt, this message translates to:
+  /// **'Use sua conta Google para sincronizar listas e outras features.'**
+  String get profileSyncPromptBody;
+
+  /// No description provided for @profileSignOut.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sair'**
+  String get profileSignOut;
+
+  /// No description provided for @shortcutsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atalhos de Teclado'**
+  String get shortcutsTitle;
+
+  /// No description provided for @shortcutsSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Comandos rápidos de produtividade para Desktop e Web'**
+  String get shortcutsSubtitle;
+
+  /// No description provided for @shortcutsAboutDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consulte os comandos rápidos de alta produtividade para Desktop e Web.'**
+  String get shortcutsAboutDescription;
+
+  /// No description provided for @welcomeTourAboutTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tour de Boas-Vindas'**
+  String get welcomeTourAboutTitle;
+
+  /// No description provided for @welcomeTourAboutDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faça o tour guiado de 4 passos conhecendo o fluxo do acervo ao culto.'**
+  String get welcomeTourAboutDescription;
+
+  /// No description provided for @shortcutsTabAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todos'**
+  String get shortcutsTabAll;
+
+  /// No description provided for @shortcutsTabNavigation.
+  ///
+  /// In pt, this message translates to:
+  /// **'Navegação'**
+  String get shortcutsTabNavigation;
+
+  /// No description provided for @shortcutsTabRepertoireAudio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Repertório & Áudio'**
+  String get shortcutsTabRepertoireAudio;
+
+  /// No description provided for @shortcutsTabSheetMusic.
+  ///
+  /// In pt, this message translates to:
+  /// **'Partituras'**
+  String get shortcutsTabSheetMusic;
+
+  /// No description provided for @shortcutsTabChordsGestures.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cifras & Gestos'**
+  String get shortcutsTabChordsGestures;
+
+  /// No description provided for @shortcutsFooterTip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pressione ? em qualquer tela para abrir este painel a qualquer momento.'**
+  String get shortcutsFooterTip;
+
+  /// No description provided for @shortcutsGotIt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entendi'**
+  String get shortcutsGotIt;
+
+  /// No description provided for @shortcutsEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum atalho encontrado.'**
+  String get shortcutsEmpty;
+
+  /// No description provided for @shortcutsOr.
+  ///
+  /// In pt, this message translates to:
+  /// **'ou'**
+  String get shortcutsOr;
+
+  /// No description provided for @shortcutCatNavigation.
+  ///
+  /// In pt, this message translates to:
+  /// **'Navegação & Busca'**
+  String get shortcutCatNavigation;
+
+  /// No description provided for @shortcutCatRepertoireAudio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Repertório & Áudio'**
+  String get shortcutCatRepertoireAudio;
+
+  /// No description provided for @shortcutCatSheetMusic.
+  ///
+  /// In pt, this message translates to:
+  /// **'Partituras (PDF)'**
+  String get shortcutCatSheetMusic;
+
+  /// No description provided for @shortcutCatChordsGestures.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cifras & Gestos'**
+  String get shortcutCatChordsGestures;
+
+  /// No description provided for @shortcutActionHomeSearch.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ir para a Home e focar campo de busca'**
+  String get shortcutActionHomeSearch;
+
+  /// No description provided for @shortcutActionOpenShortcuts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir esta Central de Atalhos de Teclado'**
+  String get shortcutActionOpenShortcuts;
+
+  /// No description provided for @shortcutActionEscape.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sair de tela cheia, limpar busca ou fechar janelas'**
+  String get shortcutActionEscape;
+
+  /// No description provided for @shortcutActionNextPraise.
+  ///
+  /// In pt, this message translates to:
+  /// **'Avançar para o próximo louvor do repertório'**
+  String get shortcutActionNextPraise;
+
+  /// No description provided for @shortcutActionPreviousPraise.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar para o louvor anterior do repertório'**
+  String get shortcutActionPreviousPraise;
+
+  /// No description provided for @shortcutActionCarouselQueue.
+  ///
+  /// In pt, this message translates to:
+  /// **'Navegar pela fila do carrossel de louvores'**
+  String get shortcutActionCarouselQueue;
+
+  /// No description provided for @shortcutActionToggleAudio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocar ou pausar o áudio do louvor'**
+  String get shortcutActionToggleAudio;
+
+  /// No description provided for @shortcutActionToggleAudioPdf.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocar ou pausar áudio mesmo com partitura aberta'**
+  String get shortcutActionToggleAudioPdf;
+
+  /// No description provided for @shortcutActionSeekAudioBack.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar 10 segundos no áudio'**
+  String get shortcutActionSeekAudioBack;
+
+  /// No description provided for @shortcutActionSeekAudioForward.
+  ///
+  /// In pt, this message translates to:
+  /// **'Avançar 10 segundos no áudio'**
+  String get shortcutActionSeekAudioForward;
+
+  /// No description provided for @shortcutActionToggleFullscreen.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alternar modo de tela cheia'**
+  String get shortcutActionToggleFullscreen;
+
+  /// No description provided for @shortcutActionNextPagePdf.
+  ///
+  /// In pt, this message translates to:
+  /// **'Avançar página ou rolar partitura'**
+  String get shortcutActionNextPagePdf;
+
+  /// No description provided for @shortcutActionPrevPagePdf.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar página da partitura'**
+  String get shortcutActionPrevPagePdf;
+
+  /// No description provided for @shortcutActionFirstPagePdf.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ir para a primeira página'**
+  String get shortcutActionFirstPagePdf;
+
+  /// No description provided for @shortcutActionLastPagePdf.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ir para a última página'**
+  String get shortcutActionLastPagePdf;
+
+  /// No description provided for @shortcutActionFitModePdf.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alternar modo de ajuste (largura / altura)'**
+  String get shortcutActionFitModePdf;
+
+  /// No description provided for @shortcutActionPageGridPdf.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir seletor rápido de páginas em grade'**
+  String get shortcutActionPageGridPdf;
+
+  /// No description provided for @shortcutActionToggleAutoscroll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ligar ou desligar rolagem automática (autoscroll)'**
+  String get shortcutActionToggleAutoscroll;
+
+  /// No description provided for @shortcutActionAdjustAutoscrollSpeed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diminuir ou aumentar velocidade de rolagem'**
+  String get shortcutActionAdjustAutoscrollSpeed;
+
+  /// No description provided for @shortcutActionTransposePitch.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transpor tom do louvor (+1 / -1 semitom)'**
+  String get shortcutActionTransposePitch;
+
+  /// No description provided for @shortcutActionNextGesture.
+  ///
+  /// In pt, this message translates to:
+  /// **'Próximo gesto ou gesto anterior na regência'**
+  String get shortcutActionNextGesture;
+
+  /// No description provided for @shortcutBadgeReader.
+  ///
+  /// In pt, this message translates to:
+  /// **'Leitor'**
+  String get shortcutBadgeReader;
+
+  /// No description provided for @shortcutBadgeGeneral.
+  ///
+  /// In pt, this message translates to:
+  /// **'Geral'**
+  String get shortcutBadgeGeneral;
+
+  /// No description provided for @shortcutBadgeReaderPdf.
+  ///
+  /// In pt, this message translates to:
+  /// **'Leitor PDF'**
+  String get shortcutBadgeReaderPdf;
+
+  /// No description provided for @shortcutBadgeChordsLyrics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cifras/Letras'**
+  String get shortcutBadgeChordsLyrics;
+
+  /// No description provided for @shortcutBadgeAutoscroll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Autoscroll'**
+  String get shortcutBadgeAutoscroll;
+
+  /// No description provided for @shortcutBadgeChords.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cifras'**
+  String get shortcutBadgeChords;
+
+  /// No description provided for @shortcutBadgeFocusModeCias.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modo Foco CIAs'**
+  String get shortcutBadgeFocusModeCias;
+
+  /// No description provided for @materialKindChordExtracted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Extraídos (chords)'**
+  String get materialKindChordExtracted;
+
+  /// No description provided for @materialKindGestureExtracted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Extraídos (gestos)'**
+  String get materialKindGestureExtracted;
+
+  /// No description provided for @offlineKindVariantsCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} var.'**
+  String offlineKindVariantsCount(int count);
+
+  /// No description provided for @offlineKindVariantsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Variantes de {name} ({count}):'**
+  String offlineKindVariantsTitle(String name, int count);
+
+  /// No description provided for @offlineSearchMaterialTypeHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pesquisar tipo de material...'**
+  String get offlineSearchMaterialTypeHint;
+
+  /// No description provided for @offlineClearSearchTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar pesquisa'**
+  String get offlineClearSearchTooltip;
+
+  /// No description provided for @offlineFilterButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Filtrar'**
+  String get offlineFilterButton;
+
+  /// No description provided for @offlineSearchNoResults.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum tipo de material encontrado para \"{query}\"'**
+  String offlineSearchNoResults(String query);
+
+  /// No description provided for @tutorialTooltipHowToShare.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como compartilhar'**
+  String get tutorialTooltipHowToShare;
+
+  /// No description provided for @tutorialTooltipHowToPublish.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como publicar'**
+  String get tutorialTooltipHowToPublish;
+
+  /// No description provided for @tutorialTooltipHowToUseFilters.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como usar os filtros'**
+  String get tutorialTooltipHowToUseFilters;
+
+  /// No description provided for @tutorialTooltipHowToUseMaterialSheet.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como usar este seletor'**
+  String get tutorialTooltipHowToUseMaterialSheet;
+
+  /// No description provided for @tutorialTooltipHowToManageList.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como gerenciar a lista'**
+  String get tutorialTooltipHowToManageList;
+
+  /// No description provided for @tutorialTooltipHowToUseFocusMode.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como usar o Modo Foco'**
+  String get tutorialTooltipHowToUseFocusMode;
+
+  /// No description provided for @tutorialTooltipHowToJoinLive.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como ingressar'**
+  String get tutorialTooltipHowToJoinLive;
+
+  /// No description provided for @tutorialTooltipHowToUseShortcuts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como usar os atalhos'**
+  String get tutorialTooltipHowToUseShortcuts;
+
+  /// No description provided for @contributeNeedHelp.
+  ///
+  /// In pt, this message translates to:
+  /// **'Precisa de ajuda?'**
+  String get contributeNeedHelp;
+
+  /// No description provided for @contributeHelpIntro.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta página permite que você envie contribuições e nos ajude a aprimorar o aplicativo e o acervo do PLPCG. Escolha a opção que melhor descreve o seu caso:'**
+  String get contributeHelpIntro;
+
+  /// No description provided for @contributeHelpDescBug.
+  ///
+  /// In pt, this message translates to:
+  /// **'Problemas no app (travamento, tela preta, botões sem resposta ou falha no áudio/leitor). Se puder, anexe uma captura de tela.'**
+  String get contributeHelpDescBug;
+
+  /// No description provided for @contributeHelpDescWrongInfo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dados incorretos em um louvor existente (número, tom, título, autor, ritmo ou louvor duplicado).'**
+  String get contributeHelpDescWrongInfo;
+
+  /// No description provided for @contributeHelpDescContent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Envio ou sugestão de novos materiais (cifras, partituras, áudios ou letras) ou melhoria em arquivo existente.'**
+  String get contributeHelpDescContent;
+
+  /// No description provided for @contributeHelpDescImprovement.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sugestões de novos recursos, mudanças no visual ou ideias para deixar o app mais prático nos ensaios e cultos.'**
+  String get contributeHelpDescImprovement;
+
+  /// No description provided for @contributeHelpDescOther.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dúvidas gerais, recados para a equipe ou qualquer outro assunto não listado acima.'**
+  String get contributeHelpDescOther;
+
+  /// No description provided for @contributeHelpTipAttachments.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você também pode anexar arquivos (até 32 MB) ou colar links do Google Drive e YouTube para enriquecer seu envio.'**
+  String get contributeHelpTipAttachments;
+
+  /// No description provided for @contributeEditorChordProExampleHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'[G]Exemplo de [D]cifra ChordPro...'**
+  String get contributeEditorChordProExampleHint;
+
+  /// No description provided for @contributeEditorLinesCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, one{1 linha} other{{count} linhas}}'**
+  String contributeEditorLinesCount(int count);
+
+  /// No description provided for @contributeEditorGestureEmptyDocument.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum item no documento. Adicione uma linha acima.'**
+  String get contributeEditorGestureEmptyDocument;
+
+  /// No description provided for @contributeEditorGestureBlocksCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, one{1 bloco/linha} other{{count} blocos/linhas}}'**
+  String contributeEditorGestureBlocksCount(int count);
+
+  /// No description provided for @contributeEditorGestureInstructionLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Instrução: {kind}'**
+  String contributeEditorGestureInstructionLabel(String kind);
+
+  /// No description provided for @authGoogleSignInError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falha ao entrar: {error}'**
+  String authGoogleSignInError(String error);
+
+  /// No description provided for @tutorialStepCounter.
+  ///
+  /// In pt, this message translates to:
+  /// **'Passo {current} de {total}'**
+  String tutorialStepCounter(int current, int total);
+
+  /// No description provided for @tutorialDismissForever.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não mostrar novamente'**
+  String get tutorialDismissForever;
+
+  /// No description provided for @tutorialSkip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pular'**
+  String get tutorialSkip;
+
+  /// No description provided for @tutorialPrevious.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar'**
+  String get tutorialPrevious;
+
+  /// No description provided for @tutorialNext.
+  ///
+  /// In pt, this message translates to:
+  /// **'Próximo'**
+  String get tutorialNext;
+
+  /// No description provided for @tutorialFinish.
+  ///
+  /// In pt, this message translates to:
+  /// **'Concluir'**
+  String get tutorialFinish;
+
+  /// No description provided for @tutorialHowToUseScreen.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como usar esta tela'**
+  String get tutorialHowToUseScreen;
+
+  /// No description provided for @welcomeHeroTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bem-vindo ao PLPCG!'**
+  String get welcomeHeroTitle;
+
+  /// No description provided for @welcomeHeroSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'O hinário digital e organizador de louvores para músicos, instrumentistas e ministérios.'**
+  String get welcomeHeroSubtitle;
+
+  /// No description provided for @welcomeHeroFeatureSearch.
+  ///
+  /// In pt, this message translates to:
+  /// **'Busca rápida por número, título, ritmo e tags.'**
+  String get welcomeHeroFeatureSearch;
+
+  /// No description provided for @welcomeHeroFeaturePlaylists.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criação de listas e repertórios para o culto.'**
+  String get welcomeHeroFeaturePlaylists;
+
+  /// No description provided for @welcomeHeroFeatureReader.
+  ///
+  /// In pt, this message translates to:
+  /// **'Leitor de partituras e cifras com pedais Bluetooth.'**
+  String get welcomeHeroFeatureReader;
+
+  /// No description provided for @welcomeHeroPrompt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Deseja fazer um tour rápido de 1 minuto para conhecer as principais funcionalidades?'**
+  String get welcomeHeroPrompt;
+
+  /// No description provided for @welcomeHeroStartTour.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fazer Tour Rápido (1 min)'**
+  String get welcomeHeroStartTour;
+
+  /// No description provided for @welcomeHeroDismiss.
+  ///
+  /// In pt, this message translates to:
+  /// **'Explorar por Conta Própria'**
+  String get welcomeHeroDismiss;
+
+  /// No description provided for @authSigningIn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entrando…'**
+  String get authSigningIn;
+
+  /// No description provided for @aboutWhoWeAreTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quem somos'**
+  String get aboutWhoWeAreTitle;
+
+  /// No description provided for @aboutWhoWeAreBody.
+  ///
+  /// In pt, this message translates to:
+  /// **'A Paz do Senhor Jesus. Somos irmãos da Igreja Cristã Maranata da Região do Triângulo Mineiro e servimos no Maanaim de Uberlândia-MG. Esta aplicação não é oficial da ICM, mas o objetivo é ajudar a todos que estão no louvor ajudando na Obra. Seguindo as orientações da Igreja. De forma 100% gratuita.'**
+  String get aboutWhoWeAreBody;
+
+  /// No description provided for @aboutObjectiveTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Objetivo'**
+  String get aboutObjectiveTitle;
+
+  /// No description provided for @aboutObjectiveParagraph1.
+  ///
+  /// In pt, this message translates to:
+  /// **'O objetivo da aplicação - chamada Pesquisador de Louvores em Partitura, Cifra em Geral - é ajudar aos irmãos da equipe de louvor com os materiais mais básicos pro louvor. Que seja fácil de pesquisar, consumir e que funcione offline, pois muita igrejas não tem internet ou é muito difícil o acesso em ESFs.'**
+  String get aboutObjectiveParagraph1;
+
+  /// No description provided for @aboutObjectiveParagraph2.
+  ///
+  /// In pt, this message translates to:
+  /// **'Portanto, estejamos em oração por todos os irmãos que estão envolvidos nesse projeto. Quer seja diretamente no desenvolvimento da aplicação, quer seja na produção dos materiais, no uso/teste da aplicação e afins.'**
+  String get aboutObjectiveParagraph2;
+
+  /// No description provided for @tutorialAboutStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quem Somos'**
+  String get tutorialAboutStep1Title;
+
+  /// No description provided for @tutorialAboutStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conheça a história e a equipe por trás da aplicação. Uma iniciativa **100% gratuita** e colaborativa desenvolvida para auxiliar equipes de louvor.'**
+  String get tutorialAboutStep1Message;
+
+  /// No description provided for @tutorialAboutStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nosso Objetivo'**
+  String get tutorialAboutStep2Title;
+
+  /// No description provided for @tutorialAboutStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'O propósito central é facilitar o acesso a **partituras, cifras, gestos e áudios**, com funcionamento **offline** garantido mesmo em locais sem internet.'**
+  String get tutorialAboutStep2Message;
+
+  /// No description provided for @tutorialAboutStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialAboutStep3Title;
+
+  /// No description provided for @tutorialAboutStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no **ícone (i)** sempre que quiser rever este guia ou conferir instruções detalhadas em qualquer tela do aplicativo!'**
+  String get tutorialAboutStep3Message;
+
+  /// No description provided for @tutorialAppShortcutsStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categorias de Atalhos'**
+  String get tutorialAppShortcutsStep1Title;
+
+  /// No description provided for @tutorialAppShortcutsStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Navegue entre as abas para explorar comandos agrupados por contexto: **Navegação & Busca**, **Repertório & Áudio**, **Partituras** e **Cifras & Gestos**.'**
+  String get tutorialAppShortcutsStep1Message;
+
+  /// No description provided for @tutorialAppShortcutsStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Comandos de Alta Produtividade'**
+  String get tutorialAppShortcutsStep2Title;
+
+  /// No description provided for @tutorialAppShortcutsStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consulte as teclas de atalho e suas ações correspondentes. Os selos laterais destacam os **contextos e leitores em que cada comando atua**.'**
+  String get tutorialAppShortcutsStep2Message;
+
+  /// No description provided for @tutorialAppShortcutsStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acesso Rápido com a Tecla ?'**
+  String get tutorialAppShortcutsStep3Title;
+
+  /// No description provided for @tutorialAppShortcutsStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pressione **?** (ou **Shift + /**) em qualquer tela do app para abrir esta **central de atalhos instantaneamente** no Desktop e Web.'**
+  String get tutorialAppShortcutsStep3Message;
+
+  /// No description provided for @tutorialAppShortcutsStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda da Central de Atalhos'**
+  String get tutorialAppShortcutsStep4Title;
+
+  /// No description provided for @tutorialAppShortcutsStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque neste ícone para rever as instruções sobre os **comandos e atalhos rápidos** do PLPCG.'**
+  String get tutorialAppShortcutsStep4Message;
+
+  /// No description provided for @tutorialAudioStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informações da Faixa'**
+  String get tutorialAudioStep1Title;
+
+  /// No description provided for @tutorialAudioStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Visualize o **título**, **número**, **autor** e a **classificação** do louvor ou áudio em reprodução.'**
+  String get tutorialAudioStep1Message;
+
+  /// No description provided for @tutorialAudioStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ações e Sincronização'**
+  String get tutorialAudioStep2Title;
+
+  /// No description provided for @tutorialAudioStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acesse a **partitura vinculada**, adicione **marcadores de áudio**, ative o modo **seguir o áudio** no leitor e ajuste a **velocidade de reprodução**.'**
+  String get tutorialAudioStep2Message;
+
+  /// No description provided for @tutorialAudioStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Barra de Progresso'**
+  String get tutorialAudioStep3Title;
+
+  /// No description provided for @tutorialAudioStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acompanhe o **tempo atual**, a **duração total** e arraste a barra para avançar ou retroceder. Os **marcadores** cadastrados aparecem destacados na linha do tempo.'**
+  String get tutorialAudioStep3Message;
+
+  /// No description provided for @tutorialAudioStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Controles de Reprodução'**
+  String get tutorialAudioStep4Title;
+
+  /// No description provided for @tutorialAudioStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Controle o áudio com **Play/Pause**, pule para a **faixa anterior ou seguinte** e avance ou retroceder rapidamente em **10 segundos**.'**
+  String get tutorialAudioStep4Message;
+
+  /// No description provided for @tutorialAudioStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcadores de Estudo'**
+  String get tutorialAudioStep5Title;
+
+  /// No description provided for @tutorialAudioStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Veja todos os **marcadores com marcação de tempo** adicionados à faixa. Toque em qualquer marcador para ir direto àquele ponto do ensaio.'**
+  String get tutorialAudioStep5Message;
+
+  /// No description provided for @tutorialAudioStep6Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialAudioStep6Title;
+
+  /// No description provided for @tutorialAudioStep6Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sempre que tiver dúvidas sobre o reprodutor de áudio, toque neste **ícone (i)** para rever este tutorial passo a passo!'**
+  String get tutorialAudioStep6Message;
+
+  /// No description provided for @tutorialCarouselSelectionStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Reordenar Repertório'**
+  String get tutorialCarouselSelectionStep1Title;
+
+  /// No description provided for @tutorialCarouselSelectionStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Segure e arraste o ícone de **alça de ordenação** para mudar a sequência dos louvores em tempo real durante o culto ou ensaio.'**
+  String get tutorialCarouselSelectionStep1Message;
+
+  /// No description provided for @tutorialCarouselSelectionStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Navegação Rápida'**
+  String get tutorialCarouselSelectionStep2Title;
+
+  /// No description provided for @tutorialCarouselSelectionStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no **corpo do louvor** para saltar imediatamente para ele no leitor de partituras ou cifras ativo.'**
+  String get tutorialCarouselSelectionStep2Message;
+
+  /// No description provided for @tutorialCarouselSelectionStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover da Seleção'**
+  String get tutorialCarouselSelectionStep3Title;
+
+  /// No description provided for @tutorialCarouselSelectionStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no botão **×** para retirar o louvor da lista temporária de culto sem apagar suas playlists salvas.'**
+  String get tutorialCarouselSelectionStep3Message;
+
+  /// No description provided for @tutorialCarouselSelectionStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar ou Reiniciar Lista'**
+  String get tutorialCarouselSelectionStep4Title;
+
+  /// No description provided for @tutorialCarouselSelectionStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Use esta ação para **limpar a lista ativa** e iniciar uma nova seleção do zero ou descartar o rascunho atual.'**
+  String get tutorialCarouselSelectionStep4Message;
+
+  /// No description provided for @tutorialCarouselSelectionStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda da Lista Ativa'**
+  String get tutorialCarouselSelectionStep5Title;
+
+  /// No description provided for @tutorialCarouselSelectionStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consulte este **guia rápido** sempre que tiver dúvidas sobre como reorganizar e operar seu repertório.'**
+  String get tutorialCarouselSelectionStep5Message;
+
+  /// No description provided for @tutorialChordsStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transposição de Tom'**
+  String get tutorialChordsStep1Title;
+
+  /// No description provided for @tutorialChordsStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Suba ou desça o tom da música em **semitons** usando os botões **+** e **-** (ou pelo teclado). Toque no número do tom para **restaurar o tom original**.'**
+  String get tutorialChordsStep1Message;
+
+  /// No description provided for @tutorialChordsStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tamanho da Fonte'**
+  String get tutorialChordsStep2Title;
+
+  /// No description provided for @tutorialChordsStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuste o **tamanho do texto** e das cifras para melhor leitura na sua tela através dos botões de **diminuir** e **aumentar fonte**.'**
+  String get tutorialChordsStep2Message;
+
+  /// No description provided for @tutorialChordsStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rolagem Automática'**
+  String get tutorialChordsStep3Title;
+
+  /// No description provided for @tutorialChordsStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Inicie a **rolagem automática** (tecla **S**) para acompanhar a música sem usar as mãos. Ajuste a **velocidade** no ícone de velocímetro ou pelas teclas **[** e **]**.'**
+  String get tutorialChordsStep3Message;
+
+  /// No description provided for @tutorialChordsStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tema e Tela Cheia'**
+  String get tutorialChordsStep4Title;
+
+  /// No description provided for @tutorialChordsStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterne entre o **modo claro e escuro** para melhor visibilidade no ambiente, e use **tela cheia** (tecla **F**) para focar exclusivamente na cifra.'**
+  String get tutorialChordsStep4Message;
+
+  /// No description provided for @tutorialChordsStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Leitura e Diagramação'**
+  String get tutorialChordsStep5Title;
+
+  /// No description provided for @tutorialChordsStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em telas largas a **cifra** é diagramada automaticamente em **duas colunas**. Ao tocar ou rolar manualmente na tela, o autoscroll é **pausado automaticamente**.'**
+  String get tutorialChordsStep5Message;
+
+  /// No description provided for @tutorialChordsStep6Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialChordsStep6Title;
+
+  /// No description provided for @tutorialChordsStep6Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sempre que quiser rever este guia ou tirar dúvidas sobre o uso do Leitor de Cifras, toque neste **ícone (i)**!'**
+  String get tutorialChordsStep6Message;
+
+  /// No description provided for @tutorialCollaborationDialogsStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Folheto Ilustrado'**
+  String get tutorialCollaborationDialogsStep1Title;
+
+  /// No description provided for @tutorialCollaborationDialogsStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gera e compartilha uma **imagem visual com a lista dos louvores** acompanhada do link direto para visualização.'**
+  String get tutorialCollaborationDialogsStep1Message;
+
+  /// No description provided for @tutorialCollaborationDialogsStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link Direto'**
+  String get tutorialCollaborationDialogsStep2Title;
+
+  /// No description provided for @tutorialCollaborationDialogsStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copia ou envia apenas o **link encurtado**, ideal para envio rápido em aplicativos de mensagens.'**
+  String get tutorialCollaborationDialogsStep2Message;
+
+  /// No description provided for @tutorialCollaborationDialogsStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda de Compartilhamento'**
+  String get tutorialCollaborationDialogsStep3Title;
+
+  /// No description provided for @tutorialCollaborationDialogsStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque neste ícone para rever as opções de **compartilhamento de repertórios**.'**
+  String get tutorialCollaborationDialogsStep3Message;
+
+  /// No description provided for @tutorialCollaborationDialogsStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categoria da Lista'**
+  String get tutorialCollaborationDialogsStep4Title;
+
+  /// No description provided for @tutorialCollaborationDialogsStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Classifique o repertório como **Evangelização**, **Aprendizado**, **Medleys** ou **Culto Especial** para facilitar a busca por outros irmãos.'**
+  String get tutorialCollaborationDialogsStep4Message;
+
+  /// No description provided for @tutorialCollaborationDialogsStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alcance do Repertório'**
+  String get tutorialCollaborationDialogsStep5Title;
+
+  /// No description provided for @tutorialCollaborationDialogsStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marque como **pontual** para eventos esporádicos ou mantenha desmarcado se for uma seleção **usual para cultos regulares**.'**
+  String get tutorialCollaborationDialogsStep5Message;
+
+  /// No description provided for @tutorialCollaborationDialogsStep6Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Publicação na Comunidade'**
+  String get tutorialCollaborationDialogsStep6Title;
+
+  /// No description provided for @tutorialCollaborationDialogsStep6Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque em **Publicar** para disponibilizar a lista na aba pública. A lista poderá ser acessada e importada por toda a igreja.'**
+  String get tutorialCollaborationDialogsStep6Message;
+
+  /// No description provided for @tutorialCollaborationDialogsStep7Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda de Publicação'**
+  String get tutorialCollaborationDialogsStep7Title;
+
+  /// No description provided for @tutorialCollaborationDialogsStep7Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque neste ícone para rever as instruções sobre a **publicação de repertórios** na comunidade.'**
+  String get tutorialCollaborationDialogsStep7Message;
+
+  /// No description provided for @tutorialCollaborationDialogsStep8Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Código ou Link da Sala'**
+  String get tutorialCollaborationDialogsStep8Title;
+
+  /// No description provided for @tutorialCollaborationDialogsStep8Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Digite ou cole o **código de 7 caracteres** ou a **URL completa** fornecida pelo dirigente da sala ao vivo.'**
+  String get tutorialCollaborationDialogsStep8Message;
+
+  /// No description provided for @tutorialCollaborationDialogsStep9Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Colar da Área de Transferência'**
+  String get tutorialCollaborationDialogsStep9Title;
+
+  /// No description provided for @tutorialCollaborationDialogsStep9Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque em **Colar** para preencher instantaneamente com o link que você acabou de copiar no WhatsApp ou mensagem.'**
+  String get tutorialCollaborationDialogsStep9Message;
+
+  /// No description provided for @tutorialCollaborationDialogsStep10Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conectar à Sala'**
+  String get tutorialCollaborationDialogsStep10Title;
+
+  /// No description provided for @tutorialCollaborationDialogsStep10Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque em **Entrar** para ingressar na transmissão e acompanhar as **mudanças de louvor em tempo real**.'**
+  String get tutorialCollaborationDialogsStep10Message;
+
+  /// No description provided for @tutorialCollaborationDialogsStep11Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda da Sala ao Vivo'**
+  String get tutorialCollaborationDialogsStep11Title;
+
+  /// No description provided for @tutorialCollaborationDialogsStep11Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque neste ícone para rever as instruções de **sincronização como seguidor** de uma sala ao vivo.'**
+  String get tutorialCollaborationDialogsStep11Message;
+
+  /// No description provided for @tutorialContributeStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contexto do Envio'**
+  String get tutorialContributeStep1Title;
+
+  /// No description provided for @tutorialContributeStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Identifique se sua colaboração está **vinculada a um louvor específico** ou se é uma **sugestão geral** para o aplicativo.'**
+  String get tutorialContributeStep1Message;
+
+  /// No description provided for @tutorialContributeStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descrição da Sugestão'**
+  String get tutorialContributeStep2Title;
+
+  /// No description provided for @tutorialContributeStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descreva detalhadamente o **problema encontrado**, **correção de letra ou tom**, ou a **melhoria** que você gostaria de propor.'**
+  String get tutorialContributeStep2Message;
+
+  /// No description provided for @tutorialContributeStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diagnóstico do Aparelho'**
+  String get tutorialContributeStep3Title;
+
+  /// No description provided for @tutorialContributeStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mantenha ativado para enviar **dados técnicos anônimos** (sistema, navegador, resolução), acelerando a resolução de bugs.'**
+  String get tutorialContributeStep3Message;
+
+  /// No description provided for @tutorialContributeStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Anexos e Links'**
+  String get tutorialContributeStep4Title;
+
+  /// No description provided for @tutorialContributeStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicione **arquivos de apoio** (áudios, partituras ou capturas até 32 MB) e **links** do YouTube ou Google Drive.'**
+  String get tutorialContributeStep4Message;
+
+  /// No description provided for @tutorialContributeStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Envio da Contribuição'**
+  String get tutorialContributeStep5Title;
+
+  /// No description provided for @tutorialContributeStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque em **Enviar** para submeter seu relato. Se não estiver conectado, entre com sua **conta Google** para enviar.'**
+  String get tutorialContributeStep5Message;
+
+  /// No description provided for @tutorialContributeStep6Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialContributeStep6Title;
+
+  /// No description provided for @tutorialContributeStep6Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque neste ícone a qualquer momento para rever este **guia passo a passo** da tela de envio de sugestões.'**
+  String get tutorialContributeStep6Message;
+
+  /// No description provided for @tutorialContributionDetailStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Título e Estado do Envio'**
+  String get tutorialContributionDetailStep1Title;
+
+  /// No description provided for @tutorialContributionDetailStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acompanhe o **título da contribuição** e seu status atual (**Em análise**, **Aprovada** ou **Recusada**).'**
+  String get tutorialContributionDetailStep1Message;
+
+  /// No description provided for @tutorialContributionDetailStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo de Contribuição'**
+  String get tutorialContributionDetailStep2Title;
+
+  /// No description provided for @tutorialContributionDetailStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Indica a categoria da colaboração enviada, como **Cifra**, **Letra**, **Partitura** ou **Correção de informações**.'**
+  String get tutorialContributionDetailStep2Message;
+
+  /// No description provided for @tutorialContributionDetailStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descrição e Observações'**
+  String get tutorialContributionDetailStep3Title;
+
+  /// No description provided for @tutorialContributionDetailStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aqui você confere o **texto descritivo**, justificativas e links externos adicionados na submissão da proposta.'**
+  String get tutorialContributionDetailStep3Message;
+
+  /// No description provided for @tutorialContributionDetailStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Campos Alterados'**
+  String get tutorialContributionDetailStep4Title;
+
+  /// No description provided for @tutorialContributionDetailStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quando a contribuição propõe corrigir dados, veja a comparação direta entre o valor **atual** e o **proposto**.'**
+  String get tutorialContributionDetailStep4Message;
+
+  /// No description provided for @tutorialContributionDetailStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arquivos e Verificação Antivírus'**
+  String get tutorialContributionDetailStep5Title;
+
+  /// No description provided for @tutorialContributionDetailStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consulte a lista de **anexos enviados** e o status da verificação de segurança em tempo real (**Limpa**, **Verificando** ou **Bloqueada**).'**
+  String get tutorialContributionDetailStep5Message;
+
+  /// No description provided for @tutorialContributionDetailStep6Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Parecer da Moderação'**
+  String get tutorialContributionDetailStep6Title;
+
+  /// No description provided for @tutorialContributionDetailStep6Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quando a equipe do PLPCG avaliar o envio, o **parecer e justificativa dos revisores** serão exibidos nesta área.'**
+  String get tutorialContributionDetailStep6Message;
+
+  /// No description provided for @tutorialContributionDetailStep7Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialContributionDetailStep7Title;
+
+  /// No description provided for @tutorialContributionDetailStep7Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sempre que tiver dúvidas sobre os detalhes da contribuição, toque neste **ícone (i)** para rever este tutorial passo a passo!'**
+  String get tutorialContributionDetailStep7Message;
+
+  /// No description provided for @tutorialExtractedMaterialEditorStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Barra de Ferramentas & Atalhos'**
+  String get tutorialExtractedMaterialEditorStep1Title;
+
+  /// No description provided for @tutorialExtractedMaterialEditorStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Utilize os atalhos rápidos para **adicionar versos**, **remover linhas**, **inserir acordes ou anotações** e restaurar o texto original.'**
+  String get tutorialExtractedMaterialEditorStep1Message;
+
+  /// No description provided for @tutorialExtractedMaterialEditorStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Área de Edição'**
+  String get tutorialExtractedMaterialEditorStep2Title;
+
+  /// No description provided for @tutorialExtractedMaterialEditorStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Edite o conteúdo diretamente. Na cifra, use a sintaxe **[Acorde]** imediatamente antes da sílaba para sincronizar a posição com a letra.'**
+  String get tutorialExtractedMaterialEditorStep2Message;
+
+  /// No description provided for @tutorialExtractedMaterialEditorStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seletor de Gestos CIAs'**
+  String get tutorialExtractedMaterialEditorStep3Title;
+
+  /// No description provided for @tutorialExtractedMaterialEditorStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque em **Trocar Gesto** para abrir o dicionário oficial e vincular o movimento e a frase disparadora correspondente.'**
+  String get tutorialExtractedMaterialEditorStep3Message;
+
+  /// No description provided for @tutorialExtractedMaterialEditorStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pré-visualização ao Vivo'**
+  String get tutorialExtractedMaterialEditorStep4Title;
+
+  /// No description provided for @tutorialExtractedMaterialEditorStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acompanhe as mudanças **em tempo real** com a renderização idêntica à que os usuários verão no leitor de louvores.'**
+  String get tutorialExtractedMaterialEditorStep4Message;
+
+  /// No description provided for @tutorialExtractedMaterialEditorStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Submissão da Proposta'**
+  String get tutorialExtractedMaterialEditorStep5Title;
+
+  /// No description provided for @tutorialExtractedMaterialEditorStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicione observações se desejar e toque em **Enviar** para disponibilizar sua sugestão para revisão pela comunidade.'**
+  String get tutorialExtractedMaterialEditorStep5Message;
+
+  /// No description provided for @tutorialExtractedMaterialEditorStep6Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialExtractedMaterialEditorStep6Title;
+
+  /// No description provided for @tutorialExtractedMaterialEditorStep6Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque neste ícone a qualquer momento para rever este **guia passo a passo** do editor de materiais.'**
+  String get tutorialExtractedMaterialEditorStep6Message;
+
+  /// No description provided for @tutorialFavoriteMaterialKindsStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Prioridade de Materiais'**
+  String get tutorialFavoriteMaterialKindsStep1Title;
+
+  /// No description provided for @tutorialFavoriteMaterialKindsStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Defina até **4 materiais favoritos** para priorizar seus instrumentos e vozes no topo dos resultados de busca e no leitor.'**
+  String get tutorialFavoriteMaterialKindsStep1Message;
+
+  /// No description provided for @tutorialFavoriteMaterialKindsStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seus Favoritos e Ordem'**
+  String get tutorialFavoriteMaterialKindsStep2Title;
+
+  /// No description provided for @tutorialFavoriteMaterialKindsStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acompanhe seus materiais selecionados. Arraste pela **alça lateral** para definir a prioridade, alterne o **formato preferido** ou toque no **(X)** para remover.'**
+  String get tutorialFavoriteMaterialKindsStep2Message;
+
+  /// No description provided for @tutorialFavoriteMaterialKindsStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar Novos Materiais'**
+  String get tutorialFavoriteMaterialKindsStep3Title;
+
+  /// No description provided for @tutorialFavoriteMaterialKindsStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Busque por instrumentos (ex: **violão**, **baixo**, **órgão**) ou vozes e toque no ícone **(+)** para adicioná-los à sua lista de prioridades.'**
+  String get tutorialFavoriteMaterialKindsStep3Message;
+
+  /// No description provided for @tutorialFavoriteMaterialKindsStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sincronização na Nuvem'**
+  String get tutorialFavoriteMaterialKindsStep4Title;
+
+  /// No description provided for @tutorialFavoriteMaterialKindsStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entre com sua **conta Google** para salvar e sincronizar suas preferências de materiais em qualquer aparelho.'**
+  String get tutorialFavoriteMaterialKindsStep4Message;
+
+  /// No description provided for @tutorialFavoriteMaterialKindsStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialFavoriteMaterialKindsStep5Title;
+
+  /// No description provided for @tutorialFavoriteMaterialKindsStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no **ícone (i)** a qualquer momento para rever este guia ou aprender mais sobre os recursos do aplicativo!'**
+  String get tutorialFavoriteMaterialKindsStep5Message;
+
+  /// No description provided for @tutorialFiltersStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Filtro por Tonalidade'**
+  String get tutorialFiltersStep1Title;
+
+  /// No description provided for @tutorialFiltersStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Filtre o acervo pela **tonalidade musical** (Dó, Ré, Mi...) e seus acidentes para encontrar louvores no tom exato da sua equipe.'**
+  String get tutorialFiltersStep1Message;
+
+  /// No description provided for @tutorialFiltersStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Filtro por Ritmo'**
+  String get tutorialFiltersStep2Title;
+
+  /// No description provided for @tutorialFiltersStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecione compassos e ritmos específicos como **Valsa**, **Marcha**, **Básico** ou **Toada** para adequar o repertório ao culto.'**
+  String get tutorialFiltersStep2Message;
+
+  /// No description provided for @tutorialFiltersStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categorias e Tags de Culto'**
+  String get tutorialFiltersStep3Title;
+
+  /// No description provided for @tutorialFiltersStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Refine os hinos por **ocasião de culto**, como **Comunhão**, **Ceia**, **Crianças** ou momentos devocionais.'**
+  String get tutorialFiltersStep3Message;
+
+  /// No description provided for @tutorialFiltersStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipos de Materiais'**
+  String get tutorialFiltersStep4Title;
+
+  /// No description provided for @tutorialFiltersStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Restrinja os resultados para exibir apenas louvores que possuam **Cifras**, **Partituras**, **Gestos CIAs** ou **Áudios** disponíveis.'**
+  String get tutorialFiltersStep4Message;
+
+  /// No description provided for @tutorialFiltersStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar Filtros'**
+  String get tutorialFiltersStep5Title;
+
+  /// No description provided for @tutorialFiltersStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque em **Limpar** para redefinir instantaneamente todos os filtros aplicados e visualizar o acervo completo.'**
+  String get tutorialFiltersStep5Message;
+
+  /// No description provided for @tutorialFiltersStep6Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda de Filtros'**
+  String get tutorialFiltersStep6Title;
+
+  /// No description provided for @tutorialFiltersStep6Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque neste ícone sempre que desejar rever as orientações sobre como **combinar filtros avançados**.'**
+  String get tutorialFiltersStep6Message;
+
+  /// No description provided for @tutorialGestureFocusStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cartão do Gesto em Destaque'**
+  String get tutorialGestureFocusStep1Title;
+
+  /// No description provided for @tutorialGestureFocusStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Visualize o movimento do gesto em **tamanho ampliado**, com animação ou ilustração para fácil acompanhamento pelo regente.'**
+  String get tutorialGestureFocusStep1Message;
+
+  /// No description provided for @tutorialGestureFocusStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Frase & Letra Disparadora'**
+  String get tutorialGestureFocusStep2Title;
+
+  /// No description provided for @tutorialGestureFocusStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acompanhe a letra associada, com destaque em **vermelho no gatilho** em que o gesto deve ser executado pelo grupo de louvor.'**
+  String get tutorialGestureFocusStep2Message;
+
+  /// No description provided for @tutorialGestureFocusStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Navegação entre Gestos'**
+  String get tutorialGestureFocusStep3Title;
+
+  /// No description provided for @tutorialGestureFocusStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque nas **laterais da tela**, **arraste para os lados** ou use as **setas do teclado (← e →)** para avançar ou retroceder os passos.'**
+  String get tutorialGestureFocusStep3Message;
+
+  /// No description provided for @tutorialGestureFocusStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Próximo Gatilho'**
+  String get tutorialGestureFocusStep4Title;
+
+  /// No description provided for @tutorialGestureFocusStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consulte no rodapé a **palavra ou frase do próximo gesto**, preparando a transição antes que ela aconteça.'**
+  String get tutorialGestureFocusStep4Message;
+
+  /// No description provided for @tutorialGestureFocusStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda do Modo Foco'**
+  String get tutorialGestureFocusStep5Title;
+
+  /// No description provided for @tutorialGestureFocusStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque neste ícone para rever este **guia passo a passo** ou pressione **Esc** para fechar e retornar ao leitor a qualquer momento.'**
+  String get tutorialGestureFocusStep5Message;
+
+  /// No description provided for @tutorialGesturesStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tamanho da Letra'**
+  String get tutorialGesturesStep1Title;
+
+  /// No description provided for @tutorialGesturesStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aumente ou diminua o **tamanho do texto** dos louvores para uma leitura mais confortável durante o ensaio ou culto.'**
+  String get tutorialGesturesStep1Message;
+
+  /// No description provided for @tutorialGesturesStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rolagem Automática'**
+  String get tutorialGesturesStep2Title;
+
+  /// No description provided for @tutorialGesturesStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ative a **rolagem automática** (tecla **S**) para acompanhar os gestos sem tocar na tela. Ajuste a **velocidade** no velocímetro ou pelas teclas **[** e **]**.'**
+  String get tutorialGesturesStep2Message;
+
+  /// No description provided for @tutorialGesturesStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modo Linear vs. Estruturado'**
+  String get tutorialGesturesStep3Title;
+
+  /// No description provided for @tutorialGesturesStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterne entre a exibição **estruturada** (agrupada por estrofes e refrões) e a leitura **linear** (sequência contínua com todas as repetições completas).'**
+  String get tutorialGesturesStep3Message;
+
+  /// No description provided for @tutorialGesturesStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tema e Tela Cheia'**
+  String get tutorialGesturesStep4Title;
+
+  /// No description provided for @tutorialGesturesStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterne entre o **modo claro e escuro** para melhor visibilidade, e use o modo **tela cheia** (tecla **F**) para ocultar barras e focar na execução dos gestos.'**
+  String get tutorialGesturesStep4Message;
+
+  /// No description provided for @tutorialGesturesStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cartões de Gestos'**
+  String get tutorialGesturesStep5Title;
+
+  /// No description provided for @tutorialGesturesStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os gestos aparecem sincronizados com as palavras correspondentes. Toque em qualquer **cartão de gesto** para abrir a **visão em foco** com imagem ampliada e descrição detalhada.'**
+  String get tutorialGesturesStep5Message;
+
+  /// No description provided for @tutorialGesturesStep6Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialGesturesStep6Title;
+
+  /// No description provided for @tutorialGesturesStep6Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sempre que tiver dúvidas sobre como usar o leitor de gestos, toque neste **ícone (i)** para rever este tutorial passo a passo!'**
+  String get tutorialGesturesStep6Message;
+
+  /// No description provided for @tutorialHomeStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pesquisa Inteligente'**
+  String get tutorialHomeStep1Title;
+
+  /// No description provided for @tutorialHomeStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Digite o **número** do louvor, o **título** ou um **trecho da letra** para localizá-lo instantaneamente no catálogo.'**
+  String get tutorialHomeStep1Message;
+
+  /// No description provided for @tutorialHomeStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Filtros Ativos'**
+  String get tutorialHomeStep2Title;
+
+  /// No description provided for @tutorialHomeStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quando **ativo**, o botão do filtro selecionado ganha **destaque dourado**. O cabeçalho exibe a contagem de **filtros ativos** e você pode tocar em **\"Limpar filtros\"** para desmarcar tudo.'**
+  String get tutorialHomeStep2Message;
+
+  /// No description provided for @tutorialHomeStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Filtros Inativos'**
+  String get tutorialHomeStep3Title;
+
+  /// No description provided for @tutorialHomeStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Com os filtros **inativos** (desmarcados), a busca abrange **todo o catálogo**. Toque em qualquer botão para **ativá-lo** ou recolha o painel para ganhar espaço.'**
+  String get tutorialHomeStep3Message;
+
+  /// No description provided for @tutorialHomeStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Navegação Principal'**
+  String get tutorialHomeStep4Title;
+
+  /// No description provided for @tutorialHomeStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterne facilmente entre o **Pesquisador** de Louvores, suas **Listas** salvas e o seu **Perfil** de usuário.'**
+  String get tutorialHomeStep4Message;
+
+  /// No description provided for @tutorialHomeStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialHomeStep5Title;
+
+  /// No description provided for @tutorialHomeStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sempre que tiver dúvidas sobre como usar qualquer tela, toque neste **ícone (i)** para rever as explicações passo a passo!'**
+  String get tutorialHomeStep5Message;
+
+  /// No description provided for @tutorialLibraryStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Filtros do Catálogo'**
+  String get tutorialLibraryStep1Title;
+
+  /// No description provided for @tutorialLibraryStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Refine a biblioteca completa por **tom musical**, **ritmo**, **categorias/tags** ou **tipo de material** (partituras, cifras, áudio). Toque no cabeçalho para **expandir ou recolher** os filtros.'**
+  String get tutorialLibraryStep1Message;
+
+  /// No description provided for @tutorialLibraryStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ordenação do Acervo'**
+  String get tutorialLibraryStep2Title;
+
+  /// No description provided for @tutorialLibraryStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterne rapidamente a ordem dos louvores entre **\"Por número\"** (código oficial no hinário) ou **\"Por nome\"** (ordem alfabética dos títulos).'**
+  String get tutorialLibraryStep2Message;
+
+  /// No description provided for @tutorialLibraryStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Paginação e Exibição'**
+  String get tutorialLibraryStep3Title;
+
+  /// No description provided for @tutorialLibraryStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consulte o **total de louvores** encontrados, selecione a **quantidade de itens por página** (10, 20, 50...) e use as **setas de navegação** para folhear o catálogo.'**
+  String get tutorialLibraryStep3Message;
+
+  /// No description provided for @tutorialLibraryStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cards de Louvor'**
+  String get tutorialLibraryStep4Title;
+
+  /// No description provided for @tutorialLibraryStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cada card apresenta o número, título e detalhes do louvor. Toque nele para acessar diretamente suas **partituras**, **cifras**, **áudios** e **informações completas**.'**
+  String get tutorialLibraryStep4Message;
+
+  /// No description provided for @tutorialLibraryStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialLibraryStep5Title;
+
+  /// No description provided for @tutorialLibraryStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sempre que tiver dúvidas sobre como navegar ou usar a Biblioteca, toque neste **ícone (i)** para rever este guia passo a passo!'**
+  String get tutorialLibraryStep5Message;
+
+  /// No description provided for @tutorialLiveRoomStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Código e QR Code da Sala'**
+  String get tutorialLiveRoomStep1Title;
+
+  /// No description provided for @tutorialLiveRoomStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os participantes podem ler este **código QR** com a câmera do celular ou acessar o **link direto** para acompanhar o culto.'**
+  String get tutorialLiveRoomStep1Message;
+
+  /// No description provided for @tutorialLiveRoomStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compartilhar e Gerenciar'**
+  String get tutorialLiveRoomStep2Title;
+
+  /// No description provided for @tutorialLiveRoomStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copie ou **compartilhe o link** da transmissão com o grupo ou toque em **gerar novo link** caso precise redefinir o acesso.'**
+  String get tutorialLiveRoomStep2Message;
+
+  /// No description provided for @tutorialLiveRoomStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Participantes Conectados'**
+  String get tutorialLiveRoomStep3Title;
+
+  /// No description provided for @tutorialLiveRoomStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acompanhe em tempo real o **número de irmãos** que estão sintonizados e seguindo as cifras e letras na sua sala.'**
+  String get tutorialLiveRoomStep3Message;
+
+  /// No description provided for @tutorialLiveRoomStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Finalizar Transmissão'**
+  String get tutorialLiveRoomStep4Title;
+
+  /// No description provided for @tutorialLiveRoomStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque em **Encerrar** para concluir a sessão ao vivo com os participantes e retornar para as suas listas.'**
+  String get tutorialLiveRoomStep4Message;
+
+  /// No description provided for @tutorialLiveRoomStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Status da Transmissão'**
+  String get tutorialLiveRoomStep5Title;
+
+  /// No description provided for @tutorialLiveRoomStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acompanhe o andamento da sessão: veja se o líder está **ao vivo**, aguardando o culto ou se a conexão está **sincronizando**.'**
+  String get tutorialLiveRoomStep5Message;
+
+  /// No description provided for @tutorialLiveRoomStep6Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Guardar Cópia'**
+  String get tutorialLiveRoomStep6Title;
+
+  /// No description provided for @tutorialLiveRoomStep6Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ao fim do culto, toque em **Guardar cópia** para salvar a lista de louvores executada diretamente nas suas listas pessoais.'**
+  String get tutorialLiveRoomStep6Message;
+
+  /// No description provided for @tutorialLiveRoomStep7Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialLiveRoomStep7Title;
+
+  /// No description provided for @tutorialLiveRoomStep7Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque neste ícone a qualquer momento para rever este **guia passo a passo** da sala ao vivo.'**
+  String get tutorialLiveRoomStep7Message;
+
+  /// No description provided for @tutorialLyricsStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tamanho da Letra'**
+  String get tutorialLyricsStep1Title;
+
+  /// No description provided for @tutorialLyricsStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aumente ou diminua o **tamanho da fonte** da letra para uma leitura mais confortável durante o ensaio ou culto. Também é possível usar **Ctrl + ↑ / ↓** (ou **Cmd + ↑ / ↓**).'**
+  String get tutorialLyricsStep1Message;
+
+  /// No description provided for @tutorialLyricsStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rolagem Automática'**
+  String get tutorialLyricsStep2Title;
+
+  /// No description provided for @tutorialLyricsStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ative a **rolagem automática** (tecla **S**) para ler a letra sem tocar na tela. Toque no **velocímetro** para ajustar a velocidade (ou pelas teclas **[** e **]**).'**
+  String get tutorialLyricsStep2Message;
+
+  /// No description provided for @tutorialLyricsStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modo Tela Cheia'**
+  String get tutorialLyricsStep3Title;
+
+  /// No description provided for @tutorialLyricsStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no botão de **tela cheia** (ou tecla **F**) para ocultar todas as barras e focar inteiramente na leitura da letra.'**
+  String get tutorialLyricsStep3Message;
+
+  /// No description provided for @tutorialLyricsStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Leitura e Seleção de Texto'**
+  String get tutorialLyricsStep4Title;
+
+  /// No description provided for @tutorialLyricsStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'A letra do louvor fica disponível **completamente offline**. O texto é selecionável para copiar trechos e a rolagem é pausada suavemente ao tocar na tela.'**
+  String get tutorialLyricsStep4Message;
+
+  /// No description provided for @tutorialLyricsStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialLyricsStep5Title;
+
+  /// No description provided for @tutorialLyricsStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sempre que tiver dúvidas sobre como usar o leitor de letras, toque neste **ícone (i)** para rever este tutorial passo a passo!'**
+  String get tutorialLyricsStep5Message;
+
+  /// No description provided for @tutorialMaterialSheetStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Formatos Disponíveis'**
+  String get tutorialMaterialSheetStep1Title;
+
+  /// No description provided for @tutorialMaterialSheetStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterne entre **Partituras**, **Cifras**, **Gestos CIAs**, **Áudios** e vídeos do **YouTube** para escolher o formato ideal para o culto ou ensaio.'**
+  String get tutorialMaterialSheetStep1Message;
+
+  /// No description provided for @tutorialMaterialSheetStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar ao Repertório'**
+  String get tutorialMaterialSheetStep2Title;
+
+  /// No description provided for @tutorialMaterialSheetStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no botão **+** para incluir este arranjo diretamente na sua lista ativa do **Carrossel de culto** ou em uma de suas **Playlists**.'**
+  String get tutorialMaterialSheetStep2Message;
+
+  /// No description provided for @tutorialMaterialSheetStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Metadados e Letra'**
+  String get tutorialMaterialSheetStep3Title;
+
+  /// No description provided for @tutorialMaterialSheetStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consulte a **tonalidade original**, **ritmo**, **categorias de culto** e confira a prévia da letra do louvor.'**
+  String get tutorialMaterialSheetStep3Message;
+
+  /// No description provided for @tutorialMaterialSheetStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Versões Relacionadas'**
+  String get tutorialMaterialSheetStep4Title;
+
+  /// No description provided for @tutorialMaterialSheetStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecione rapidamente **arranjos alternativos**, versões com outras tonalidades ou hinos correlacionados ao louvor selecionado.'**
+  String get tutorialMaterialSheetStep4Message;
+
+  /// No description provided for @tutorialMaterialSheetStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sugerir Melhoria'**
+  String get tutorialMaterialSheetStep5Title;
+
+  /// No description provided for @tutorialMaterialSheetStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Encontrou alguma divergência na cifra, letra ou partitura? Toque aqui para enviar uma **sugestão de correção** aos curadores.'**
+  String get tutorialMaterialSheetStep5Message;
+
+  /// No description provided for @tutorialMaterialSheetStep6Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda deste Seletor'**
+  String get tutorialMaterialSheetStep6Title;
+
+  /// No description provided for @tutorialMaterialSheetStep6Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque neste ícone sempre que precisar de orientação sobre como **escolher materiais** e **organizar o repertório**.'**
+  String get tutorialMaterialSheetStep6Message;
+
+  /// No description provided for @tutorialMyContributionsStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Identificação Necessária'**
+  String get tutorialMyContributionsStep1Title;
+
+  /// No description provided for @tutorialMyContributionsStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faça login com sua **conta Google** para acessar o histórico de sugestões, correções e materiais que você enviou.'**
+  String get tutorialMyContributionsStep1Message;
+
+  /// No description provided for @tutorialMyContributionsStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum Envio Ainda'**
+  String get tutorialMyContributionsStep2Title;
+
+  /// No description provided for @tutorialMyContributionsStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todas as **sugestões de letras, partituras ou correções** enviadas por você através do botão **Contribuir** aparecerão listadas nesta tela.'**
+  String get tutorialMyContributionsStep2Message;
+
+  /// No description provided for @tutorialMyContributionsStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Histórico de Envios'**
+  String get tutorialMyContributionsStep3Title;
+
+  /// No description provided for @tutorialMyContributionsStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Visualize o título, tipo de material e data da sua colaboração. Toque em qualquer linha para abrir a **tela de detalhes** e ver anotações da equipe.'**
+  String get tutorialMyContributionsStep3Message;
+
+  /// No description provided for @tutorialMyContributionsStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Status da Análise'**
+  String get tutorialMyContributionsStep4Title;
+
+  /// No description provided for @tutorialMyContributionsStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acompanhe o andamento da sua solicitação: **pendente**, **em análise**, **aprovada** ou **rejeitada**.'**
+  String get tutorialMyContributionsStep4Message;
+
+  /// No description provided for @tutorialMyContributionsStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialMyContributionsStep5Title;
+
+  /// No description provided for @tutorialMyContributionsStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no **ícone (i)** a qualquer momento para rever este guia ou aprender mais sobre as telas do aplicativo!'**
+  String get tutorialMyContributionsStep5Message;
+
+  /// No description provided for @tutorialOfflineStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Status e Uso de Disco'**
+  String get tutorialOfflineStep1Title;
+
+  /// No description provided for @tutorialOfflineStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acompanhe o total de louvores no **catálogo local**, a data da **última sincronização** e o **espaço ocupado e livre** no aparelho. Toque em **Atualizar** para recalcular os dados.'**
+  String get tutorialOfflineStep1Message;
+
+  /// No description provided for @tutorialOfflineStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pesquisa de Materiais'**
+  String get tutorialOfflineStep2Title;
+
+  /// No description provided for @tutorialOfflineStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Use o campo de busca para encontrar rapidamente tipos específicos de partituras ou cifras (ex: **violão**, **coletânea**, **coral**) e ative **Filtrar** para exibir apenas os resultados correspondentes.'**
+  String get tutorialOfflineStep2Message;
+
+  /// No description provided for @tutorialOfflineStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seleção de Formatos'**
+  String get tutorialOfflineStep3Title;
+
+  /// No description provided for @tutorialOfflineStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecione os **tipos de materiais** que você deseja manter disponíveis offline. Em cada item é possível alternar individualmente entre **partitura (PDF)**, **cifra** e **áudio**.'**
+  String get tutorialOfflineStep3Message;
+
+  /// No description provided for @tutorialOfflineStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar e Gerenciar Espaço'**
+  String get tutorialOfflineStep4Title;
+
+  /// No description provided for @tutorialOfflineStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque em **Baixar selecionados** para salvar os arquivos no aparelho para uso sem internet. Quando precisar liberar espaço em disco, toque em **Remover downloads**.'**
+  String get tutorialOfflineStep4Message;
+
+  /// No description provided for @tutorialOfflineStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialOfflineStep5Title;
+
+  /// No description provided for @tutorialOfflineStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sempre que tiver dúvidas sobre o armazenamento offline, toque neste **ícone (i)** para rever este tutorial passo a passo!'**
+  String get tutorialOfflineStep5Message;
+
+  /// No description provided for @tutorialPlaylistsStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abas de Repertório'**
+  String get tutorialPlaylistsStep1Title;
+
+  /// No description provided for @tutorialPlaylistsStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterne entre suas listas **Não Salvas** (seleções rápidas de ensaio), listas **Salvas** (repertórios guardados e sincronizados) e **Favoritas** (para acesso rápido).'**
+  String get tutorialPlaylistsStep1Message;
+
+  /// No description provided for @tutorialPlaylistsStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Importar Lista'**
+  String get tutorialPlaylistsStep2Title;
+
+  /// No description provided for @tutorialPlaylistsStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recebeu uma lista compartilhada? Toque em **Importar lista** e cole o link ou código recebido para carregar os louvores no seu aplicativo.'**
+  String get tutorialPlaylistsStep2Message;
+
+  /// No description provided for @tutorialPlaylistsStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sala ao Vivo'**
+  String get tutorialPlaylistsStep3Title;
+
+  /// No description provided for @tutorialPlaylistsStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abra uma sala ou conecte-se ao ensaio da igreja. Todos os músicos acompanham a **troca de louvores em tempo real** durante a ministração.'**
+  String get tutorialPlaylistsStep3Message;
+
+  /// No description provided for @tutorialPlaylistsStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criar Novas Listas'**
+  String get tutorialPlaylistsStep4Title;
+
+  /// No description provided for @tutorialPlaylistsStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para montar uma nova lista, vá ao **Pesquisador** e toque no botão **\"+\"** de qualquer louvor ou versão de partitura.'**
+  String get tutorialPlaylistsStep4Message;
+
+  /// No description provided for @tutorialPlaylistsStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialPlaylistsStep5Title;
+
+  /// No description provided for @tutorialPlaylistsStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no ícone **(i)** sempre que tiver dúvidas sobre como utilizar qualquer tela do aplicativo!'**
+  String get tutorialPlaylistsStep5Message;
+
+  /// No description provided for @tutorialPraiseStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informações do Louvor'**
+  String get tutorialPraiseStep1Title;
+
+  /// No description provided for @tutorialPraiseStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Veja o **número** e o **título** do louvor. Toque em **Compartilhar** para copiar o link direto ou em **Sugerir melhoria** para nos enviar correções.'**
+  String get tutorialPraiseStep1Message;
+
+  /// No description provided for @tutorialPraiseStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Versões Relacionadas'**
+  String get tutorialPraiseStep2Title;
+
+  /// No description provided for @tutorialPraiseStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quando houver diferentes **arranjos, tonalidades ou variantes**, você pode alternar facilmente entre elas tocando nos botões de louvores relacionados.'**
+  String get tutorialPraiseStep2Message;
+
+  /// No description provided for @tutorialPraiseStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Materiais e Partituras'**
+  String get tutorialPraiseStep3Title;
+
+  /// No description provided for @tutorialPraiseStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acesse todas as **partituras**, **cifras**, **gestos** e **áudios** disponíveis para este louvor. Toque em um item para abrir ou no **+** para adicioná-lo à sua lista ativa.'**
+  String get tutorialPraiseStep3Message;
+
+  /// No description provided for @tutorialPraiseStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Letra e Metadados'**
+  String get tutorialPraiseStep4Title;
+
+  /// No description provided for @tutorialPraiseStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consulte a **letra completa** do louvor, ajuste o tamanho da fonte, copie o texto ou toque no botão de reprodução para abrir no **leitor dedicado** com rolagem automática.'**
+  String get tutorialPraiseStep4Message;
+
+  /// No description provided for @tutorialPraiseStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialPraiseStep5Title;
+
+  /// No description provided for @tutorialPraiseStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sempre que tiver dúvidas sobre os detalhes do louvor, toque neste **ícone (i)** para rever este tutorial passo a passo!'**
+  String get tutorialPraiseStep5Message;
+
+  /// No description provided for @tutorialProfileStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conta & Sincronização'**
+  String get tutorialProfileStep1Title;
+
+  /// No description provided for @tutorialProfileStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conecte sua conta **Google** para sincronizar suas **listas de louvores**, preferências e materiais favoritos automaticamente entre seus aparelhos.'**
+  String get tutorialProfileStep1Message;
+
+  /// No description provided for @tutorialProfileStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Biblioteca Completa'**
+  String get tutorialProfileStep2Title;
+
+  /// No description provided for @tutorialProfileStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acesse a **Biblioteca** para explorar o catálogo completo em formato de **lista paginada**, com filtros detalhados de instrumentos e categorias.'**
+  String get tutorialProfileStep2Message;
+
+  /// No description provided for @tutorialProfileStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contribuir'**
+  String get tutorialProfileStep3Title;
+
+  /// No description provided for @tutorialProfileStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Envie **novas partituras**, cifras, gestos ou correções de letras. A colaboração da irmandade mantém o acervo sempre atualizado e preciso!'**
+  String get tutorialProfileStep3Message;
+
+  /// No description provided for @tutorialProfileStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modo Offline'**
+  String get tutorialProfileStep4Title;
+
+  /// No description provided for @tutorialProfileStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixe os arquivos de partituras e letras para usar o aplicativo **sem internet** durante cultos e ensaios com total rapidez.'**
+  String get tutorialProfileStep4Message;
+
+  /// No description provided for @tutorialProfileStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialProfileStep5Title;
+
+  /// No description provided for @tutorialProfileStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no ícone **(i)** sempre que quiser rever as instruções e dicas desta tela!'**
+  String get tutorialProfileStep5Message;
+
+  /// No description provided for @tutorialPublicPlaylistsStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu Nome de Usuário'**
+  String get tutorialPublicPlaylistsStep1Title;
+
+  /// No description provided for @tutorialPublicPlaylistsStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faça login com sua conta Google e crie seu **@usuário** para compartilhar suas próprias listas públicas com a igreja.'**
+  String get tutorialPublicPlaylistsStep1Message;
+
+  /// No description provided for @tutorialPublicPlaylistsStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscar Irmãos e Equipes'**
+  String get tutorialPublicPlaylistsStep2Title;
+
+  /// No description provided for @tutorialPublicPlaylistsStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Digite o **@usuário** de outros membros da equipe para localizar suas listas públicas e repertórios compartilhados.'**
+  String get tutorialPublicPlaylistsStep2Message;
+
+  /// No description provided for @tutorialPublicPlaylistsStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Listas e Importação'**
+  String get tutorialPublicPlaylistsStep3Title;
+
+  /// No description provided for @tutorialPublicPlaylistsStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nos resultados, visualize as listas publicadas e toque em **importar** para adicionar os louvores à sua lista ativa.'**
+  String get tutorialPublicPlaylistsStep3Message;
+
+  /// No description provided for @tutorialPublicPlaylistsStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialPublicPlaylistsStep4Title;
+
+  /// No description provided for @tutorialPublicPlaylistsStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no **ícone (i)** a qualquer momento para rever este guia passo a passo!'**
+  String get tutorialPublicPlaylistsStep4Message;
+
+  /// No description provided for @tutorialReaderStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuste de Tela'**
+  String get tutorialReaderStep1Title;
+
+  /// No description provided for @tutorialReaderStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterne entre ajustar à **largura da tela** (ótimo para ampliar a partitura) ou à **página inteira**. Você também pode pressionar a tecla **Z**.'**
+  String get tutorialReaderStep1Message;
+
+  /// No description provided for @tutorialReaderStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modo Tela Cheia'**
+  String get tutorialReaderStep2Title;
+
+  /// No description provided for @tutorialReaderStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque para ocultar todas as barras e **focar na partitura** durante o ensaio ou culto. Use a tecla **F** para entrar ou **Esc** para sair.'**
+  String get tutorialReaderStep2Message;
+
+  /// No description provided for @tutorialReaderStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Indicador de Páginas'**
+  String get tutorialReaderStep3Title;
+
+  /// No description provided for @tutorialReaderStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Exibe a **página atual** e o **total de páginas**. Toque para saltar de página ou **segure o toque** para voltar direto à **primeira página**!'**
+  String get tutorialReaderStep3Message;
+
+  /// No description provided for @tutorialReaderStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque nas Bordas (Laterais)'**
+  String get tutorialReaderStep4Title;
+
+  /// No description provided for @tutorialReaderStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no **quinto lateral esquerdo** para voltar e no **quinto lateral direito** para avançar páginas instantaneamente, sem precisar arrastar a partitura.'**
+  String get tutorialReaderStep4Message;
+
+  /// No description provided for @tutorialReaderStep5Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pedais Bluetooth & Teclado'**
+  String get tutorialReaderStep5Title;
+
+  /// No description provided for @tutorialReaderStep5Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conecte qualquer **pedal virador de página Bluetooth** (AirTurn, PageFlip, Donner via PageUp/Down ou Setas) para avançar e trocar de louvor **sem tirar as mãos do instrumento**.'**
+  String get tutorialReaderStep5Message;
+
+  /// No description provided for @tutorialReaderStep6Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuda & Tutoriais'**
+  String get tutorialReaderStep6Title;
+
+  /// No description provided for @tutorialReaderStep6Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no ícone **(i)** sempre que tiver dúvidas sobre como utilizar as ferramentas do leitor!'**
+  String get tutorialReaderStep6Message;
+
+  /// No description provided for @tutorialWelcomeTourStep1Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'1. Pesquise no Hinário'**
+  String get tutorialWelcomeTourStep1Title;
+
+  /// No description provided for @tutorialWelcomeTourStep1Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Digite o **número**, o **título** ou qualquer **trecho da letra** para localizar instantaneamente hinos e cânticos no acervo.'**
+  String get tutorialWelcomeTourStep1Message;
+
+  /// No description provided for @tutorialWelcomeTourStep2Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'2. Formatos Especializados'**
+  String get tutorialWelcomeTourStep2Title;
+
+  /// No description provided for @tutorialWelcomeTourStep2Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no louvor para selecionar entre **Partitura**, **Cifra**, **Gestos para Crianças** ou **Letra**, com transposição de tom e autoscroll.'**
+  String get tutorialWelcomeTourStep2Message;
+
+  /// No description provided for @tutorialWelcomeTourStep3Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'3. Monte seu Repertório de Culto'**
+  String get tutorialWelcomeTourStep3Title;
+
+  /// No description provided for @tutorialWelcomeTourStep3Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no botão **(+)** para incluir louvores no **Carrossel Ativo**, permitindo alternar rapidamente entre partituras durante a ministração.'**
+  String get tutorialWelcomeTourStep3Message;
+
+  /// No description provided for @tutorialWelcomeTourStep4Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'4. Repertório Sempre com Você'**
+  String get tutorialWelcomeTourStep4Title;
+
+  /// No description provided for @tutorialWelcomeTourStep4Message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acesse a aba **Listas** para organizar playlists de ensaio e abra o **Armazenamento Offline** no Perfil para louvar **sem internet** em qualquer lugar!'**
+  String get tutorialWelcomeTourStep4Message;
 }
 
 class _AppLocalizationsDelegate

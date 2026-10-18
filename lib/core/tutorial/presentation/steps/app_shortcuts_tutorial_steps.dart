@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
 /// Passos do tutorial da Central de Atalhos de Teclado ([AppShortcutsDialog]).
 List<SpotlightGuideStep> buildAppShortcutsTutorialSteps(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Abas de Categorias
     SpotlightGuideStep.item(
@@ -18,8 +20,9 @@ List<SpotlightGuideStep> buildAppShortcutsTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Categorias de Atalhos',
+          title: l10n?.tutorialAppShortcutsStep1Title ?? 'Categorias de Atalhos',
           message:
+              l10n?.tutorialAppShortcutsStep1Message ??
               'Navegue entre as abas para explorar comandos agrupados por contexto: **Navegação & Busca**, **Repertório & Áudio**, **Partituras** e **Cifras & Gestos**.',
         ),
       ),
@@ -37,8 +40,9 @@ List<SpotlightGuideStep> buildAppShortcutsTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Comandos de Alta Produtividade',
+          title: l10n?.tutorialAppShortcutsStep2Title ?? 'Comandos de Alta Produtividade',
           message:
+              l10n?.tutorialAppShortcutsStep2Message ??
               'Consulte as teclas de atalho e suas ações correspondentes. Os selos laterais destacam os **contextos e leitores em que cada comando atua**.',
         ),
       ),
@@ -56,8 +60,9 @@ List<SpotlightGuideStep> buildAppShortcutsTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Acesso Rápido com a Tecla ?',
+          title: l10n?.tutorialAppShortcutsStep3Title ?? 'Acesso Rápido com a Tecla ?',
           message:
+              l10n?.tutorialAppShortcutsStep3Message ??
               'Pressione **?** (ou **Shift + /**) em qualquer tela do app para abrir esta **central de atalhos instantaneamente** no Desktop e Web.',
         ),
       ),
@@ -75,8 +80,9 @@ List<SpotlightGuideStep> buildAppShortcutsTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda da Central de Atalhos',
+          title: l10n?.tutorialAppShortcutsStep4Title ?? 'Ajuda da Central de Atalhos',
           message:
+              l10n?.tutorialAppShortcutsStep4Message ??
               'Toque neste ícone para rever as instruções sobre os **comandos e atalhos rápidos** do PLPCG.',
         ),
       ),

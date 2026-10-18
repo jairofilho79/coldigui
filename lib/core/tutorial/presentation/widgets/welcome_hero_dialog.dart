@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../theme/app_typography.dart';
 import '../../../theme/color_extensions.dart';
 import '../../../utils/app_haptics.dart';
@@ -64,6 +65,21 @@ class WelcomeHeroDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final title = l10n?.welcomeHeroTitle ?? 'Bem-vindo ao PLPCG!';
+    final subtitle = l10n?.welcomeHeroSubtitle ??
+        'O hinário digital e organizador de louvores para músicos, instrumentistas e ministérios.';
+    final featureSearch = l10n?.welcomeHeroFeatureSearch ??
+        'Busca rápida por número, título, ritmo e tags.';
+    final featurePlaylists = l10n?.welcomeHeroFeaturePlaylists ??
+        'Criação de listas e repertórios para o culto.';
+    final featureReader = l10n?.welcomeHeroFeatureReader ??
+        'Leitor de partituras e cifras com pedais Bluetooth.';
+    final prompt = l10n?.welcomeHeroPrompt ??
+        'Deseja fazer um tour rápido de 1 minuto para conhecer as principais funcionalidades?';
+    final startTour = l10n?.welcomeHeroStartTour ?? 'Fazer Tour Rápido (1 min)';
+    final dismiss = l10n?.welcomeHeroDismiss ?? 'Explorar por Conta Própria';
+
     return Dialog(
       key: const Key('welcome-hero-dialog'),
       shape: RoundedRectangleBorder(
@@ -102,7 +118,7 @@ class WelcomeHeroDialog extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Bem-vindo ao PLPCG!',
+                title,
                 textAlign: TextAlign.center,
                 style: AppTypography.headline.copyWith(
                   fontSize: 20,
@@ -111,7 +127,7 @@ class WelcomeHeroDialog extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'O hinário digital e organizador de louvores para músicos, instrumentistas e ministérios.',
+                subtitle,
                 textAlign: TextAlign.center,
                 style: AppTypography.body.copyWith(
                   color: AppColors.title.withValues(alpha: 0.85),
@@ -135,20 +151,20 @@ class WelcomeHeroDialog extends StatelessWidget {
                   ),
                 ),
                 child: Column(
-                  children: const [
+                  children: [
                     _FeatureItem(
                       icon: Icons.search_rounded,
-                      text: 'Busca rápida por número, título, ritmo e tags.',
+                      text: featureSearch,
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     _FeatureItem(
                       icon: Icons.queue_music_rounded,
-                      text: 'Criação de listas e repertórios para o culto.',
+                      text: featurePlaylists,
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     _FeatureItem(
                       icon: Icons.menu_book_rounded,
-                      text: 'Leitor de partituras e cifras com pedais Bluetooth.',
+                      text: featureReader,
                     ),
                   ],
                 ),
@@ -156,7 +172,7 @@ class WelcomeHeroDialog extends StatelessWidget {
               const SizedBox(height: 14),
 
               Text(
-                'Deseja fazer um tour rápido de 1 minuto para conhecer as principais funcionalidades?',
+                prompt,
                 textAlign: TextAlign.center,
                 style: AppTypography.body.copyWith(
                   fontSize: 12.5,
@@ -179,9 +195,9 @@ class WelcomeHeroDialog extends StatelessWidget {
                 ),
                 onPressed: () => _onStartTour(context),
                 icon: const Icon(Icons.explore_rounded, size: 18),
-                label: const Text(
-                  'Fazer Tour Rápido (1 min)',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                label: Text(
+                  startTour,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
               ),
               const SizedBox(height: 8),
@@ -198,9 +214,9 @@ class WelcomeHeroDialog extends StatelessWidget {
                   ),
                 ),
                 onPressed: () => _onDismiss(context),
-                child: const Text(
-                  'Explorar por Conta Própria',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+                child: Text(
+                  dismiss,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
                 ),
               ),
             ],

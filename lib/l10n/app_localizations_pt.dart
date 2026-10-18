@@ -2149,4 +2149,1447 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get praiseDecreaseFontSizeTooltip => 'Diminuir fonte';
+
+  @override
+  String get confirm => 'Confirmar';
+
+  @override
+  String get cancel => 'Cancelar';
+
+  @override
+  String get close => 'Fechar';
+
+  @override
+  String get back => 'Voltar';
+
+  @override
+  String get backTooltip => 'Voltar';
+
+  @override
+  String get homeTooltip => 'Início';
+
+  @override
+  String get placeholderComingSoon => 'Em breve';
+
+  @override
+  String get degradedStorageBannerMessage =>
+      'Armazenamento local indisponível. O catálogo online continua funcionando; listas e offline ficam desativados.';
+
+  @override
+  String get tabEvents => 'Eventos';
+
+  @override
+  String get tabPlaylists => 'Listas';
+
+  @override
+  String get tabSearch => 'Pesquisar';
+
+  @override
+  String get tabProfile => 'Perfil';
+
+  @override
+  String get tabAbout => 'Sobre';
+
+  @override
+  String get tabPraise => 'Louvor';
+
+  @override
+  String get tabPublicPlaylists => 'Listas públicas';
+
+  @override
+  String get aboutTitle => 'Sobre';
+
+  @override
+  String get profileResetTutorials => 'Redefinir Tutoriais';
+
+  @override
+  String get profileResetTutorialsDialogTitle => 'Redefinir Tutoriais';
+
+  @override
+  String get profileResetTutorialsDialogContent =>
+      'Deseja redefinir todos os tutoriais? Os guias de introdução voltarão a ser exibidos automaticamente ao acessar as telas do aplicativo.';
+
+  @override
+  String get profileResetTutorialsConfirm => 'Redefinir';
+
+  @override
+  String get profileResetTutorialsSuccess =>
+      'Tutoriais redefinidos com sucesso!';
+
+  @override
+  String get profileSyncPromptTitle => 'Entrar para sincronizar seus dados';
+
+  @override
+  String get profileSyncPromptBody =>
+      'Use sua conta Google para sincronizar listas e outras features.';
+
+  @override
+  String get profileSignOut => 'Sair';
+
+  @override
+  String get shortcutsTitle => 'Atalhos de Teclado';
+
+  @override
+  String get shortcutsSubtitle =>
+      'Comandos rápidos de produtividade para Desktop e Web';
+
+  @override
+  String get shortcutsAboutDescription =>
+      'Consulte os comandos rápidos de alta produtividade para Desktop e Web.';
+
+  @override
+  String get welcomeTourAboutTitle => 'Tour de Boas-Vindas';
+
+  @override
+  String get welcomeTourAboutDescription =>
+      'Faça o tour guiado de 4 passos conhecendo o fluxo do acervo ao culto.';
+
+  @override
+  String get shortcutsTabAll => 'Todos';
+
+  @override
+  String get shortcutsTabNavigation => 'Navegação';
+
+  @override
+  String get shortcutsTabRepertoireAudio => 'Repertório & Áudio';
+
+  @override
+  String get shortcutsTabSheetMusic => 'Partituras';
+
+  @override
+  String get shortcutsTabChordsGestures => 'Cifras & Gestos';
+
+  @override
+  String get shortcutsFooterTip =>
+      'Pressione ? em qualquer tela para abrir este painel a qualquer momento.';
+
+  @override
+  String get shortcutsGotIt => 'Entendi';
+
+  @override
+  String get shortcutsEmpty => 'Nenhum atalho encontrado.';
+
+  @override
+  String get shortcutsOr => 'ou';
+
+  @override
+  String get shortcutCatNavigation => 'Navegação & Busca';
+
+  @override
+  String get shortcutCatRepertoireAudio => 'Repertório & Áudio';
+
+  @override
+  String get shortcutCatSheetMusic => 'Partituras (PDF)';
+
+  @override
+  String get shortcutCatChordsGestures => 'Cifras & Gestos';
+
+  @override
+  String get shortcutActionHomeSearch =>
+      'Ir para a Home e focar campo de busca';
+
+  @override
+  String get shortcutActionOpenShortcuts =>
+      'Abrir esta Central de Atalhos de Teclado';
+
+  @override
+  String get shortcutActionEscape =>
+      'Sair de tela cheia, limpar busca ou fechar janelas';
+
+  @override
+  String get shortcutActionNextPraise =>
+      'Avançar para o próximo louvor do repertório';
+
+  @override
+  String get shortcutActionPreviousPraise =>
+      'Voltar para o louvor anterior do repertório';
+
+  @override
+  String get shortcutActionCarouselQueue =>
+      'Navegar pela fila do carrossel de louvores';
+
+  @override
+  String get shortcutActionToggleAudio => 'Tocar ou pausar o áudio do louvor';
+
+  @override
+  String get shortcutActionToggleAudioPdf =>
+      'Tocar ou pausar áudio mesmo com partitura aberta';
+
+  @override
+  String get shortcutActionSeekAudioBack => 'Voltar 10 segundos no áudio';
+
+  @override
+  String get shortcutActionSeekAudioForward => 'Avançar 10 segundos no áudio';
+
+  @override
+  String get shortcutActionToggleFullscreen => 'Alternar modo de tela cheia';
+
+  @override
+  String get shortcutActionNextPagePdf => 'Avançar página ou rolar partitura';
+
+  @override
+  String get shortcutActionPrevPagePdf => 'Voltar página da partitura';
+
+  @override
+  String get shortcutActionFirstPagePdf => 'Ir para a primeira página';
+
+  @override
+  String get shortcutActionLastPagePdf => 'Ir para a última página';
+
+  @override
+  String get shortcutActionFitModePdf =>
+      'Alternar modo de ajuste (largura / altura)';
+
+  @override
+  String get shortcutActionPageGridPdf =>
+      'Abrir seletor rápido de páginas em grade';
+
+  @override
+  String get shortcutActionToggleAutoscroll =>
+      'Ligar ou desligar rolagem automática (autoscroll)';
+
+  @override
+  String get shortcutActionAdjustAutoscrollSpeed =>
+      'Diminuir ou aumentar velocidade de rolagem';
+
+  @override
+  String get shortcutActionTransposePitch =>
+      'Transpor tom do louvor (+1 / -1 semitom)';
+
+  @override
+  String get shortcutActionNextGesture =>
+      'Próximo gesto ou gesto anterior na regência';
+
+  @override
+  String get shortcutBadgeReader => 'Leitor';
+
+  @override
+  String get shortcutBadgeGeneral => 'Geral';
+
+  @override
+  String get shortcutBadgeReaderPdf => 'Leitor PDF';
+
+  @override
+  String get shortcutBadgeChordsLyrics => 'Cifras/Letras';
+
+  @override
+  String get shortcutBadgeAutoscroll => 'Autoscroll';
+
+  @override
+  String get shortcutBadgeChords => 'Cifras';
+
+  @override
+  String get shortcutBadgeFocusModeCias => 'Modo Foco CIAs';
+
+  @override
+  String get materialKindChordExtracted => 'Extraídos (chords)';
+
+  @override
+  String get materialKindGestureExtracted => 'Extraídos (gestos)';
+
+  @override
+  String offlineKindVariantsCount(int count) {
+    return '$count var.';
+  }
+
+  @override
+  String offlineKindVariantsTitle(String name, int count) {
+    return 'Variantes de $name ($count):';
+  }
+
+  @override
+  String get offlineSearchMaterialTypeHint => 'Pesquisar tipo de material...';
+
+  @override
+  String get offlineClearSearchTooltip => 'Limpar pesquisa';
+
+  @override
+  String get offlineFilterButton => 'Filtrar';
+
+  @override
+  String offlineSearchNoResults(String query) {
+    return 'Nenhum tipo de material encontrado para \"$query\"';
+  }
+
+  @override
+  String get tutorialTooltipHowToShare => 'Como compartilhar';
+
+  @override
+  String get tutorialTooltipHowToPublish => 'Como publicar';
+
+  @override
+  String get tutorialTooltipHowToUseFilters => 'Como usar os filtros';
+
+  @override
+  String get tutorialTooltipHowToUseMaterialSheet => 'Como usar este seletor';
+
+  @override
+  String get tutorialTooltipHowToManageList => 'Como gerenciar a lista';
+
+  @override
+  String get tutorialTooltipHowToUseFocusMode => 'Como usar o Modo Foco';
+
+  @override
+  String get tutorialTooltipHowToJoinLive => 'Como ingressar';
+
+  @override
+  String get tutorialTooltipHowToUseShortcuts => 'Como usar os atalhos';
+
+  @override
+  String get contributeNeedHelp => 'Precisa de ajuda?';
+
+  @override
+  String get contributeHelpIntro =>
+      'Esta página permite que você envie contribuições e nos ajude a aprimorar o aplicativo e o acervo do PLPCG. Escolha a opção que melhor descreve o seu caso:';
+
+  @override
+  String get contributeHelpDescBug =>
+      'Problemas no app (travamento, tela preta, botões sem resposta ou falha no áudio/leitor). Se puder, anexe uma captura de tela.';
+
+  @override
+  String get contributeHelpDescWrongInfo =>
+      'Dados incorretos em um louvor existente (número, tom, título, autor, ritmo ou louvor duplicado).';
+
+  @override
+  String get contributeHelpDescContent =>
+      'Envio ou sugestão de novos materiais (cifras, partituras, áudios ou letras) ou melhoria em arquivo existente.';
+
+  @override
+  String get contributeHelpDescImprovement =>
+      'Sugestões de novos recursos, mudanças no visual ou ideias para deixar o app mais prático nos ensaios e cultos.';
+
+  @override
+  String get contributeHelpDescOther =>
+      'Dúvidas gerais, recados para a equipe ou qualquer outro assunto não listado acima.';
+
+  @override
+  String get contributeHelpTipAttachments =>
+      'Você também pode anexar arquivos (até 32 MB) ou colar links do Google Drive e YouTube para enriquecer seu envio.';
+
+  @override
+  String get contributeEditorChordProExampleHint =>
+      '[G]Exemplo de [D]cifra ChordPro...';
+
+  @override
+  String contributeEditorLinesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count linhas',
+      one: '1 linha',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get contributeEditorGestureEmptyDocument =>
+      'Nenhum item no documento. Adicione uma linha acima.';
+
+  @override
+  String contributeEditorGestureBlocksCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count blocos/linhas',
+      one: '1 bloco/linha',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String contributeEditorGestureInstructionLabel(String kind) {
+    return 'Instrução: $kind';
+  }
+
+  @override
+  String authGoogleSignInError(String error) {
+    return 'Falha ao entrar: $error';
+  }
+
+  @override
+  String tutorialStepCounter(int current, int total) {
+    return 'Passo $current de $total';
+  }
+
+  @override
+  String get tutorialDismissForever => 'Não mostrar novamente';
+
+  @override
+  String get tutorialSkip => 'Pular';
+
+  @override
+  String get tutorialPrevious => 'Voltar';
+
+  @override
+  String get tutorialNext => 'Próximo';
+
+  @override
+  String get tutorialFinish => 'Concluir';
+
+  @override
+  String get tutorialHowToUseScreen => 'Como usar esta tela';
+
+  @override
+  String get welcomeHeroTitle => 'Bem-vindo ao PLPCG!';
+
+  @override
+  String get welcomeHeroSubtitle =>
+      'O hinário digital e organizador de louvores para músicos, instrumentistas e ministérios.';
+
+  @override
+  String get welcomeHeroFeatureSearch =>
+      'Busca rápida por número, título, ritmo e tags.';
+
+  @override
+  String get welcomeHeroFeaturePlaylists =>
+      'Criação de listas e repertórios para o culto.';
+
+  @override
+  String get welcomeHeroFeatureReader =>
+      'Leitor de partituras e cifras com pedais Bluetooth.';
+
+  @override
+  String get welcomeHeroPrompt =>
+      'Deseja fazer um tour rápido de 1 minuto para conhecer as principais funcionalidades?';
+
+  @override
+  String get welcomeHeroStartTour => 'Fazer Tour Rápido (1 min)';
+
+  @override
+  String get welcomeHeroDismiss => 'Explorar por Conta Própria';
+
+  @override
+  String get authSigningIn => 'Entrando…';
+
+  @override
+  String get aboutWhoWeAreTitle => 'Quem somos';
+
+  @override
+  String get aboutWhoWeAreBody =>
+      'A Paz do Senhor Jesus. Somos irmãos da Igreja Cristã Maranata da Região do Triângulo Mineiro e servimos no Maanaim de Uberlândia-MG. Esta aplicação não é oficial da ICM, mas o objetivo é ajudar a todos que estão no louvor ajudando na Obra. Seguindo as orientações da Igreja. De forma 100% gratuita.';
+
+  @override
+  String get aboutObjectiveTitle => 'Objetivo';
+
+  @override
+  String get aboutObjectiveParagraph1 =>
+      'O objetivo da aplicação - chamada Pesquisador de Louvores em Partitura, Cifra em Geral - é ajudar aos irmãos da equipe de louvor com os materiais mais básicos pro louvor. Que seja fácil de pesquisar, consumir e que funcione offline, pois muita igrejas não tem internet ou é muito difícil o acesso em ESFs.';
+
+  @override
+  String get aboutObjectiveParagraph2 =>
+      'Portanto, estejamos em oração por todos os irmãos que estão envolvidos nesse projeto. Quer seja diretamente no desenvolvimento da aplicação, quer seja na produção dos materiais, no uso/teste da aplicação e afins.';
+
+  @override
+  String get tutorialAboutStep1Title => 'Quem Somos';
+
+  @override
+  String get tutorialAboutStep1Message =>
+      'Conheça a história e a equipe por trás da aplicação. Uma iniciativa **100% gratuita** e colaborativa desenvolvida para auxiliar equipes de louvor.';
+
+  @override
+  String get tutorialAboutStep2Title => 'Nosso Objetivo';
+
+  @override
+  String get tutorialAboutStep2Message =>
+      'O propósito central é facilitar o acesso a **partituras, cifras, gestos e áudios**, com funcionamento **offline** garantido mesmo em locais sem internet.';
+
+  @override
+  String get tutorialAboutStep3Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialAboutStep3Message =>
+      'Toque no **ícone (i)** sempre que quiser rever este guia ou conferir instruções detalhadas em qualquer tela do aplicativo!';
+
+  @override
+  String get tutorialAppShortcutsStep1Title => 'Categorias de Atalhos';
+
+  @override
+  String get tutorialAppShortcutsStep1Message =>
+      'Navegue entre as abas para explorar comandos agrupados por contexto: **Navegação & Busca**, **Repertório & Áudio**, **Partituras** e **Cifras & Gestos**.';
+
+  @override
+  String get tutorialAppShortcutsStep2Title => 'Comandos de Alta Produtividade';
+
+  @override
+  String get tutorialAppShortcutsStep2Message =>
+      'Consulte as teclas de atalho e suas ações correspondentes. Os selos laterais destacam os **contextos e leitores em que cada comando atua**.';
+
+  @override
+  String get tutorialAppShortcutsStep3Title => 'Acesso Rápido com a Tecla ?';
+
+  @override
+  String get tutorialAppShortcutsStep3Message =>
+      'Pressione **?** (ou **Shift + /**) em qualquer tela do app para abrir esta **central de atalhos instantaneamente** no Desktop e Web.';
+
+  @override
+  String get tutorialAppShortcutsStep4Title => 'Ajuda da Central de Atalhos';
+
+  @override
+  String get tutorialAppShortcutsStep4Message =>
+      'Toque neste ícone para rever as instruções sobre os **comandos e atalhos rápidos** do PLPCG.';
+
+  @override
+  String get tutorialAudioStep1Title => 'Informações da Faixa';
+
+  @override
+  String get tutorialAudioStep1Message =>
+      'Visualize o **título**, **número**, **autor** e a **classificação** do louvor ou áudio em reprodução.';
+
+  @override
+  String get tutorialAudioStep2Title => 'Ações e Sincronização';
+
+  @override
+  String get tutorialAudioStep2Message =>
+      'Acesse a **partitura vinculada**, adicione **marcadores de áudio**, ative o modo **seguir o áudio** no leitor e ajuste a **velocidade de reprodução**.';
+
+  @override
+  String get tutorialAudioStep3Title => 'Barra de Progresso';
+
+  @override
+  String get tutorialAudioStep3Message =>
+      'Acompanhe o **tempo atual**, a **duração total** e arraste a barra para avançar ou retroceder. Os **marcadores** cadastrados aparecem destacados na linha do tempo.';
+
+  @override
+  String get tutorialAudioStep4Title => 'Controles de Reprodução';
+
+  @override
+  String get tutorialAudioStep4Message =>
+      'Controle o áudio com **Play/Pause**, pule para a **faixa anterior ou seguinte** e avance ou retroceder rapidamente em **10 segundos**.';
+
+  @override
+  String get tutorialAudioStep5Title => 'Marcadores de Estudo';
+
+  @override
+  String get tutorialAudioStep5Message =>
+      'Veja todos os **marcadores com marcação de tempo** adicionados à faixa. Toque em qualquer marcador para ir direto àquele ponto do ensaio.';
+
+  @override
+  String get tutorialAudioStep6Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialAudioStep6Message =>
+      'Sempre que tiver dúvidas sobre o reprodutor de áudio, toque neste **ícone (i)** para rever este tutorial passo a passo!';
+
+  @override
+  String get tutorialCarouselSelectionStep1Title => 'Reordenar Repertório';
+
+  @override
+  String get tutorialCarouselSelectionStep1Message =>
+      'Segure e arraste o ícone de **alça de ordenação** para mudar a sequência dos louvores em tempo real durante o culto ou ensaio.';
+
+  @override
+  String get tutorialCarouselSelectionStep2Title => 'Navegação Rápida';
+
+  @override
+  String get tutorialCarouselSelectionStep2Message =>
+      'Toque no **corpo do louvor** para saltar imediatamente para ele no leitor de partituras ou cifras ativo.';
+
+  @override
+  String get tutorialCarouselSelectionStep3Title => 'Remover da Seleção';
+
+  @override
+  String get tutorialCarouselSelectionStep3Message =>
+      'Toque no botão **×** para retirar o louvor da lista temporária de culto sem apagar suas playlists salvas.';
+
+  @override
+  String get tutorialCarouselSelectionStep4Title => 'Limpar ou Reiniciar Lista';
+
+  @override
+  String get tutorialCarouselSelectionStep4Message =>
+      'Use esta ação para **limpar a lista ativa** e iniciar uma nova seleção do zero ou descartar o rascunho atual.';
+
+  @override
+  String get tutorialCarouselSelectionStep5Title => 'Ajuda da Lista Ativa';
+
+  @override
+  String get tutorialCarouselSelectionStep5Message =>
+      'Consulte este **guia rápido** sempre que tiver dúvidas sobre como reorganizar e operar seu repertório.';
+
+  @override
+  String get tutorialChordsStep1Title => 'Transposição de Tom';
+
+  @override
+  String get tutorialChordsStep1Message =>
+      'Suba ou desça o tom da música em **semitons** usando os botões **+** e **-** (ou pelo teclado). Toque no número do tom para **restaurar o tom original**.';
+
+  @override
+  String get tutorialChordsStep2Title => 'Tamanho da Fonte';
+
+  @override
+  String get tutorialChordsStep2Message =>
+      'Ajuste o **tamanho do texto** e das cifras para melhor leitura na sua tela através dos botões de **diminuir** e **aumentar fonte**.';
+
+  @override
+  String get tutorialChordsStep3Title => 'Rolagem Automática';
+
+  @override
+  String get tutorialChordsStep3Message =>
+      'Inicie a **rolagem automática** (tecla **S**) para acompanhar a música sem usar as mãos. Ajuste a **velocidade** no ícone de velocímetro ou pelas teclas **[** e **]**.';
+
+  @override
+  String get tutorialChordsStep4Title => 'Tema e Tela Cheia';
+
+  @override
+  String get tutorialChordsStep4Message =>
+      'Alterne entre o **modo claro e escuro** para melhor visibilidade no ambiente, e use **tela cheia** (tecla **F**) para focar exclusivamente na cifra.';
+
+  @override
+  String get tutorialChordsStep5Title => 'Leitura e Diagramação';
+
+  @override
+  String get tutorialChordsStep5Message =>
+      'Em telas largas a **cifra** é diagramada automaticamente em **duas colunas**. Ao tocar ou rolar manualmente na tela, o autoscroll é **pausado automaticamente**.';
+
+  @override
+  String get tutorialChordsStep6Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialChordsStep6Message =>
+      'Sempre que quiser rever este guia ou tirar dúvidas sobre o uso do Leitor de Cifras, toque neste **ícone (i)**!';
+
+  @override
+  String get tutorialCollaborationDialogsStep1Title => 'Folheto Ilustrado';
+
+  @override
+  String get tutorialCollaborationDialogsStep1Message =>
+      'Gera e compartilha uma **imagem visual com a lista dos louvores** acompanhada do link direto para visualização.';
+
+  @override
+  String get tutorialCollaborationDialogsStep2Title => 'Link Direto';
+
+  @override
+  String get tutorialCollaborationDialogsStep2Message =>
+      'Copia ou envia apenas o **link encurtado**, ideal para envio rápido em aplicativos de mensagens.';
+
+  @override
+  String get tutorialCollaborationDialogsStep3Title =>
+      'Ajuda de Compartilhamento';
+
+  @override
+  String get tutorialCollaborationDialogsStep3Message =>
+      'Toque neste ícone para rever as opções de **compartilhamento de repertórios**.';
+
+  @override
+  String get tutorialCollaborationDialogsStep4Title => 'Categoria da Lista';
+
+  @override
+  String get tutorialCollaborationDialogsStep4Message =>
+      'Classifique o repertório como **Evangelização**, **Aprendizado**, **Medleys** ou **Culto Especial** para facilitar a busca por outros irmãos.';
+
+  @override
+  String get tutorialCollaborationDialogsStep5Title => 'Alcance do Repertório';
+
+  @override
+  String get tutorialCollaborationDialogsStep5Message =>
+      'Marque como **pontual** para eventos esporádicos ou mantenha desmarcado se for uma seleção **usual para cultos regulares**.';
+
+  @override
+  String get tutorialCollaborationDialogsStep6Title =>
+      'Publicação na Comunidade';
+
+  @override
+  String get tutorialCollaborationDialogsStep6Message =>
+      'Toque em **Publicar** para disponibilizar a lista na aba pública. A lista poderá ser acessada e importada por toda a igreja.';
+
+  @override
+  String get tutorialCollaborationDialogsStep7Title => 'Ajuda de Publicação';
+
+  @override
+  String get tutorialCollaborationDialogsStep7Message =>
+      'Toque neste ícone para rever as instruções sobre a **publicação de repertórios** na comunidade.';
+
+  @override
+  String get tutorialCollaborationDialogsStep8Title => 'Código ou Link da Sala';
+
+  @override
+  String get tutorialCollaborationDialogsStep8Message =>
+      'Digite ou cole o **código de 7 caracteres** ou a **URL completa** fornecida pelo dirigente da sala ao vivo.';
+
+  @override
+  String get tutorialCollaborationDialogsStep9Title =>
+      'Colar da Área de Transferência';
+
+  @override
+  String get tutorialCollaborationDialogsStep9Message =>
+      'Toque em **Colar** para preencher instantaneamente com o link que você acabou de copiar no WhatsApp ou mensagem.';
+
+  @override
+  String get tutorialCollaborationDialogsStep10Title => 'Conectar à Sala';
+
+  @override
+  String get tutorialCollaborationDialogsStep10Message =>
+      'Toque em **Entrar** para ingressar na transmissão e acompanhar as **mudanças de louvor em tempo real**.';
+
+  @override
+  String get tutorialCollaborationDialogsStep11Title => 'Ajuda da Sala ao Vivo';
+
+  @override
+  String get tutorialCollaborationDialogsStep11Message =>
+      'Toque neste ícone para rever as instruções de **sincronização como seguidor** de uma sala ao vivo.';
+
+  @override
+  String get tutorialContributeStep1Title => 'Contexto do Envio';
+
+  @override
+  String get tutorialContributeStep1Message =>
+      'Identifique se sua colaboração está **vinculada a um louvor específico** ou se é uma **sugestão geral** para o aplicativo.';
+
+  @override
+  String get tutorialContributeStep2Title => 'Descrição da Sugestão';
+
+  @override
+  String get tutorialContributeStep2Message =>
+      'Descreva detalhadamente o **problema encontrado**, **correção de letra ou tom**, ou a **melhoria** que você gostaria de propor.';
+
+  @override
+  String get tutorialContributeStep3Title => 'Diagnóstico do Aparelho';
+
+  @override
+  String get tutorialContributeStep3Message =>
+      'Mantenha ativado para enviar **dados técnicos anônimos** (sistema, navegador, resolução), acelerando a resolução de bugs.';
+
+  @override
+  String get tutorialContributeStep4Title => 'Anexos e Links';
+
+  @override
+  String get tutorialContributeStep4Message =>
+      'Adicione **arquivos de apoio** (áudios, partituras ou capturas até 32 MB) e **links** do YouTube ou Google Drive.';
+
+  @override
+  String get tutorialContributeStep5Title => 'Envio da Contribuição';
+
+  @override
+  String get tutorialContributeStep5Message =>
+      'Toque em **Enviar** para submeter seu relato. Se não estiver conectado, entre com sua **conta Google** para enviar.';
+
+  @override
+  String get tutorialContributeStep6Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialContributeStep6Message =>
+      'Toque neste ícone a qualquer momento para rever este **guia passo a passo** da tela de envio de sugestões.';
+
+  @override
+  String get tutorialContributionDetailStep1Title => 'Título e Estado do Envio';
+
+  @override
+  String get tutorialContributionDetailStep1Message =>
+      'Acompanhe o **título da contribuição** e seu status atual (**Em análise**, **Aprovada** ou **Recusada**).';
+
+  @override
+  String get tutorialContributionDetailStep2Title => 'Tipo de Contribuição';
+
+  @override
+  String get tutorialContributionDetailStep2Message =>
+      'Indica a categoria da colaboração enviada, como **Cifra**, **Letra**, **Partitura** ou **Correção de informações**.';
+
+  @override
+  String get tutorialContributionDetailStep3Title => 'Descrição e Observações';
+
+  @override
+  String get tutorialContributionDetailStep3Message =>
+      'Aqui você confere o **texto descritivo**, justificativas e links externos adicionados na submissão da proposta.';
+
+  @override
+  String get tutorialContributionDetailStep4Title => 'Campos Alterados';
+
+  @override
+  String get tutorialContributionDetailStep4Message =>
+      'Quando a contribuição propõe corrigir dados, veja a comparação direta entre o valor **atual** e o **proposto**.';
+
+  @override
+  String get tutorialContributionDetailStep5Title =>
+      'Arquivos e Verificação Antivírus';
+
+  @override
+  String get tutorialContributionDetailStep5Message =>
+      'Consulte a lista de **anexos enviados** e o status da verificação de segurança em tempo real (**Limpa**, **Verificando** ou **Bloqueada**).';
+
+  @override
+  String get tutorialContributionDetailStep6Title => 'Parecer da Moderação';
+
+  @override
+  String get tutorialContributionDetailStep6Message =>
+      'Quando a equipe do PLPCG avaliar o envio, o **parecer e justificativa dos revisores** serão exibidos nesta área.';
+
+  @override
+  String get tutorialContributionDetailStep7Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialContributionDetailStep7Message =>
+      'Sempre que tiver dúvidas sobre os detalhes da contribuição, toque neste **ícone (i)** para rever este tutorial passo a passo!';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep1Title =>
+      'Barra de Ferramentas & Atalhos';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep1Message =>
+      'Utilize os atalhos rápidos para **adicionar versos**, **remover linhas**, **inserir acordes ou anotações** e restaurar o texto original.';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep2Title => 'Área de Edição';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep2Message =>
+      'Edite o conteúdo diretamente. Na cifra, use a sintaxe **[Acorde]** imediatamente antes da sílaba para sincronizar a posição com a letra.';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep3Title =>
+      'Seletor de Gestos CIAs';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep3Message =>
+      'Toque em **Trocar Gesto** para abrir o dicionário oficial e vincular o movimento e a frase disparadora correspondente.';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep4Title =>
+      'Pré-visualização ao Vivo';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep4Message =>
+      'Acompanhe as mudanças **em tempo real** com a renderização idêntica à que os usuários verão no leitor de louvores.';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep5Title =>
+      'Submissão da Proposta';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep5Message =>
+      'Adicione observações se desejar e toque em **Enviar** para disponibilizar sua sugestão para revisão pela comunidade.';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep6Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialExtractedMaterialEditorStep6Message =>
+      'Toque neste ícone a qualquer momento para rever este **guia passo a passo** do editor de materiais.';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep1Title =>
+      'Prioridade de Materiais';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep1Message =>
+      'Defina até **4 materiais favoritos** para priorizar seus instrumentos e vozes no topo dos resultados de busca e no leitor.';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep2Title =>
+      'Seus Favoritos e Ordem';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep2Message =>
+      'Acompanhe seus materiais selecionados. Arraste pela **alça lateral** para definir a prioridade, alterne o **formato preferido** ou toque no **(X)** para remover.';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep3Title =>
+      'Adicionar Novos Materiais';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep3Message =>
+      'Busque por instrumentos (ex: **violão**, **baixo**, **órgão**) ou vozes e toque no ícone **(+)** para adicioná-los à sua lista de prioridades.';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep4Title =>
+      'Sincronização na Nuvem';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep4Message =>
+      'Entre com sua **conta Google** para salvar e sincronizar suas preferências de materiais em qualquer aparelho.';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep5Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialFavoriteMaterialKindsStep5Message =>
+      'Toque no **ícone (i)** a qualquer momento para rever este guia ou aprender mais sobre os recursos do aplicativo!';
+
+  @override
+  String get tutorialFiltersStep1Title => 'Filtro por Tonalidade';
+
+  @override
+  String get tutorialFiltersStep1Message =>
+      'Filtre o acervo pela **tonalidade musical** (Dó, Ré, Mi...) e seus acidentes para encontrar louvores no tom exato da sua equipe.';
+
+  @override
+  String get tutorialFiltersStep2Title => 'Filtro por Ritmo';
+
+  @override
+  String get tutorialFiltersStep2Message =>
+      'Selecione compassos e ritmos específicos como **Valsa**, **Marcha**, **Básico** ou **Toada** para adequar o repertório ao culto.';
+
+  @override
+  String get tutorialFiltersStep3Title => 'Categorias e Tags de Culto';
+
+  @override
+  String get tutorialFiltersStep3Message =>
+      'Refine os hinos por **ocasião de culto**, como **Comunhão**, **Ceia**, **Crianças** ou momentos devocionais.';
+
+  @override
+  String get tutorialFiltersStep4Title => 'Tipos de Materiais';
+
+  @override
+  String get tutorialFiltersStep4Message =>
+      'Restrinja os resultados para exibir apenas louvores que possuam **Cifras**, **Partituras**, **Gestos CIAs** ou **Áudios** disponíveis.';
+
+  @override
+  String get tutorialFiltersStep5Title => 'Limpar Filtros';
+
+  @override
+  String get tutorialFiltersStep5Message =>
+      'Toque em **Limpar** para redefinir instantaneamente todos os filtros aplicados e visualizar o acervo completo.';
+
+  @override
+  String get tutorialFiltersStep6Title => 'Ajuda de Filtros';
+
+  @override
+  String get tutorialFiltersStep6Message =>
+      'Toque neste ícone sempre que desejar rever as orientações sobre como **combinar filtros avançados**.';
+
+  @override
+  String get tutorialGestureFocusStep1Title => 'Cartão do Gesto em Destaque';
+
+  @override
+  String get tutorialGestureFocusStep1Message =>
+      'Visualize o movimento do gesto em **tamanho ampliado**, com animação ou ilustração para fácil acompanhamento pelo regente.';
+
+  @override
+  String get tutorialGestureFocusStep2Title => 'Frase & Letra Disparadora';
+
+  @override
+  String get tutorialGestureFocusStep2Message =>
+      'Acompanhe a letra associada, com destaque em **vermelho no gatilho** em que o gesto deve ser executado pelo grupo de louvor.';
+
+  @override
+  String get tutorialGestureFocusStep3Title => 'Navegação entre Gestos';
+
+  @override
+  String get tutorialGestureFocusStep3Message =>
+      'Toque nas **laterais da tela**, **arraste para os lados** ou use as **setas do teclado (← e →)** para avançar ou retroceder os passos.';
+
+  @override
+  String get tutorialGestureFocusStep4Title => 'Próximo Gatilho';
+
+  @override
+  String get tutorialGestureFocusStep4Message =>
+      'Consulte no rodapé a **palavra ou frase do próximo gesto**, preparando a transição antes que ela aconteça.';
+
+  @override
+  String get tutorialGestureFocusStep5Title => 'Ajuda do Modo Foco';
+
+  @override
+  String get tutorialGestureFocusStep5Message =>
+      'Toque neste ícone para rever este **guia passo a passo** ou pressione **Esc** para fechar e retornar ao leitor a qualquer momento.';
+
+  @override
+  String get tutorialGesturesStep1Title => 'Tamanho da Letra';
+
+  @override
+  String get tutorialGesturesStep1Message =>
+      'Aumente ou diminua o **tamanho do texto** dos louvores para uma leitura mais confortável durante o ensaio ou culto.';
+
+  @override
+  String get tutorialGesturesStep2Title => 'Rolagem Automática';
+
+  @override
+  String get tutorialGesturesStep2Message =>
+      'Ative a **rolagem automática** (tecla **S**) para acompanhar os gestos sem tocar na tela. Ajuste a **velocidade** no velocímetro ou pelas teclas **[** e **]**.';
+
+  @override
+  String get tutorialGesturesStep3Title => 'Modo Linear vs. Estruturado';
+
+  @override
+  String get tutorialGesturesStep3Message =>
+      'Alterne entre a exibição **estruturada** (agrupada por estrofes e refrões) e a leitura **linear** (sequência contínua com todas as repetições completas).';
+
+  @override
+  String get tutorialGesturesStep4Title => 'Tema e Tela Cheia';
+
+  @override
+  String get tutorialGesturesStep4Message =>
+      'Alterne entre o **modo claro e escuro** para melhor visibilidade, e use o modo **tela cheia** (tecla **F**) para ocultar barras e focar na execução dos gestos.';
+
+  @override
+  String get tutorialGesturesStep5Title => 'Cartões de Gestos';
+
+  @override
+  String get tutorialGesturesStep5Message =>
+      'Os gestos aparecem sincronizados com as palavras correspondentes. Toque em qualquer **cartão de gesto** para abrir a **visão em foco** com imagem ampliada e descrição detalhada.';
+
+  @override
+  String get tutorialGesturesStep6Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialGesturesStep6Message =>
+      'Sempre que tiver dúvidas sobre como usar o leitor de gestos, toque neste **ícone (i)** para rever este tutorial passo a passo!';
+
+  @override
+  String get tutorialHomeStep1Title => 'Pesquisa Inteligente';
+
+  @override
+  String get tutorialHomeStep1Message =>
+      'Digite o **número** do louvor, o **título** ou um **trecho da letra** para localizá-lo instantaneamente no catálogo.';
+
+  @override
+  String get tutorialHomeStep2Title => 'Filtros Ativos';
+
+  @override
+  String get tutorialHomeStep2Message =>
+      'Quando **ativo**, o botão do filtro selecionado ganha **destaque dourado**. O cabeçalho exibe a contagem de **filtros ativos** e você pode tocar em **\"Limpar filtros\"** para desmarcar tudo.';
+
+  @override
+  String get tutorialHomeStep3Title => 'Filtros Inativos';
+
+  @override
+  String get tutorialHomeStep3Message =>
+      'Com os filtros **inativos** (desmarcados), a busca abrange **todo o catálogo**. Toque em qualquer botão para **ativá-lo** ou recolha o painel para ganhar espaço.';
+
+  @override
+  String get tutorialHomeStep4Title => 'Navegação Principal';
+
+  @override
+  String get tutorialHomeStep4Message =>
+      'Alterne facilmente entre o **Pesquisador** de Louvores, suas **Listas** salvas e o seu **Perfil** de usuário.';
+
+  @override
+  String get tutorialHomeStep5Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialHomeStep5Message =>
+      'Sempre que tiver dúvidas sobre como usar qualquer tela, toque neste **ícone (i)** para rever as explicações passo a passo!';
+
+  @override
+  String get tutorialLibraryStep1Title => 'Filtros do Catálogo';
+
+  @override
+  String get tutorialLibraryStep1Message =>
+      'Refine a biblioteca completa por **tom musical**, **ritmo**, **categorias/tags** ou **tipo de material** (partituras, cifras, áudio). Toque no cabeçalho para **expandir ou recolher** os filtros.';
+
+  @override
+  String get tutorialLibraryStep2Title => 'Ordenação do Acervo';
+
+  @override
+  String get tutorialLibraryStep2Message =>
+      'Alterne rapidamente a ordem dos louvores entre **\"Por número\"** (código oficial no hinário) ou **\"Por nome\"** (ordem alfabética dos títulos).';
+
+  @override
+  String get tutorialLibraryStep3Title => 'Paginação e Exibição';
+
+  @override
+  String get tutorialLibraryStep3Message =>
+      'Consulte o **total de louvores** encontrados, selecione a **quantidade de itens por página** (10, 20, 50...) e use as **setas de navegação** para folhear o catálogo.';
+
+  @override
+  String get tutorialLibraryStep4Title => 'Cards de Louvor';
+
+  @override
+  String get tutorialLibraryStep4Message =>
+      'Cada card apresenta o número, título e detalhes do louvor. Toque nele para acessar diretamente suas **partituras**, **cifras**, **áudios** e **informações completas**.';
+
+  @override
+  String get tutorialLibraryStep5Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialLibraryStep5Message =>
+      'Sempre que tiver dúvidas sobre como navegar ou usar a Biblioteca, toque neste **ícone (i)** para rever este guia passo a passo!';
+
+  @override
+  String get tutorialLiveRoomStep1Title => 'Código e QR Code da Sala';
+
+  @override
+  String get tutorialLiveRoomStep1Message =>
+      'Os participantes podem ler este **código QR** com a câmera do celular ou acessar o **link direto** para acompanhar o culto.';
+
+  @override
+  String get tutorialLiveRoomStep2Title => 'Compartilhar e Gerenciar';
+
+  @override
+  String get tutorialLiveRoomStep2Message =>
+      'Copie ou **compartilhe o link** da transmissão com o grupo ou toque em **gerar novo link** caso precise redefinir o acesso.';
+
+  @override
+  String get tutorialLiveRoomStep3Title => 'Participantes Conectados';
+
+  @override
+  String get tutorialLiveRoomStep3Message =>
+      'Acompanhe em tempo real o **número de irmãos** que estão sintonizados e seguindo as cifras e letras na sua sala.';
+
+  @override
+  String get tutorialLiveRoomStep4Title => 'Finalizar Transmissão';
+
+  @override
+  String get tutorialLiveRoomStep4Message =>
+      'Toque em **Encerrar** para concluir a sessão ao vivo com os participantes e retornar para as suas listas.';
+
+  @override
+  String get tutorialLiveRoomStep5Title => 'Status da Transmissão';
+
+  @override
+  String get tutorialLiveRoomStep5Message =>
+      'Acompanhe o andamento da sessão: veja se o líder está **ao vivo**, aguardando o culto ou se a conexão está **sincronizando**.';
+
+  @override
+  String get tutorialLiveRoomStep6Title => 'Guardar Cópia';
+
+  @override
+  String get tutorialLiveRoomStep6Message =>
+      'Ao fim do culto, toque em **Guardar cópia** para salvar a lista de louvores executada diretamente nas suas listas pessoais.';
+
+  @override
+  String get tutorialLiveRoomStep7Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialLiveRoomStep7Message =>
+      'Toque neste ícone a qualquer momento para rever este **guia passo a passo** da sala ao vivo.';
+
+  @override
+  String get tutorialLyricsStep1Title => 'Tamanho da Letra';
+
+  @override
+  String get tutorialLyricsStep1Message =>
+      'Aumente ou diminua o **tamanho da fonte** da letra para uma leitura mais confortável durante o ensaio ou culto. Também é possível usar **Ctrl + ↑ / ↓** (ou **Cmd + ↑ / ↓**).';
+
+  @override
+  String get tutorialLyricsStep2Title => 'Rolagem Automática';
+
+  @override
+  String get tutorialLyricsStep2Message =>
+      'Ative a **rolagem automática** (tecla **S**) para ler a letra sem tocar na tela. Toque no **velocímetro** para ajustar a velocidade (ou pelas teclas **[** e **]**).';
+
+  @override
+  String get tutorialLyricsStep3Title => 'Modo Tela Cheia';
+
+  @override
+  String get tutorialLyricsStep3Message =>
+      'Toque no botão de **tela cheia** (ou tecla **F**) para ocultar todas as barras e focar inteiramente na leitura da letra.';
+
+  @override
+  String get tutorialLyricsStep4Title => 'Leitura e Seleção de Texto';
+
+  @override
+  String get tutorialLyricsStep4Message =>
+      'A letra do louvor fica disponível **completamente offline**. O texto é selecionável para copiar trechos e a rolagem é pausada suavemente ao tocar na tela.';
+
+  @override
+  String get tutorialLyricsStep5Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialLyricsStep5Message =>
+      'Sempre que tiver dúvidas sobre como usar o leitor de letras, toque neste **ícone (i)** para rever este tutorial passo a passo!';
+
+  @override
+  String get tutorialMaterialSheetStep1Title => 'Formatos Disponíveis';
+
+  @override
+  String get tutorialMaterialSheetStep1Message =>
+      'Alterne entre **Partituras**, **Cifras**, **Gestos CIAs**, **Áudios** e vídeos do **YouTube** para escolher o formato ideal para o culto ou ensaio.';
+
+  @override
+  String get tutorialMaterialSheetStep2Title => 'Adicionar ao Repertório';
+
+  @override
+  String get tutorialMaterialSheetStep2Message =>
+      'Toque no botão **+** para incluir este arranjo diretamente na sua lista ativa do **Carrossel de culto** ou em uma de suas **Playlists**.';
+
+  @override
+  String get tutorialMaterialSheetStep3Title => 'Metadados e Letra';
+
+  @override
+  String get tutorialMaterialSheetStep3Message =>
+      'Consulte a **tonalidade original**, **ritmo**, **categorias de culto** e confira a prévia da letra do louvor.';
+
+  @override
+  String get tutorialMaterialSheetStep4Title => 'Versões Relacionadas';
+
+  @override
+  String get tutorialMaterialSheetStep4Message =>
+      'Selecione rapidamente **arranjos alternativos**, versões com outras tonalidades ou hinos correlacionados ao louvor selecionado.';
+
+  @override
+  String get tutorialMaterialSheetStep5Title => 'Sugerir Melhoria';
+
+  @override
+  String get tutorialMaterialSheetStep5Message =>
+      'Encontrou alguma divergência na cifra, letra ou partitura? Toque aqui para enviar uma **sugestão de correção** aos curadores.';
+
+  @override
+  String get tutorialMaterialSheetStep6Title => 'Ajuda deste Seletor';
+
+  @override
+  String get tutorialMaterialSheetStep6Message =>
+      'Toque neste ícone sempre que precisar de orientação sobre como **escolher materiais** e **organizar o repertório**.';
+
+  @override
+  String get tutorialMyContributionsStep1Title => 'Identificação Necessária';
+
+  @override
+  String get tutorialMyContributionsStep1Message =>
+      'Faça login com sua **conta Google** para acessar o histórico de sugestões, correções e materiais que você enviou.';
+
+  @override
+  String get tutorialMyContributionsStep2Title => 'Nenhum Envio Ainda';
+
+  @override
+  String get tutorialMyContributionsStep2Message =>
+      'Todas as **sugestões de letras, partituras ou correções** enviadas por você através do botão **Contribuir** aparecerão listadas nesta tela.';
+
+  @override
+  String get tutorialMyContributionsStep3Title => 'Histórico de Envios';
+
+  @override
+  String get tutorialMyContributionsStep3Message =>
+      'Visualize o título, tipo de material e data da sua colaboração. Toque em qualquer linha para abrir a **tela de detalhes** e ver anotações da equipe.';
+
+  @override
+  String get tutorialMyContributionsStep4Title => 'Status da Análise';
+
+  @override
+  String get tutorialMyContributionsStep4Message =>
+      'Acompanhe o andamento da sua solicitação: **pendente**, **em análise**, **aprovada** ou **rejeitada**.';
+
+  @override
+  String get tutorialMyContributionsStep5Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialMyContributionsStep5Message =>
+      'Toque no **ícone (i)** a qualquer momento para rever este guia ou aprender mais sobre as telas do aplicativo!';
+
+  @override
+  String get tutorialOfflineStep1Title => 'Status e Uso de Disco';
+
+  @override
+  String get tutorialOfflineStep1Message =>
+      'Acompanhe o total de louvores no **catálogo local**, a data da **última sincronização** e o **espaço ocupado e livre** no aparelho. Toque em **Atualizar** para recalcular os dados.';
+
+  @override
+  String get tutorialOfflineStep2Title => 'Pesquisa de Materiais';
+
+  @override
+  String get tutorialOfflineStep2Message =>
+      'Use o campo de busca para encontrar rapidamente tipos específicos de partituras ou cifras (ex: **violão**, **coletânea**, **coral**) e ative **Filtrar** para exibir apenas os resultados correspondentes.';
+
+  @override
+  String get tutorialOfflineStep3Title => 'Seleção de Formatos';
+
+  @override
+  String get tutorialOfflineStep3Message =>
+      'Selecione os **tipos de materiais** que você deseja manter disponíveis offline. Em cada item é possível alternar individualmente entre **partitura (PDF)**, **cifra** e **áudio**.';
+
+  @override
+  String get tutorialOfflineStep4Title => 'Baixar e Gerenciar Espaço';
+
+  @override
+  String get tutorialOfflineStep4Message =>
+      'Toque em **Baixar selecionados** para salvar os arquivos no aparelho para uso sem internet. Quando precisar liberar espaço em disco, toque em **Remover downloads**.';
+
+  @override
+  String get tutorialOfflineStep5Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialOfflineStep5Message =>
+      'Sempre que tiver dúvidas sobre o armazenamento offline, toque neste **ícone (i)** para rever este tutorial passo a passo!';
+
+  @override
+  String get tutorialPlaylistsStep1Title => 'Abas de Repertório';
+
+  @override
+  String get tutorialPlaylistsStep1Message =>
+      'Alterne entre suas listas **Não Salvas** (seleções rápidas de ensaio), listas **Salvas** (repertórios guardados e sincronizados) e **Favoritas** (para acesso rápido).';
+
+  @override
+  String get tutorialPlaylistsStep2Title => 'Importar Lista';
+
+  @override
+  String get tutorialPlaylistsStep2Message =>
+      'Recebeu uma lista compartilhada? Toque em **Importar lista** e cole o link ou código recebido para carregar os louvores no seu aplicativo.';
+
+  @override
+  String get tutorialPlaylistsStep3Title => 'Sala ao Vivo';
+
+  @override
+  String get tutorialPlaylistsStep3Message =>
+      'Abra uma sala ou conecte-se ao ensaio da igreja. Todos os músicos acompanham a **troca de louvores em tempo real** durante a ministração.';
+
+  @override
+  String get tutorialPlaylistsStep4Title => 'Criar Novas Listas';
+
+  @override
+  String get tutorialPlaylistsStep4Message =>
+      'Para montar uma nova lista, vá ao **Pesquisador** e toque no botão **\"+\"** de qualquer louvor ou versão de partitura.';
+
+  @override
+  String get tutorialPlaylistsStep5Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialPlaylistsStep5Message =>
+      'Toque no ícone **(i)** sempre que tiver dúvidas sobre como utilizar qualquer tela do aplicativo!';
+
+  @override
+  String get tutorialPraiseStep1Title => 'Informações do Louvor';
+
+  @override
+  String get tutorialPraiseStep1Message =>
+      'Veja o **número** e o **título** do louvor. Toque em **Compartilhar** para copiar o link direto ou em **Sugerir melhoria** para nos enviar correções.';
+
+  @override
+  String get tutorialPraiseStep2Title => 'Versões Relacionadas';
+
+  @override
+  String get tutorialPraiseStep2Message =>
+      'Quando houver diferentes **arranjos, tonalidades ou variantes**, você pode alternar facilmente entre elas tocando nos botões de louvores relacionados.';
+
+  @override
+  String get tutorialPraiseStep3Title => 'Materiais e Partituras';
+
+  @override
+  String get tutorialPraiseStep3Message =>
+      'Acesse todas as **partituras**, **cifras**, **gestos** e **áudios** disponíveis para este louvor. Toque em um item para abrir ou no **+** para adicioná-lo à sua lista ativa.';
+
+  @override
+  String get tutorialPraiseStep4Title => 'Letra e Metadados';
+
+  @override
+  String get tutorialPraiseStep4Message =>
+      'Consulte a **letra completa** do louvor, ajuste o tamanho da fonte, copie o texto ou toque no botão de reprodução para abrir no **leitor dedicado** com rolagem automática.';
+
+  @override
+  String get tutorialPraiseStep5Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialPraiseStep5Message =>
+      'Sempre que tiver dúvidas sobre os detalhes do louvor, toque neste **ícone (i)** para rever este tutorial passo a passo!';
+
+  @override
+  String get tutorialProfileStep1Title => 'Conta & Sincronização';
+
+  @override
+  String get tutorialProfileStep1Message =>
+      'Conecte sua conta **Google** para sincronizar suas **listas de louvores**, preferências e materiais favoritos automaticamente entre seus aparelhos.';
+
+  @override
+  String get tutorialProfileStep2Title => 'Biblioteca Completa';
+
+  @override
+  String get tutorialProfileStep2Message =>
+      'Acesse a **Biblioteca** para explorar o catálogo completo em formato de **lista paginada**, com filtros detalhados de instrumentos e categorias.';
+
+  @override
+  String get tutorialProfileStep3Title => 'Contribuir';
+
+  @override
+  String get tutorialProfileStep3Message =>
+      'Envie **novas partituras**, cifras, gestos ou correções de letras. A colaboração da irmandade mantém o acervo sempre atualizado e preciso!';
+
+  @override
+  String get tutorialProfileStep4Title => 'Modo Offline';
+
+  @override
+  String get tutorialProfileStep4Message =>
+      'Baixe os arquivos de partituras e letras para usar o aplicativo **sem internet** durante cultos e ensaios com total rapidez.';
+
+  @override
+  String get tutorialProfileStep5Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialProfileStep5Message =>
+      'Toque no ícone **(i)** sempre que quiser rever as instruções e dicas desta tela!';
+
+  @override
+  String get tutorialPublicPlaylistsStep1Title => 'Seu Nome de Usuário';
+
+  @override
+  String get tutorialPublicPlaylistsStep1Message =>
+      'Faça login com sua conta Google e crie seu **@usuário** para compartilhar suas próprias listas públicas com a igreja.';
+
+  @override
+  String get tutorialPublicPlaylistsStep2Title => 'Buscar Irmãos e Equipes';
+
+  @override
+  String get tutorialPublicPlaylistsStep2Message =>
+      'Digite o **@usuário** de outros membros da equipe para localizar suas listas públicas e repertórios compartilhados.';
+
+  @override
+  String get tutorialPublicPlaylistsStep3Title => 'Listas e Importação';
+
+  @override
+  String get tutorialPublicPlaylistsStep3Message =>
+      'Nos resultados, visualize as listas publicadas e toque em **importar** para adicionar os louvores à sua lista ativa.';
+
+  @override
+  String get tutorialPublicPlaylistsStep4Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialPublicPlaylistsStep4Message =>
+      'Toque no **ícone (i)** a qualquer momento para rever este guia passo a passo!';
+
+  @override
+  String get tutorialReaderStep1Title => 'Ajuste de Tela';
+
+  @override
+  String get tutorialReaderStep1Message =>
+      'Alterne entre ajustar à **largura da tela** (ótimo para ampliar a partitura) ou à **página inteira**. Você também pode pressionar a tecla **Z**.';
+
+  @override
+  String get tutorialReaderStep2Title => 'Modo Tela Cheia';
+
+  @override
+  String get tutorialReaderStep2Message =>
+      'Toque para ocultar todas as barras e **focar na partitura** durante o ensaio ou culto. Use a tecla **F** para entrar ou **Esc** para sair.';
+
+  @override
+  String get tutorialReaderStep3Title => 'Indicador de Páginas';
+
+  @override
+  String get tutorialReaderStep3Message =>
+      'Exibe a **página atual** e o **total de páginas**. Toque para saltar de página ou **segure o toque** para voltar direto à **primeira página**!';
+
+  @override
+  String get tutorialReaderStep4Title => 'Toque nas Bordas (Laterais)';
+
+  @override
+  String get tutorialReaderStep4Message =>
+      'Toque no **quinto lateral esquerdo** para voltar e no **quinto lateral direito** para avançar páginas instantaneamente, sem precisar arrastar a partitura.';
+
+  @override
+  String get tutorialReaderStep5Title => 'Pedais Bluetooth & Teclado';
+
+  @override
+  String get tutorialReaderStep5Message =>
+      'Conecte qualquer **pedal virador de página Bluetooth** (AirTurn, PageFlip, Donner via PageUp/Down ou Setas) para avançar e trocar de louvor **sem tirar as mãos do instrumento**.';
+
+  @override
+  String get tutorialReaderStep6Title => 'Ajuda & Tutoriais';
+
+  @override
+  String get tutorialReaderStep6Message =>
+      'Toque no ícone **(i)** sempre que tiver dúvidas sobre como utilizar as ferramentas do leitor!';
+
+  @override
+  String get tutorialWelcomeTourStep1Title => '1. Pesquise no Hinário';
+
+  @override
+  String get tutorialWelcomeTourStep1Message =>
+      'Digite o **número**, o **título** ou qualquer **trecho da letra** para localizar instantaneamente hinos e cânticos no acervo.';
+
+  @override
+  String get tutorialWelcomeTourStep2Title => '2. Formatos Especializados';
+
+  @override
+  String get tutorialWelcomeTourStep2Message =>
+      'Toque no louvor para selecionar entre **Partitura**, **Cifra**, **Gestos para Crianças** ou **Letra**, com transposição de tom e autoscroll.';
+
+  @override
+  String get tutorialWelcomeTourStep3Title =>
+      '3. Monte seu Repertório de Culto';
+
+  @override
+  String get tutorialWelcomeTourStep3Message =>
+      'Toque no botão **(+)** para incluir louvores no **Carrossel Ativo**, permitindo alternar rapidamente entre partituras durante a ministração.';
+
+  @override
+  String get tutorialWelcomeTourStep4Title => '4. Repertório Sempre com Você';
+
+  @override
+  String get tutorialWelcomeTourStep4Message =>
+      'Acesse a aba **Listas** para organizar playlists de ensaio e abra o **Armazenamento Offline** no Perfil para louvar **sem internet** em qualquer lugar!';
 }

@@ -5,16 +5,21 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/tutorial/presentation/providers/tutorial_provider.dart';
+import '../../../../l10n/app_localizations.dart';
 
 /// Categorias dos atalhos de teclado da aplicação.
 enum ShortcutCategory {
-  navigation('Navegação & Busca'),
-  repertoireAudio('Repertório & Áudio'),
-  sheetMusic('Partituras (PDF)'),
-  chordsGestures('Cifras & Gestos');
+  navigation,
+  repertoireAudio,
+  sheetMusic,
+  chordsGestures;
 
-  const ShortcutCategory(this.label);
-  final String label;
+  String localizedLabel(AppLocalizations l10n) => switch (this) {
+    ShortcutCategory.navigation => l10n.shortcutCatNavigation,
+    ShortcutCategory.repertoireAudio => l10n.shortcutCatRepertoireAudio,
+    ShortcutCategory.sheetMusic => l10n.shortcutCatSheetMusic,
+    ShortcutCategory.chordsGestures => l10n.shortcutCatChordsGestures,
+  };
 }
 
 /// Representa um atalho de teclado com suas teclas, descrição e contexto.
@@ -39,182 +44,182 @@ class AppShortcutItem {
   final String? contextBadge;
 }
 
-/// Lista completa dos atalhos suportados no Coldigui.
-const appShortcutsList = <AppShortcutItem>[
+/// Cria a lista de atalhos localizada no idioma atual.
+List<AppShortcutItem> buildAppShortcutsList(AppLocalizations l10n) => [
   // Navegação & Busca
   AppShortcutItem(
     category: ShortcutCategory.navigation,
-    keys: [
+    keys: const [
       ['Ctrl', 'K'],
       ['Cmd', 'K'],
       ['/'],
     ],
-    action: 'Ir para a Home e focar campo de busca',
+    action: l10n.shortcutActionHomeSearch,
   ),
   AppShortcutItem(
     category: ShortcutCategory.navigation,
-    keys: [
+    keys: const [
       ['?'],
     ],
-    action: 'Abrir esta Central de Atalhos de Teclado',
+    action: l10n.shortcutActionOpenShortcuts,
   ),
   AppShortcutItem(
     category: ShortcutCategory.navigation,
-    keys: [
+    keys: const [
       ['Esc'],
     ],
-    action: 'Sair de tela cheia, limpar busca ou fechar janelas',
+    action: l10n.shortcutActionEscape,
   ),
 
   // Repertório & Áudio
   AppShortcutItem(
     category: ShortcutCategory.repertoireAudio,
-    keys: [
+    keys: const [
       ['N'],
     ],
-    action: 'Avançar para o próximo louvor do repertório',
-    contextBadge: 'Leitor',
+    action: l10n.shortcutActionNextPraise,
+    contextBadge: l10n.shortcutBadgeReader,
   ),
   AppShortcutItem(
     category: ShortcutCategory.repertoireAudio,
-    keys: [
+    keys: const [
       ['P'],
     ],
-    action: 'Voltar para o louvor anterior do repertório',
-    contextBadge: 'Leitor',
+    action: l10n.shortcutActionPreviousPraise,
+    contextBadge: l10n.shortcutBadgeReader,
   ),
   AppShortcutItem(
     category: ShortcutCategory.repertoireAudio,
-    keys: [
+    keys: const [
       ['Ctrl', '→'],
       ['Ctrl', '←'],
     ],
-    action: 'Navegar pela fila do carrossel de louvores',
+    action: l10n.shortcutActionCarouselQueue,
   ),
   AppShortcutItem(
     category: ShortcutCategory.repertoireAudio,
-    keys: [
+    keys: const [
       ['Espaço'],
     ],
-    action: 'Tocar ou pausar o áudio do louvor',
-    contextBadge: 'Geral',
+    action: l10n.shortcutActionToggleAudio,
+    contextBadge: l10n.shortcutBadgeGeneral,
   ),
   AppShortcutItem(
     category: ShortcutCategory.repertoireAudio,
-    keys: [
+    keys: const [
       ['Ctrl', 'Espaço'],
       ['Cmd', 'Espaço'],
     ],
-    action: 'Tocar ou pausar áudio mesmo com partitura aberta',
-    contextBadge: 'Leitor PDF',
+    action: l10n.shortcutActionToggleAudioPdf,
+    contextBadge: l10n.shortcutBadgeReaderPdf,
   ),
   AppShortcutItem(
     category: ShortcutCategory.repertoireAudio,
-    keys: [
+    keys: const [
       ['J'],
     ],
-    action: 'Voltar 10 segundos no áudio',
+    action: l10n.shortcutActionSeekAudioBack,
   ),
   AppShortcutItem(
     category: ShortcutCategory.repertoireAudio,
-    keys: [
+    keys: const [
       ['L'],
     ],
-    action: 'Avançar 10 segundos no áudio',
+    action: l10n.shortcutActionSeekAudioForward,
   ),
 
   // Partituras (PDF)
   AppShortcutItem(
     category: ShortcutCategory.sheetMusic,
-    keys: [
+    keys: const [
       ['F'],
     ],
-    action: 'Alternar modo de tela cheia',
-    contextBadge: 'Leitor',
+    action: l10n.shortcutActionToggleFullscreen,
+    contextBadge: l10n.shortcutBadgeReader,
   ),
   AppShortcutItem(
     category: ShortcutCategory.sheetMusic,
-    keys: [
+    keys: const [
       ['Espaço'],
       ['PageDown'],
       ['↓'],
       ['→'],
     ],
-    action: 'Avançar página ou rolar partitura',
+    action: l10n.shortcutActionNextPagePdf,
   ),
   AppShortcutItem(
     category: ShortcutCategory.sheetMusic,
-    keys: [
+    keys: const [
       ['PageUp'],
       ['↑'],
       ['←'],
     ],
-    action: 'Voltar página da partitura',
+    action: l10n.shortcutActionPrevPagePdf,
   ),
   AppShortcutItem(
     category: ShortcutCategory.sheetMusic,
-    keys: [
+    keys: const [
       ['Home'],
     ],
-    action: 'Ir para a primeira página',
+    action: l10n.shortcutActionFirstPagePdf,
   ),
   AppShortcutItem(
     category: ShortcutCategory.sheetMusic,
-    keys: [
+    keys: const [
       ['End'],
     ],
-    action: 'Ir para a última página',
+    action: l10n.shortcutActionLastPagePdf,
   ),
   AppShortcutItem(
     category: ShortcutCategory.sheetMusic,
-    keys: [
+    keys: const [
       ['Z'],
     ],
-    action: 'Alternar modo de ajuste (largura / altura)',
+    action: l10n.shortcutActionFitModePdf,
   ),
   AppShortcutItem(
     category: ShortcutCategory.sheetMusic,
-    keys: [
+    keys: const [
       ['G'],
     ],
-    action: 'Abrir seletor rápido de páginas em grade',
+    action: l10n.shortcutActionPageGridPdf,
   ),
 
   // Cifras & Gestos
   AppShortcutItem(
     category: ShortcutCategory.chordsGestures,
-    keys: [
+    keys: const [
       ['S'],
     ],
-    action: 'Ligar ou desligar rolagem automática (autoscroll)',
-    contextBadge: 'Cifras/Letras',
+    action: l10n.shortcutActionToggleAutoscroll,
+    contextBadge: l10n.shortcutBadgeChordsLyrics,
   ),
   AppShortcutItem(
     category: ShortcutCategory.chordsGestures,
-    keys: [
+    keys: const [
       ['['],
       [']'],
     ],
-    action: 'Diminuir ou aumentar velocidade de rolagem',
-    contextBadge: 'Autoscroll',
+    action: l10n.shortcutActionAdjustAutoscrollSpeed,
+    contextBadge: l10n.shortcutBadgeAutoscroll,
   ),
   AppShortcutItem(
     category: ShortcutCategory.chordsGestures,
-    keys: [
+    keys: const [
       ['+'],
       ['-'],
     ],
-    action: 'Transpor tom do louvor (+1 / -1 semitom)',
-    contextBadge: 'Cifras',
+    action: l10n.shortcutActionTransposePitch,
+    contextBadge: l10n.shortcutBadgeChords,
   ),
   AppShortcutItem(
     category: ShortcutCategory.chordsGestures,
-    keys: [
+    keys: const [
       ['→'],
       ['←'],
     ],
-    action: 'Próximo gesto ou gesto anterior na regência',
-    contextBadge: 'Modo Foco CIAs',
+    action: l10n.shortcutActionNextGesture,
+    contextBadge: l10n.shortcutBadgeFocusModeCias,
   ),
 ];
 
@@ -267,6 +272,9 @@ class _AppShortcutsDialogState extends State<AppShortcutsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final shortcuts = buildAppShortcutsList(l10n);
+
     return SpotlightGuidePortal(
       controller: _portalController,
       autoStart: false,
@@ -316,13 +324,13 @@ class _AppShortcutsDialogState extends State<AppShortcutsDialog> {
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Atalhos de Teclado',
-                                style: TextStyle(
+                                l10n.shortcutsTitle,
+                                style: const TextStyle(
                                   fontFamily: AppTypography.garamondFamily,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 20,
@@ -330,10 +338,10 @@ class _AppShortcutsDialogState extends State<AppShortcutsDialog> {
                                   color: AppColors.placeholder,
                                 ),
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
-                                'Comandos rápidos de produtividade para Desktop e Web',
-                                style: TextStyle(
+                                l10n.shortcutsSubtitle,
+                                style: const TextStyle(
                                   fontFamily: AppTypography.sansFamily,
                                   fontSize: 12,
                                   color: AppColors.textLight,
@@ -346,14 +354,14 @@ class _AppShortcutsDialogState extends State<AppShortcutsDialog> {
                           id: 'shortcuts-info-button',
                           child: IconButton(
                             icon: const Icon(Icons.info_outline, color: AppColors.placeholder),
-                            tooltip: 'Como usar os atalhos',
+                            tooltip: l10n.tutorialTooltipHowToUseShortcuts,
                             onPressed: () => _tutorialController
                                 ?.startAppShortcutsTutorial(context),
                           ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close, color: AppColors.placeholder),
-                          tooltip: 'Fechar',
+                          tooltip: l10n.close,
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                       ],
@@ -366,28 +374,28 @@ class _AppShortcutsDialogState extends State<AppShortcutsDialog> {
                     id: 'shortcuts-categories-tabs',
                     child: Container(
                       color: AppColors.btnBackground.withValues(alpha: 0.5),
-                      child: const TabBar(
+                      child: TabBar(
                         isScrollable: true,
                         labelColor: AppColors.goldLight,
                         unselectedLabelColor: AppColors.textLight,
                         indicatorColor: AppColors.gold,
                         indicatorWeight: 3,
-                        labelStyle: TextStyle(
+                        labelStyle: const TextStyle(
                           fontFamily: AppTypography.sansFamily,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
-                        unselectedLabelStyle: TextStyle(
+                        unselectedLabelStyle: const TextStyle(
                           fontFamily: AppTypography.sansFamily,
                           fontWeight: FontWeight.w400,
                           fontSize: 13,
                         ),
                         tabs: [
-                          Tab(text: 'Todos'),
-                          Tab(text: 'Navegação'),
-                          Tab(text: 'Repertório & Áudio'),
-                          Tab(text: 'Partituras'),
-                          Tab(text: 'Cifras & Gestos'),
+                          Tab(text: l10n.shortcutsTabAll),
+                          Tab(text: l10n.shortcutsTabNavigation),
+                          Tab(text: l10n.shortcutsTabRepertoireAudio),
+                          Tab(text: l10n.shortcutsTabSheetMusic),
+                          Tab(text: l10n.shortcutsTabChordsGestures),
                         ],
                       ),
                     ),
@@ -399,27 +407,27 @@ class _AppShortcutsDialogState extends State<AppShortcutsDialog> {
                       id: 'shortcuts-list-items',
                       child: TabBarView(
                         children: [
-                          _ShortcutList(items: appShortcutsList),
+                          _ShortcutList(items: shortcuts),
                           _ShortcutList(
-                            items: appShortcutsList
+                            items: shortcuts
                                 .where((item) =>
                                     item.category == ShortcutCategory.navigation)
                                 .toList(),
                           ),
                           _ShortcutList(
-                            items: appShortcutsList
+                            items: shortcuts
                                 .where((item) =>
                                     item.category == ShortcutCategory.repertoireAudio)
                                 .toList(),
                           ),
                           _ShortcutList(
-                            items: appShortcutsList
+                            items: shortcuts
                                 .where((item) =>
                                     item.category == ShortcutCategory.sheetMusic)
                                 .toList(),
                           ),
                           _ShortcutList(
-                            items: appShortcutsList
+                            items: shortcuts
                                 .where((item) =>
                                     item.category == ShortcutCategory.chordsGestures)
                                 .toList(),
@@ -446,10 +454,10 @@ class _AppShortcutsDialogState extends State<AppShortcutsDialog> {
                             size: 16,
                           ),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Pressione ? em qualquer tela para abrir este painel a qualquer momento.',
-                              style: TextStyle(
+                              l10n.shortcutsFooterTip,
+                              style: const TextStyle(
                                 fontFamily: AppTypography.sansFamily,
                                 fontSize: 12,
                                 color: AppColors.textLight,
@@ -461,7 +469,7 @@ class _AppShortcutsDialogState extends State<AppShortcutsDialog> {
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.goldLight,
                             ),
-                            child: const Text('Entendi'),
+                            child: Text(l10n.shortcutsGotIt),
                           ),
                         ],
                       ),
@@ -484,11 +492,12 @@ class _ShortcutList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (items.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'Nenhum atalho encontrado.',
-          style: TextStyle(color: AppColors.textLight),
+          l10n?.shortcutsEmpty ?? 'Nenhum atalho encontrado.',
+          style: const TextStyle(color: AppColors.textLight),
         ),
       );
     }
@@ -564,16 +573,18 @@ class _KeyCombosView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final orText = l10n?.shortcutsOr ?? 'ou';
     final comboWidgets = <Widget>[];
 
     for (var i = 0; i < keys.length; i++) {
       if (i > 0) {
         comboWidgets.add(
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
-              'ou',
-              style: TextStyle(
+              orText,
+              style: const TextStyle(
                 fontFamily: AppTypography.sansFamily,
                 fontSize: 11,
                 color: AppColors.placeholder,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 /// Aba ainda sem conteúdo — título + “Em breve”.
 ///
 /// Layout alinhado ao [AboutScreen] (`maxWidth: 896`).
@@ -13,6 +15,9 @@ class PlaceholderTabScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final comingSoonText = l10n?.placeholderComingSoon ?? 'Em breve';
+
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
@@ -22,7 +27,7 @@ class PlaceholderTabScreen extends StatelessWidget {
           children: [
             Text(title, style: theme.textTheme.headlineSmall),
             const SizedBox(height: 12),
-            Text('Em breve', style: theme.textTheme.bodyLarge),
+            Text(comingSoonText, style: theme.textTheme.bodyLarge),
           ],
         ),
       ),

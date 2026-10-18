@@ -46,7 +46,7 @@ class _ContributeHelpCollapseState extends State<ContributeHelpCollapse> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Precisa de ajuda?',
+                      l10n.contributeNeedHelp,
                       style: AppTypography.headline.copyWith(
                         color: AppColors.gold,
                         fontSize: 15,
@@ -83,7 +83,7 @@ class _ContributeHelpCollapseState extends State<ContributeHelpCollapse> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Esta página permite que você envie contribuições e nos ajude a aprimorar o aplicativo e o acervo do PLPCG. Escolha a opção que melhor descreve o seu caso:',
+                          l10n.contributeHelpIntro,
                           style: AppTypography.body.copyWith(
                             color: AppColors.textLight.withValues(alpha: 0.9),
                             fontSize: 13,
@@ -94,36 +94,31 @@ class _ContributeHelpCollapseState extends State<ContributeHelpCollapse> {
                         _HelpItem(
                           icon: Icons.bug_report_outlined,
                           title: l10n.contributeKindBug,
-                          description:
-                              'Problemas no app (travamento, tela preta, botões sem resposta ou falha no áudio/leitor). Se puder, anexe uma captura de tela.',
+                          description: l10n.contributeHelpDescBug,
                         ),
                         const SizedBox(height: 10),
                         _HelpItem(
                           icon: Icons.edit_note_outlined,
                           title: l10n.contributeKindWrongInfo,
-                          description:
-                              'Dados incorretos em um louvor existente (número, tom, título, autor, ritmo ou louvor duplicado).',
+                          description: l10n.contributeHelpDescWrongInfo,
                         ),
                         const SizedBox(height: 10),
                         _HelpItem(
                           icon: Icons.queue_music_outlined,
                           title: l10n.contributeKindContent,
-                          description:
-                              'Envio ou sugestão de novos materiais (cifras, partituras, áudios ou letras) ou melhoria em arquivo existente.',
+                          description: l10n.contributeHelpDescContent,
                         ),
                         const SizedBox(height: 10),
                         _HelpItem(
                           icon: Icons.lightbulb_outline,
                           title: l10n.contributeKindImprovement,
-                          description:
-                              'Sugestões de novos recursos, mudanças no visual ou ideias para deixar o app mais prático nos ensaios e cultos.',
+                          description: l10n.contributeHelpDescImprovement,
                         ),
                         const SizedBox(height: 10),
                         _HelpItem(
                           icon: Icons.help_outline,
                           title: l10n.contributeKindOther,
-                          description:
-                              'Dúvidas gerais, recados para a equipe ou qualquer outro assunto não listado acima.',
+                          description: l10n.contributeHelpDescOther,
                         ),
                         const SizedBox(height: 12),
                         Container(
@@ -146,7 +141,7 @@ class _ContributeHelpCollapseState extends State<ContributeHelpCollapse> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Você também pode anexar arquivos (até 32 MB) ou colar links do Google Drive e YouTube para enriquecer seu envio.',
+                                  l10n.contributeHelpTipAttachments,
                                   style: AppTypography.body.copyWith(
                                     color: AppColors.textLight
                                         .withValues(alpha: 0.85),

@@ -72,17 +72,6 @@ class _ControllableResolvePdfForReader extends ResolvePdfForReader {
   }
 }
 
-/// Playlist ativa que sempre falha ao adicionar (ex.: Isar indisponível).
-class _ThrowingPlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) {
-    throw StateError('Isar indisponível');
-  }
-}
-
 /// Playlist ativa que registra a chamada e completa de imediato.
 class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
   String? lastAddedPdfId;
@@ -146,54 +135,42 @@ Widget _harness(GoRouter router, List<Override> overrides) {
 
 void main() {
   testWidgets(
-    'playlist ativa falhando (Isar indisponível) não impede abrir o leitor',
+    'abrir louvor no leitor navega sem adicionar à playlist ativa',
     (tester) async {
-      final logs = <String>[];
-      final originalDebugPrint = debugPrint;
-      debugPrint = (String? message, {int? wrapWidth}) {
-        logs.add(message ?? '');
-      };
+      late BuildContext capturedContext;
+      late WidgetRef capturedRef;
+      final recordingPlaylists = _RecordingPlaylistsNotifier();
 
-      try {
-        late BuildContext capturedContext;
-        late WidgetRef capturedRef;
+      final router = _buildRouter(
+        onBuild: (context, ref) {
+          capturedContext = context;
+          capturedRef = ref;
+        },
+      );
 
-        final router = _buildRouter(
-          onBuild: (context, ref) {
-            capturedContext = context;
-            capturedRef = ref;
-          },
-        );
+      await tester.pumpWidget(
+        _harness(router, [
+          playlistsProvider.overrideWith(() => recordingPlaylists),
+          ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
+            (Louvor _) async {},
+          ),
+          resolvePdfForReaderProvider.overrideWithValue(
+            _ControllableResolvePdfForReader(() async => _source),
+          ),
+        ]),
+      );
+      await tester.pump();
 
-        await tester.pumpWidget(
-          _harness(router, [
-            playlistsProvider.overrideWith(_ThrowingPlaylistsNotifier.new),
-            ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
-              (Louvor _) async {},
-            ),
-            resolvePdfForReaderProvider.overrideWithValue(
-              _ControllableResolvePdfForReader(() async => _source),
-            ),
-          ]),
-        );
-        await tester.pump();
+      await openLouvorInReader(
+        ref: capturedRef,
+        context: capturedContext,
+        louvor: _louvor,
+      );
+      await tester.pumpAndSettle();
 
-        await openLouvorInReader(
-          ref: capturedRef,
-          context: capturedContext,
-          louvor: _louvor,
-        );
-        await tester.pumpAndSettle();
-
-        expect(router.state.uri.path, RoutePaths.reader);
-        expect(find.text('Leitor aberto'), findsOneWidget);
-        expect(
-          logs.any((l) => l.contains('[catalog]') && l.contains('playlist')),
-          isTrue,
-        );
-      } finally {
-        debugPrint = originalDebugPrint;
-      }
+      expect(router.state.uri.path, RoutePaths.reader);
+      expect(find.text('Leitor aberto'), findsOneWidget);
+      expect(recordingPlaylists.lastAddedPdfId, isNull);
     },
   );
 
@@ -313,8 +290,7 @@ void main() {
   });
 
   testWidgets(
-    'resolve do PDF dispara mesmo com addLouvorToActivePlaylist ainda pendente '
-    '(execução em paralelo, não sequencial)',
+    'resolve do PDF dispara e navega sem depender da playlist ativa',
     (tester) async {
       final gatedPlaylists = _GatedPlaylistsNotifier();
       final resolve = _ControllableResolvePdfForReader(() async => _source);
@@ -339,35 +315,17 @@ void main() {
       );
       await tester.pump();
 
-      unawaited(
-        openLouvorInReader(
-          ref: capturedRef,
-          context: capturedContext,
-          louvor: _louvor,
-        ),
+      await openLouvorInReader(
+        ref: capturedRef,
+        context: capturedContext,
+        louvor: _louvor,
       );
-
-      // addLouvorToActivePlaylist está preso em `gatedPlaylists.gate` — se o
-      // resolve do PDF só disparasse depois dela terminar (sequencial, como
-      // antes), `resolve.callCount` continuaria 0 aqui.
-      await tester.pump();
-      await tester.pump();
-
-      expect(
-        resolve.callCount,
-        1,
-        reason: 'resolveLouvorPdf deve disparar mesmo com a playlist pendente',
-      );
-      expect(
-        router.state.uri.path,
-        RoutePaths.home,
-        reason: 'ainda aguardando addLouvorToActivePlaylist (Future.wait)',
-      );
-
-      gatedPlaylists.gate.complete(true);
       await tester.pumpAndSettle();
 
+      expect(resolve.callCount, 1);
       expect(router.state.uri.path, RoutePaths.reader);
+      // O gate da playlist nunca precisou ser completado
+      expect(gatedPlaylists.gate.isCompleted, isFalse);
     },
   );
 

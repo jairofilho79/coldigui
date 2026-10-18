@@ -156,7 +156,7 @@ class _FiltersPanelState extends ConsumerState<FiltersPanel> {
                   SpotlightGuideTarget(
                     id: 'filters-info',
                     child: IconButton(
-                      tooltip: 'Como usar os filtros',
+                      tooltip: l10n.tutorialTooltipHowToUseFilters,
                       onPressed: () {
                         ref
                             .read(tutorialControllerProvider)

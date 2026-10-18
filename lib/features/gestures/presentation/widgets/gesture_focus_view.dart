@@ -195,7 +195,7 @@ class _GestureFocusViewState extends ConsumerState<GestureFocusView> {
                         id: 'gesture-focus-info',
                         child: IconButton(
                           icon: Icon(Icons.info_outline, color: widget.palette.lyric),
-                          tooltip: 'Como usar o Modo Foco',
+                          tooltip: l10n.tutorialTooltipHowToUseFocusMode,
                           onPressed: () => tutorialNotifier
                               .startGestureFocusTutorial(context),
                         ),

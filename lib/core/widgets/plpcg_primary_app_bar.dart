@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../routing/route_paths.dart';
 import '../routing/shell_navigation.dart';
 import '../theme/color_extensions.dart';
@@ -27,6 +28,7 @@ class PlpcgPrimaryAppBar extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final router = GoRouter.maybeOf(context);
     final path = router == null ? null : GoRouterState.of(context).uri.path;
     // Rotas empilhadas sobre uma aba: seta volta com `pop`; sem pilha (deep
@@ -60,7 +62,7 @@ class PlpcgPrimaryAppBar extends StatelessWidget
           ? null
           : IconButton(
               icon: const Icon(Icons.arrow_back),
-              tooltip: 'Voltar',
+              tooltip: l10n?.backTooltip ?? 'Voltar',
               onPressed: () {
                 if (canPop) {
                   if (router != null) {
@@ -75,7 +77,7 @@ class PlpcgPrimaryAppBar extends StatelessWidget
             ),
       // ponytail: go (não push) — descarta /leitor, /audio e sub-rotas do shell
       title: Tooltip(
-        message: 'Início',
+        message: l10n?.homeTooltip ?? 'Início',
         child: InkWell(
           onTap: () {
             if (GoRouter.maybeOf(context) != null) {
@@ -91,7 +93,7 @@ class PlpcgPrimaryAppBar extends StatelessWidget
           id: 'app-info-button',
           child: IconButton(
             icon: const Icon(Icons.info_outline),
-            tooltip: 'Como usar esta tela',
+            tooltip: l10n?.tutorialHowToUseScreen ?? 'Como usar esta tela',
             onPressed: () {
               try {
                 final container =

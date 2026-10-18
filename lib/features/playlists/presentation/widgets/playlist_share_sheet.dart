@@ -102,7 +102,7 @@ class _PlaylistShareSheetBodyState extends State<_PlaylistShareSheetBody> {
                             size: 20,
                             color: AppColors.title,
                           ),
-                          tooltip: 'Como compartilhar',
+                          tooltip: l10n.tutorialTooltipHowToShare,
                           onPressed: () => _tutorialController
                               ?.startPlaylistShareTutorial(context),
                         ),

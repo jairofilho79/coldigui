@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
 /// Passos do tutorial do diálogo de compartilhamento ([PlaylistShareSheet]).
 List<SpotlightGuideStep> buildPlaylistShareTutorialSteps(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Folheto Ilustrado
     SpotlightGuideStep.item(
@@ -18,8 +20,9 @@ List<SpotlightGuideStep> buildPlaylistShareTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Folheto Ilustrado',
+          title: l10n?.tutorialCollaborationDialogsStep1Title ?? 'Folheto Ilustrado',
           message:
+              l10n?.tutorialCollaborationDialogsStep1Message ??
               'Gera e compartilha uma **imagem visual com a lista dos louvores** acompanhada do link direto para visualização.',
         ),
       ),
@@ -37,8 +40,9 @@ List<SpotlightGuideStep> buildPlaylistShareTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Link Direto',
+          title: l10n?.tutorialCollaborationDialogsStep2Title ?? 'Link Direto',
           message:
+              l10n?.tutorialCollaborationDialogsStep2Message ??
               'Copia ou envia apenas o **link encurtado**, ideal para envio rápido em aplicativos de mensagens.',
         ),
       ),
@@ -56,8 +60,9 @@ List<SpotlightGuideStep> buildPlaylistShareTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda de Compartilhamento',
+          title: l10n?.tutorialCollaborationDialogsStep3Title ?? 'Ajuda de Compartilhamento',
           message:
+              l10n?.tutorialCollaborationDialogsStep3Message ??
               'Toque neste ícone para rever as opções de **compartilhamento de repertórios**.',
         ),
       ),
@@ -69,6 +74,7 @@ List<SpotlightGuideStep> buildPlaylistShareTutorialSteps(BuildContext context) {
 List<SpotlightGuideStep> buildPublishPlaylistTutorialSteps(
   BuildContext context,
 ) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Categoria da Lista
     SpotlightGuideStep.item(
@@ -82,8 +88,9 @@ List<SpotlightGuideStep> buildPublishPlaylistTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Categoria da Lista',
+          title: l10n?.tutorialCollaborationDialogsStep4Title ?? 'Categoria da Lista',
           message:
+              l10n?.tutorialCollaborationDialogsStep4Message ??
               'Classifique o repertório como **Evangelização**, **Aprendizado**, **Medleys** ou **Culto Especial** para facilitar a busca por outros irmãos.',
         ),
       ),
@@ -101,8 +108,9 @@ List<SpotlightGuideStep> buildPublishPlaylistTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Alcance do Repertório',
+          title: l10n?.tutorialCollaborationDialogsStep5Title ?? 'Alcance do Repertório',
           message:
+              l10n?.tutorialCollaborationDialogsStep5Message ??
               'Marque como **pontual** para eventos esporádicos ou mantenha desmarcado se for uma seleção **usual para cultos regulares**.',
         ),
       ),
@@ -120,8 +128,9 @@ List<SpotlightGuideStep> buildPublishPlaylistTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Publicação na Comunidade',
+          title: l10n?.tutorialCollaborationDialogsStep6Title ?? 'Publicação na Comunidade',
           message:
+              l10n?.tutorialCollaborationDialogsStep6Message ??
               'Toque em **Publicar** para disponibilizar a lista na aba pública. A lista poderá ser acessada e importada por toda a igreja.',
         ),
       ),
@@ -139,8 +148,9 @@ List<SpotlightGuideStep> buildPublishPlaylistTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda de Publicação',
+          title: l10n?.tutorialCollaborationDialogsStep7Title ?? 'Ajuda de Publicação',
           message:
+              l10n?.tutorialCollaborationDialogsStep7Message ??
               'Toque neste ícone para rever as instruções sobre a **publicação de repertórios** na comunidade.',
         ),
       ),
@@ -150,6 +160,7 @@ List<SpotlightGuideStep> buildPublishPlaylistTutorialSteps(
 
 /// Passos do tutorial do diálogo de entrada em sala ao vivo ([JoinLiveRoomDialog]).
 List<SpotlightGuideStep> buildJoinLiveRoomTutorialSteps(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Campo de Entrada do Código ou Link
     SpotlightGuideStep.item(
@@ -163,8 +174,9 @@ List<SpotlightGuideStep> buildJoinLiveRoomTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Código ou Link da Sala',
+          title: l10n?.tutorialCollaborationDialogsStep8Title ?? 'Código ou Link da Sala',
           message:
+              l10n?.tutorialCollaborationDialogsStep8Message ??
               'Digite ou cole o **código de 7 caracteres** ou a **URL completa** fornecida pelo dirigente da sala ao vivo.',
         ),
       ),
@@ -182,8 +194,9 @@ List<SpotlightGuideStep> buildJoinLiveRoomTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Colar da Área de Transferência',
+          title: l10n?.tutorialCollaborationDialogsStep9Title ?? 'Colar da Área de Transferência',
           message:
+              l10n?.tutorialCollaborationDialogsStep9Message ??
               'Toque em **Colar** para preencher instantaneamente com o link que você acabou de copiar no WhatsApp ou mensagem.',
         ),
       ),
@@ -201,8 +214,9 @@ List<SpotlightGuideStep> buildJoinLiveRoomTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Conectar à Sala',
+          title: l10n?.tutorialCollaborationDialogsStep10Title ?? 'Conectar à Sala',
           message:
+              l10n?.tutorialCollaborationDialogsStep10Message ??
               'Toque em **Entrar** para ingressar na transmissão e acompanhar as **mudanças de louvor em tempo real**.',
         ),
       ),
@@ -220,8 +234,9 @@ List<SpotlightGuideStep> buildJoinLiveRoomTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda da Sala ao Vivo',
+          title: l10n?.tutorialCollaborationDialogsStep11Title ?? 'Ajuda da Sala ao Vivo',
           message:
+              l10n?.tutorialCollaborationDialogsStep11Message ??
               'Toque neste ícone para rever as instruções de **sincronização como seguidor** de uma sala ao vivo.',
         ),
       ),

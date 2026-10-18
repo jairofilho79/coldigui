@@ -10,6 +10,7 @@ class GoogleSignInButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final auth = ref.watch(authStateProvider);
     final busy = auth.isLoading;
 
@@ -21,14 +22,14 @@ class GoogleSignInButton extends ConsumerWidget {
                 await ref.read(authStateProvider.notifier).signInWithGoogle();
               } on Object catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('Falha ao entrar: $e')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.authGoogleSignInError(e.toString()))),
+                );
               }
             },
       icon: const Icon(Icons.login),
       label: Text(
-        busy ? 'Entrando…' : AppLocalizations.of(context)!.authSignInWithGoogle,
+        busy ? l10n.authSigningIn : l10n.authSignInWithGoogle,
       ),
     );
   }

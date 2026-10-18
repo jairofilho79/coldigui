@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
 /// Passos do tutorial da tela de Contribuir ([ContributeScreen]).
 List<SpotlightGuideStep> buildContributeTutorialSteps(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Contexto do Envio / Louvor Vinculado
     SpotlightGuideStep.item(
@@ -18,8 +20,9 @@ List<SpotlightGuideStep> buildContributeTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Contexto do Envio',
+          title: l10n?.tutorialContributeStep1Title ?? 'Contexto do Envio',
           message:
+              l10n?.tutorialContributeStep1Message ??
               'Identifique se sua colaboração está **vinculada a um louvor específico** ou se é uma **sugestão geral** para o aplicativo.',
         ),
       ),
@@ -37,8 +40,9 @@ List<SpotlightGuideStep> buildContributeTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Descrição da Sugestão',
+          title: l10n?.tutorialContributeStep2Title ?? 'Descrição da Sugestão',
           message:
+              l10n?.tutorialContributeStep2Message ??
               'Descreva detalhadamente o **problema encontrado**, **correção de letra ou tom**, ou a **melhoria** que você gostaria de propor.',
         ),
       ),
@@ -56,8 +60,9 @@ List<SpotlightGuideStep> buildContributeTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Diagnóstico do Aparelho',
+          title: l10n?.tutorialContributeStep3Title ?? 'Diagnóstico do Aparelho',
           message:
+              l10n?.tutorialContributeStep3Message ??
               'Mantenha ativado para enviar **dados técnicos anônimos** (sistema, navegador, resolução), acelerando a resolução de bugs.',
         ),
       ),
@@ -75,8 +80,9 @@ List<SpotlightGuideStep> buildContributeTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Anexos e Links',
+          title: l10n?.tutorialContributeStep4Title ?? 'Anexos e Links',
           message:
+              l10n?.tutorialContributeStep4Message ??
               'Adicione **arquivos de apoio** (áudios, partituras ou capturas até 32 MB) e **links** do YouTube ou Google Drive.',
         ),
       ),
@@ -94,8 +100,9 @@ List<SpotlightGuideStep> buildContributeTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Envio da Contribuição',
+          title: l10n?.tutorialContributeStep5Title ?? 'Envio da Contribuição',
           message:
+              l10n?.tutorialContributeStep5Message ??
               'Toque em **Enviar** para submeter seu relato. Se não estiver conectado, entre com sua **conta Google** para enviar.',
         ),
       ),
@@ -113,8 +120,9 @@ List<SpotlightGuideStep> buildContributeTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialContributeStep6Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialContributeStep6Message ??
               'Toque neste ícone a qualquer momento para rever este **guia passo a passo** da tela de envio de sugestões.',
         ),
       ),

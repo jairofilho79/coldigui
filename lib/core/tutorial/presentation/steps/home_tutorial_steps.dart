@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../../../../features/catalog/presentation/providers/catalog_filter_options_provider.dart';
 import '../../../../features/catalog/presentation/providers/catalog_filters_provider.dart';
@@ -10,6 +11,7 @@ import '../widgets/coldigui_tutorial_hint.dart';
 
 /// Passos do tutorial da tela inicial / Pesquisador ([HomeScreen]).
 List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Barra de pesquisa
     SpotlightGuideStep.item(
@@ -36,8 +38,9 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Pesquisa Inteligente',
+          title: l10n?.tutorialHomeStep1Title ?? 'Pesquisa Inteligente',
           message:
+              l10n?.tutorialHomeStep1Message ??
               'Digite o **número** do louvor, o **título** ou um **trecho da letra** para localizá-lo instantaneamente no catálogo.',
         ),
       ),
@@ -78,8 +81,9 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Filtros Ativos',
+          title: l10n?.tutorialHomeStep2Title ?? 'Filtros Ativos',
           message:
+              l10n?.tutorialHomeStep2Message ??
               'Quando **ativo**, o botão do filtro selecionado ganha **destaque dourado**. O cabeçalho exibe a contagem de **filtros ativos** e você pode tocar em **"Limpar filtros"** para desmarcar tudo.',
         ),
       ),
@@ -110,8 +114,9 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Filtros Inativos',
+          title: l10n?.tutorialHomeStep3Title ?? 'Filtros Inativos',
           message:
+              l10n?.tutorialHomeStep3Message ??
               'Com os filtros **inativos** (desmarcados), a busca abrange **todo o catálogo**. Toque em qualquer botão para **ativá-lo** ou recolha o painel para ganhar espaço.',
         ),
       ),
@@ -139,8 +144,9 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Navegação Principal',
+          title: l10n?.tutorialHomeStep4Title ?? 'Navegação Principal',
           message:
+              l10n?.tutorialHomeStep4Message ??
               'Alterne facilmente entre o **Pesquisador** de Louvores, suas **Listas** salvas e o seu **Perfil** de usuário.',
         ),
       ),
@@ -158,8 +164,9 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialHomeStep5Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialHomeStep5Message ??
               'Sempre que tiver dúvidas sobre como usar qualquer tela, toque neste **ícone (i)** para rever as explicações passo a passo!',
         ),
       ),

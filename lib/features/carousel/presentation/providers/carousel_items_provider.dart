@@ -60,17 +60,25 @@ final focusedCarouselItemProvider = Provider<CarouselItem?>((ref) {
 /// Precedência dos metadados: áudio pelo seu `kind`; cifra/gesto antes de PDF
 /// — os três dividem o espaço de ids, e um material em cache é a resposta mais
 /// específica.
-CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
-  final index = entry.index;
+CarouselItem enrichMaterialToCarouselItem({
+  required String materialId,
+  required MaterialKind kind,
+  required CatalogMaterialLookup lookup,
+  String key = '',
+  int index = 0,
+  String fallbackNome = '',
+  String fallbackNumero = '',
+}) {
+  final resolvedKey = key.isNotEmpty ? key : materialId;
 
-  if (entry.isAudio) {
-    final track = lookup.audioTrack(entry.id);
+  if (kind == MaterialKind.audio) {
+    final track = lookup.audioTrack(materialId);
     if (track != null) {
       return CarouselItem(
-        materialId: entry.id,
-        kind: entry.kind,
+        materialId: materialId,
+        kind: kind,
         index: index,
-        key: entry.key,
+        key: resolvedKey,
         numero: track.numero,
         nome: track.nome,
         categoria: track.categoria,
@@ -78,24 +86,26 @@ CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
       );
     }
     return CarouselItem(
-      materialId: entry.id,
-      kind: entry.kind,
+      materialId: materialId,
+      kind: kind,
       index: index,
-      key: entry.key,
-      numero: '',
-      nome: fallbackCarouselNome(entry.id),
+      key: resolvedKey,
+      numero: fallbackNumero,
+      nome: fallbackNome.isNotEmpty
+          ? fallbackNome
+          : fallbackCarouselNome(materialId),
       categoria: '',
       classificacao: '',
     );
   }
 
-  final chord = lookup.chord(entry.id);
+  final chord = lookup.chord(materialId);
   if (chord != null) {
     return CarouselItem(
-      materialId: entry.id,
-      kind: entry.kind,
+      materialId: materialId,
+      kind: kind,
       index: index,
-      key: entry.key,
+      key: resolvedKey,
       numero: chord.numero,
       nome: chord.nome,
       categoria: chord.categoria,
@@ -103,13 +113,13 @@ CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
     );
   }
 
-  final gesture = lookup.gesture(entry.id);
+  final gesture = lookup.gesture(materialId);
   if (gesture != null) {
     return CarouselItem(
-      materialId: entry.id,
-      kind: entry.kind,
+      materialId: materialId,
+      kind: kind,
       index: index,
-      key: entry.key,
+      key: resolvedKey,
       numero: gesture.numero,
       nome: gesture.nome,
       categoria: gesture.categoria,
@@ -117,13 +127,13 @@ CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
     );
   }
 
-  final louvor = lookup.louvor(entry.id);
+  final louvor = lookup.louvor(materialId);
   if (louvor != null) {
     return CarouselItem(
-      materialId: entry.id,
-      kind: entry.kind,
+      materialId: materialId,
+      kind: kind,
       index: index,
-      key: entry.key,
+      key: resolvedKey,
       numero: louvor.numero,
       nome: louvor.nome,
       categoria: louvor.categoria,
@@ -132,14 +142,26 @@ CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
   }
 
   return CarouselItem(
-    materialId: entry.id,
-    kind: entry.kind,
+    materialId: materialId,
+    kind: kind,
     index: index,
-    key: entry.key,
-    numero: '',
-    nome: fallbackCarouselNome(entry.id),
+    key: resolvedKey,
+    numero: fallbackNumero,
+    nome: fallbackNome.isNotEmpty
+        ? fallbackNome
+        : fallbackCarouselNome(materialId),
     categoria: '',
     classificacao: '',
+  );
+}
+
+CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
+  return enrichMaterialToCarouselItem(
+    materialId: entry.id,
+    kind: entry.kind,
+    lookup: lookup,
+    key: entry.key,
+    index: entry.index,
   );
 }
 

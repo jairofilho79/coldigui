@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../widgets/coldigui_tutorial_hint.dart';
 
@@ -7,6 +8,7 @@ import '../widgets/coldigui_tutorial_hint.dart';
 List<SpotlightGuideStep> buildFavoriteMaterialKindsTutorialSteps(
   BuildContext context,
 ) {
+  final l10n = AppLocalizations.of(context);
   return [
     // 1. Introdução e Limite (quando autenticado)
     SpotlightGuideStep.item(
@@ -20,8 +22,9 @@ List<SpotlightGuideStep> buildFavoriteMaterialKindsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Prioridade de Materiais',
+          title: l10n?.tutorialFavoriteMaterialKindsStep1Title ?? 'Prioridade de Materiais',
           message:
+              l10n?.tutorialFavoriteMaterialKindsStep1Message ??
               'Defina até **4 materiais favoritos** para priorizar seus instrumentos e vozes no topo dos resultados de busca e no leitor.',
         ),
       ),
@@ -39,8 +42,9 @@ List<SpotlightGuideStep> buildFavoriteMaterialKindsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Seus Favoritos e Ordem',
+          title: l10n?.tutorialFavoriteMaterialKindsStep2Title ?? 'Seus Favoritos e Ordem',
           message:
+              l10n?.tutorialFavoriteMaterialKindsStep2Message ??
               'Acompanhe seus materiais selecionados. Arraste pela **alça lateral** para definir a prioridade, alterne o **formato preferido** ou toque no **(X)** para remover.',
         ),
       ),
@@ -58,8 +62,9 @@ List<SpotlightGuideStep> buildFavoriteMaterialKindsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Adicionar Novos Materiais',
+          title: l10n?.tutorialFavoriteMaterialKindsStep3Title ?? 'Adicionar Novos Materiais',
           message:
+              l10n?.tutorialFavoriteMaterialKindsStep3Message ??
               'Busque por instrumentos (ex: **violão**, **baixo**, **órgão**) ou vozes e toque no ícone **(+)** para adicioná-los à sua lista de prioridades.',
         ),
       ),
@@ -77,8 +82,9 @@ List<SpotlightGuideStep> buildFavoriteMaterialKindsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Sincronização na Nuvem',
+          title: l10n?.tutorialFavoriteMaterialKindsStep4Title ?? 'Sincronização na Nuvem',
           message:
+              l10n?.tutorialFavoriteMaterialKindsStep4Message ??
               'Entre com sua **conta Google** para salvar e sincronizar suas preferências de materiais em qualquer aparelho.',
         ),
       ),
@@ -96,8 +102,9 @@ List<SpotlightGuideStep> buildFavoriteMaterialKindsTutorialSteps(
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Ajuda & Tutoriais',
+          title: l10n?.tutorialFavoriteMaterialKindsStep5Title ?? 'Ajuda & Tutoriais',
           message:
+              l10n?.tutorialFavoriteMaterialKindsStep5Message ??
               'Toque no **ícone (i)** a qualquer momento para rever este guia ou aprender mais sobre os recursos do aplicativo!',
         ),
       ),

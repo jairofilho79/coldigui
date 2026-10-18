@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../database/isar_provider.dart';
 import '../theme/app_typography.dart';
 import '../theme/color_extensions.dart';
@@ -17,6 +18,12 @@ class DegradedStorageBanner extends ConsumerWidget {
     final isarAsync = ref.watch(isarInitializerProvider);
     if (!isarAsync.hasError) return const SizedBox.shrink();
 
+    final l10n = AppLocalizations.of(context);
+    final message = l10n?.degradedStorageBannerMessage ??
+        'Armazenamento local indisponível. O catálogo online continua '
+            'funcionando; listas e offline ficam desativados.';
+    final retryText = l10n?.retry ?? 'Tentar novamente';
+
     return Material(
       color: AppColors.gold.withValues(alpha: 0.15),
       child: Padding(
@@ -28,8 +35,7 @@ class DegradedStorageBanner extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Armazenamento local indisponível. O catálogo online continua '
-                'funcionando; listas e offline ficam desativados.',
+                message,
                 style: AppTypography.body.copyWith(
                   color: AppColors.textLight,
                   fontSize: 13,
@@ -42,7 +48,7 @@ class DegradedStorageBanner extends ConsumerWidget {
                 foregroundColor: Colors.white,
               ),
               onPressed: () => ref.invalidate(isarInitializerProvider),
-              child: const Text('Tentar novamente'),
+              child: Text(retryText),
             ),
           ],
         ),

@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:coldigui/core/routing/reading_navigation.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/audio_player/domain/utils/find_material_for_group.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
@@ -12,6 +14,7 @@ import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/currently_open_item_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/active_playlist_name_chip.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
@@ -57,15 +60,17 @@ class CarouselChips extends ConsumerWidget {
     // reconstruir a ~5 Hz com o estado da sessão de áudio (A7) — o áudio vive
     // no mini-player, fora daqui.
     final items = ref.watch(carouselItemsProvider);
-    if (items.isEmpty) return const SizedBox.shrink();
-    return _CarouselChipsBar(items: items);
+    final openItem = ref.watch(currentlyOpenItemProvider);
+    if (items.isEmpty && openItem == null) return const SizedBox.shrink();
+    return _CarouselChipsBar(items: items, openItem: openItem);
   }
 }
 
 class _CarouselChipsBar extends ConsumerStatefulWidget {
-  const _CarouselChipsBar({required this.items});
+  const _CarouselChipsBar({required this.items, this.openItem});
 
   final List<CarouselItem> items;
+  final CarouselItem? openItem;
 
   @override
   ConsumerState<_CarouselChipsBar> createState() => _CarouselChipsBarState();
@@ -179,7 +184,9 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     final fromUrl = _readerRouteParams(readOnly: readOnly)[UrlSyncParams.pdfId];
     if (fromUrl != null && fromUrl.isNotEmpty) return fromUrl;
 
-    if (!_isReaderRoute || items.isEmpty) return null;
+    if (!_isReaderRoute) return null;
+    if (widget.openItem != null) return widget.openItem!.materialId;
+    if (items.isEmpty) return null;
     final focusedIndex =
         (readOnly
                 ? ref.read(carouselFocusedIndexProvider)
@@ -199,7 +206,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   }
 
   /// Item da face para [materialId] — a ocorrência focada quando é a dele,
-  /// senão a primeira. Fora da lista, um item sintético com o título da URL.
+  /// senão a primeira. Fora da lista, um item enriquecido pelo catálogo.
   CarouselItem _itemForMaterialId(String materialId, String titulo) {
     final focused = ref.read(carouselFocusedIndexProvider);
     if (focused >= 0 &&
@@ -210,13 +217,15 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     for (final item in items) {
       if (item.materialId == materialId) return item;
     }
-    return CarouselItem(
+    if (widget.openItem != null && widget.openItem!.materialId == materialId) {
+      return widget.openItem!;
+    }
+    final lookup = ref.read(catalogMaterialLookupProvider);
+    return enrichMaterialToCarouselItem(
       materialId: materialId,
-      index: 0,
-      numero: '',
-      nome: titulo,
-      categoria: '',
-      classificacao: '',
+      kind: materialIdKindOf(materialId),
+      lookup: lookup,
+      fallbackNome: titulo,
     );
   }
 
@@ -458,6 +467,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     VoidCallback? onChipTap,
     required VoidCallback onOpenSelection,
     VoidCallback? onOpen,
+    VoidCallback? onAdd,
+    bool isAdded = false,
   }) {
     // Grupo «louvor» só aparece com alternativa de material — sem isso, o
     // botão «Material» ficaria sempre oculto e o grupo, vazio.
@@ -495,6 +506,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
               onChipTap: onChipTap,
               onOpen: onOpen,
               onOpenSelection: onOpenSelection,
+              onAdd: onAdd,
+              isAdded: isAdded,
               swapMaterial: swapGroup == null
                   ? null
                   : CarouselSwapMaterialButton(
@@ -520,6 +533,37 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     required bool showLabels,
     required double barWidth,
   }) {
+    if (items.isEmpty && widget.openItem != null) {
+      final openItem = widget.openItem!;
+      final isAdded = ref
+          .watch(activeMaterialIdsProvider)
+          .contains(openItem.materialId);
+      final onAdd = isAdded
+          ? null
+          : () async {
+              await ref
+                  .read(activePlaylistEditorProvider.notifier)
+                  .addToActive(openItem.materialId, kind: openItem.kind);
+            };
+      return _buildNavigatorBar(
+        item: openItem,
+        canGoPrevious: false,
+        canGoNext: false,
+        loading: _openingReader || _carouselNavLoading,
+        showActivePlaylistName: showActivePlaylistName,
+        showLabels: showLabels,
+        barWidth: barWidth,
+        onChipTap: () => _openFocusedItem(openItem),
+        onOpen: () => _openFocusedItem(openItem),
+        onOpenSelection: () => showCarouselSelectionSheet(
+          context,
+          onItemTap: (item) => _openItem(item),
+        ),
+        isAdded: isAdded,
+        onAdd: onAdd,
+      );
+    }
+
     final focusedIndex = ref
         .watch(carouselFocusedIndexProvider)
         .clamp(0, items.length - 1);
@@ -534,6 +578,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       showActivePlaylistName: showActivePlaylistName,
       showLabels: showLabels,
       barWidth: barWidth,
+      isAdded: true,
       onPrevious: onReaderWithoutPdfId
           ? (focusedIndex > 0
                 ? () => _replaceReaderWithCarouselItem(items[focusedIndex - 1])
@@ -570,6 +615,16 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     final position = ref.watch(readerCarouselPositionProvider(materialId));
     final item = _itemForMaterialId(materialId, _readerTitulo);
     final loading = _carouselNavLoading;
+    final isAdded = ref
+        .watch(activeMaterialIdsProvider)
+        .contains(item.materialId);
+    final onAdd = isAdded
+        ? null
+        : () async {
+            await ref
+                .read(activePlaylistEditorProvider.notifier)
+                .addToActive(item.materialId, kind: item.kind);
+          };
 
     if (position == null) {
       return _buildNavigatorBar(
@@ -581,6 +636,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         showLabels: showLabels,
         barWidth: barWidth,
         onOpenSelection: _openReaderSelectionSheet,
+        isAdded: isAdded,
+        onAdd: onAdd,
       );
     }
 
@@ -592,6 +649,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       showActivePlaylistName: showActivePlaylistName,
       showLabels: showLabels,
       barWidth: barWidth,
+      isAdded: isAdded,
+      onAdd: onAdd,
       onPrevious: position.canGoPrevious
           ? () => _navigateCarouselInReader(
               direction: CarouselReaderDirection.previous,

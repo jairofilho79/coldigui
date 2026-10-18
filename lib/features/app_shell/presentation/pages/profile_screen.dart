@@ -76,7 +76,7 @@ class ProfileScreen extends ConsumerWidget {
               id: 'profile-library-tile',
               child: _ProfilePageTile(
                 icon: Icons.library_books,
-                title: 'Biblioteca',
+                title: l10n.libraryTitle,
                 onTap: () => goToShellDestination(context, RoutePaths.library),
               ),
             ),
@@ -115,7 +115,7 @@ class ProfileScreen extends ConsumerWidget {
               id: 'profile-offline-tile',
               child: _ProfilePageTile(
                 icon: Icons.cloud_download,
-                title: 'Offline',
+                title: l10n.offlineTitle,
                 onTap: () => goToShellDestination(context, RoutePaths.offline),
               ),
             ),
@@ -124,21 +124,21 @@ class ProfileScreen extends ConsumerWidget {
               id: 'profile-shortcuts-tile',
               child: _ProfilePageTile(
                 icon: Icons.keyboard_outlined,
-                title: 'Atalhos de Teclado',
+                title: l10n.shortcutsTitle,
                 onTap: () => showAppShortcutsDialog(context),
               ),
             ),
             const SizedBox(height: 10),
             _ProfilePageTile(
               icon: Icons.info_outline,
-              title: 'Sobre',
+              title: l10n.aboutTitle,
               onTap: () => goToShellDestination(context, RoutePaths.about),
             ),
             const SizedBox(height: 10),
             _ProfilePageTile(
               key: const ValueKey('profile-reset-tutorials-tile'),
               icon: Icons.restart_alt,
-              title: 'Redefinir Tutoriais',
+              title: l10n.profileResetTutorials,
               onTap: () => _showResetTutorialsDialog(context, ref),
             ),
           ],
@@ -151,6 +151,7 @@ class ProfileScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -159,17 +160,17 @@ class ProfileScreen extends ConsumerWidget {
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: AppColors.gold, width: 1.5),
         ),
-        title: const Text(
-          'Redefinir Tutoriais',
-          style: TextStyle(
+        title: Text(
+          l10n.profileResetTutorialsDialogTitle,
+          style: const TextStyle(
             color: AppColors.gold,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
-        content: const Text(
-          'Deseja redefinir todos os tutoriais? Os guias de introdução voltarão a ser exibidos automaticamente ao acessar as telas do aplicativo.',
-          style: TextStyle(
+        content: Text(
+          l10n.profileResetTutorialsDialogContent,
+          style: const TextStyle(
             color: AppColors.textLight,
             fontSize: 14,
             height: 1.4,
@@ -179,9 +180,9 @@ class ProfileScreen extends ConsumerWidget {
           TextButton(
             key: const ValueKey('reset-tutorials-cancel-button'),
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: AppColors.textLight),
+            child: Text(
+              l10n.cancel,
+              style: const TextStyle(color: AppColors.textLight),
             ),
           ),
           FilledButton(
@@ -191,9 +192,9 @@ class ProfileScreen extends ConsumerWidget {
               backgroundColor: AppColors.gold,
               foregroundColor: AppColors.background,
             ),
-            child: const Text(
-              'Redefinir',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            child: Text(
+              l10n.profileResetTutorialsConfirm,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -204,8 +205,8 @@ class ProfileScreen extends ConsumerWidget {
       await ref.read(tutorialPreferencesProvider.notifier).resetAll();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tutoriais redefinidos com sucesso!'),
+          SnackBar(
+            content: Text(l10n.profileResetTutorialsSuccess),
             backgroundColor: AppColors.background,
             behavior: SnackBarBehavior.floating,
           ),
@@ -240,28 +241,29 @@ class _SignedOutHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(20, 24, 20, 24),
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            'Entrar para sincronizar seus dados',
+            l10n.profileSyncPromptTitle,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
-            'Use sua conta Google para sincronizar listas e outras features.',
+            l10n.profileSyncPromptBody,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
           ),
-          SizedBox(height: 20),
-          GoogleSignInButton(),
+          const SizedBox(height: 20),
+          const GoogleSignInButton(),
         ],
       ),
     );
@@ -275,6 +277,7 @@ class _SignedInHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 8, 16),
       child: Column(
@@ -289,7 +292,7 @@ class _SignedInHeader extends ConsumerWidget {
                 visualDensity: VisualDensity.compact,
               ),
               icon: const Icon(Icons.logout, size: 18),
-              label: const Text('Sair'),
+              label: Text(l10n.profileSignOut),
             ),
           ),
           Padding(
