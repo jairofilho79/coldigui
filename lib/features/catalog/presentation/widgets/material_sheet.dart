@@ -174,11 +174,10 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
       builder: (context, scrollController) {
         return SpotlightGuidePortal(
           controller: _portalController,
-          child: DecoratedBox(
-            decoration: const BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-            ),
+          child: Material(
+            color: AppColors.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            clipBehavior: Clip.antiAlias,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
