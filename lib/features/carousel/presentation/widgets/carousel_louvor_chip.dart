@@ -119,6 +119,7 @@ class CarouselLouvorChip extends StatelessWidget {
     this.lobePosition,
     this.groupLabel,
     this.dimmed = false,
+    this.isCurrent = false,
     this.dragHandleTargetId,
     this.bodyTargetId,
     this.removeTargetId,
@@ -226,6 +227,10 @@ class CarouselLouvorChip extends StatelessWidget {
   /// Membro do grupo que não casou com a busca ou os filtros: esmaece só o
   /// conteúdo; fundo e contorno ficam inteiros e o toque continua ativo (D3).
   final bool dimmed;
+
+  /// Quando `true`, indica que este é o louvor atualmente aberto/em exibição no leitor.
+  /// Recebe borda nobre [AppColors.goldLight] e aura suave [AppColors.goldGlow].
+  final bool isCurrent;
 
   bool get _isTopBar => variant == CarouselLouvorChipVariant.topBar;
 
@@ -437,13 +442,25 @@ class CarouselLouvorChip extends StatelessWidget {
         ? Opacity(opacity: 0.45, child: constrainedBody)
         : constrainedBody;
 
+    final borderColor = isCurrent ? AppColors.goldLight : AppColors.gold;
+    final borderWidth = isCurrent ? 2.5 : 2.0;
+    final boxShadow = isCurrent
+        ? const [
+            BoxShadow(
+              color: AppColors.goldGlow,
+              blurRadius: 14,
+              spreadRadius: 1.5,
+            ),
+          ]
+        : AppColors.shadowMd;
+
     return Container(
       decoration: lobePosition == null
           ? BoxDecoration(
               color: backgroundColor,
               borderRadius: BorderRadius.circular(chipRadius),
-              border: Border.all(color: AppColors.gold, width: 2),
-              boxShadow: AppColors.shadowMd,
+              border: Border.all(color: borderColor, width: borderWidth),
+              boxShadow: boxShadow,
             )
           : ShapeDecoration(
               color: backgroundColor,

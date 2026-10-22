@@ -139,7 +139,7 @@ void main() {
         expect(find.byType(Divider), findsNothing);
 
         expect(find.byType(ZebradaHighlight), findsOneWidget);
-        expect(find.text('EM EXIBIÇÃO'), findsOneWidget);
+        expect(find.text('Atual'), findsOneWidget);
 
         final itemBHighlight = find.descendant(
           of: find.byKey(const ValueKey('activeListPanelItem-b')),

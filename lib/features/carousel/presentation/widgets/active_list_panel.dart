@@ -28,7 +28,7 @@ import 'carousel_selection_sheet.dart'
 ///
 /// Se o praise atualmente aberto não estiver na lista ativa, uma seção superior
 /// com divisor horizontal identifica-o e permite adicioná-lo via `+`. Se estiver
-/// na lista, ele recebe uma marcação zebrada exclusiva.
+/// na lista, ele recebe a tag "Atual" e o destaque nobre com aura dourada ([CurrentLouvorHighlight]).
 class ActiveListPanel extends ConsumerStatefulWidget {
   const ActiveListPanel({this.onOpen, this.onRemoved, super.key});
 
@@ -198,6 +198,7 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
 
         final chip = CarouselLouvorChip(
           item: item,
+          isCurrent: isCurrent,
           showDragHandle: true,
           dragHandleTargetId: isFirst ? 'active-list-reorder' : null,
           bodyTargetId: isFirst ? 'active-list-jump' : null,
@@ -209,7 +210,7 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
         final BoxDecoration? containerDecoration = highlighted && !isCurrent
             ? BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.goldLight, width: 3),
+                border: Border.all(color: AppColors.goldLight, width: 2),
                 boxShadow: const [
                   BoxShadow(
                     color: AppColors.goldGlow,
@@ -220,7 +221,9 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
               )
             : null;
 
-        final Widget itemBody = isCurrent ? ZebradaHighlight(child: chip) : chip;
+        final Widget itemBody = isCurrent
+            ? CurrentLouvorHighlight(child: chip)
+            : chip;
 
         return ReorderableDragStartListener(
           // Chave por **ocorrência**: o mesmo louvor duas vezes na lista são
@@ -231,6 +234,9 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Container(
               key: ValueKey('activeListPanelItem-${item.key}'),
+              padding: highlighted && !isCurrent
+                  ? const EdgeInsets.all(3.0)
+                  : EdgeInsets.zero,
               decoration: containerDecoration,
               child: itemBody,
             ),
@@ -241,61 +247,55 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
   }
 }
 
-/// Destaque com padrão zebrado para o louvor que está atualmente aberto/em exibição
-/// dentro da lista ativa.
-class ZebradaHighlight extends StatelessWidget {
-  const ZebradaHighlight({
+/// Destaque com tag "Atual" e layout em [Stack] para o louvor que está
+/// atualmente aberto/em exibição dentro da lista ativa.
+///
+/// Visual padronizado com o [_TagLabel] do [GoldenTaggedContainer] (§5.2):
+/// fundo 100% opaco [AppColors.background], borda dourada 1.5px e texto
+/// [AppTypography.tagLabel] com "Atual".
+class CurrentLouvorHighlight extends StatelessWidget {
+  const CurrentLouvorHighlight({
     required this.child,
+    this.tagText,
     super.key,
   });
 
   final Widget child;
+  final String? tagText;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+    final label = tagText ?? 'Atual';
+    final verticalPadding = MediaQuery.textScalerOf(context).scale(2.0);
+
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 14, bottom: 4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.visibility,
-                size: 13,
-                color: AppColors.title,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                'EM EXIBIÇÃO',
-                style: AppTypography.headline.copyWith(
-                  color: AppColors.title,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 10,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
+          padding: const EdgeInsets.only(top: 8.0),
+          child: child,
         ),
-        CustomPaint(
-          painter: const _ZebradaPainter(),
+        Positioned(
+          left: 18,
+          top: 0,
           child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: verticalPadding,
+            ),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: AppColors.goldLight, width: 2.5),
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: AppColors.gold, width: 1.5),
               boxShadow: const [
                 BoxShadow(
-                  color: AppColors.goldGlow,
-                  blurRadius: 12,
-                  spreadRadius: 1.5,
+                  color: Color(0x33000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
                 ),
               ],
             ),
-            padding: const EdgeInsets.all(4.0),
-            child: child,
+            child: Text(label, style: AppTypography.tagLabel),
           ),
         ),
       ],
@@ -303,46 +303,5 @@ class ZebradaHighlight extends StatelessWidget {
   }
 }
 
-class _ZebradaPainter extends CustomPainter {
-  const _ZebradaPainter();
-
-  static const Color stripeColor = AppColors.gold;
-  static const Color stripeBackgroundColor = AppColors.title;
-  static const double stripeWidth = 8.0;
-  static const double borderRadius = 28.0;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      Radius.circular(borderRadius),
-    );
-
-    canvas.save();
-    canvas.clipRRect(rrect);
-
-    final bgPaint = Paint()..color = stripeBackgroundColor;
-    canvas.drawRect(Offset.zero & size, bgPaint);
-
-    final stripePaint = Paint()
-      ..color = stripeColor
-      ..strokeWidth = stripeWidth
-      ..style = PaintingStyle.stroke;
-
-    final total = size.width + size.height;
-    final step = stripeWidth * 2;
-
-    for (double offset = -size.height; offset <= total; offset += step) {
-      canvas.drawLine(
-        Offset(offset, 0),
-        Offset(offset + size.height, size.height),
-        stripePaint,
-      );
-    }
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _ZebradaPainter oldDelegate) => false;
-}
+/// Rótulo legado para manter compatibilidade com testes existentes.
+typedef ZebradaHighlight = CurrentLouvorHighlight;
