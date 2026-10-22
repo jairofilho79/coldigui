@@ -69,6 +69,12 @@ void main() {
       },
     );
 
+    test('prefere a URL do browser com /louvor/:id', () {
+      final browser = Uri.parse('https://plpcg.com/louvor/abc123');
+
+      expect(resolveWebInitialDeepLinkUri(null, browserUri: browser), browser);
+    });
+
     test('cai para fromAppLinks sem lançar quando query base malformada não recupera share params', () {
       // `p` malformado sai; `n` sozinho não é link de lista.
       final malformedBase = Uri.parse('/?p=%E0%A4%A&n=Y');

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/utils/playlist_share_url_builder.dart';
+import '../../../../core/utils/praise_url_builder.dart';
 import '../../../../core/utils/safe_query_parameters.dart';
 import '../../../live/domain/live_room_link.dart';
 
@@ -24,7 +25,8 @@ Uri? resolveWebInitialDeepLinkUri(Uri? fromAppLinks, {Uri? browserUri}) {
   // de volta (router, listener), então a saneamos aqui em vez de esperar a
   // exceção.
   if (parsePlaylistShareParams(base) == null &&
-      parseLiveRoomCode(base) == null) {
+      parseLiveRoomCode(base) == null &&
+      parsePraiseId(base) == null) {
     return fromAppLinks;
   }
   if (_queryDecodes(base)) return base;

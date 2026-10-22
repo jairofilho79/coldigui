@@ -666,4 +666,51 @@ void main() {
     expect(find.text('Lista importada'), findsOneWidget);
     expect(fakePlaylists.activatedImportId, 'playlist-id');
   });
+
+  testWidgets('deep link /louvor/:id navega diretamente para a tela do louvor', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      navigatorKey: rootNavigatorKey,
+      initialLocation: RoutePaths.home,
+      routes: [
+        GoRoute(
+          path: RoutePaths.home,
+          builder: (_, _) => const Scaffold(body: Text('Home Screen')),
+        ),
+        GoRoute(
+          path: RoutePaths.praise,
+          builder: (_, state) => Scaffold(
+            body: Text('Praise Screen: ${state.pathParameters['id']}'),
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appRouterProvider.overrideWithValue(router),
+          deepLinkHandlingEnabledProvider.overrideWithValue(true),
+        ],
+        child: DeepLinkListener(
+          child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            routerConfig: router,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final state = tester.state<DeepLinkListenerState>(
+      find.byType(DeepLinkListener),
+    );
+    await state.handleUriForTest(Uri.parse('https://plpcg.com/louvor/abc123'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Praise Screen: abc123'), findsOneWidget);
+  });
 }

@@ -11,6 +11,7 @@ import '../../../../core/routing/app_router.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/utils/home_url_builder.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
+import '../../../../core/utils/praise_url_builder.dart';
 import '../../../../core/utils/safe_query_parameters.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -92,6 +93,16 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
       if (_isRecentlyProcessed(fingerprint)) return;
       _markProcessed(fingerprint);
       ref.read(appRouterProvider).go(RoutePaths.liveRoomFor(liveCode));
+      return;
+    }
+
+    // Louvor: sem import de lista, navegar direto para a tela de louvor (/louvor/:id).
+    final praiseId = parsePraiseId(uri);
+    if (praiseId != null) {
+      final fingerprint = 'praise:$praiseId';
+      if (_isRecentlyProcessed(fingerprint)) return;
+      _markProcessed(fingerprint);
+      ref.read(appRouterProvider).go(RoutePaths.praiseFor(praiseId));
       return;
     }
 

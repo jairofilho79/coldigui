@@ -167,7 +167,7 @@ void main() {
     );
 
     final url = buildPraiseShareUrl(
-      origin: 'https://v2.plpcg.com',
+      origin: 'https://plpcg.com',
       praiseShortIds: const ['0a1', '4d4', '0a1'],
       shareName: 'Quem é Deus?',
     );

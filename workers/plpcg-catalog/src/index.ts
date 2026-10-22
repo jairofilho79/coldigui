@@ -34,6 +34,11 @@ import {
 } from './links/handlers';
 import { isShortCode } from './short_code.ts';
 import { ensureLiveRoom, liveRoomRedirect, regenerateLiveRoom } from './live/handlers.ts';
+import {
+  handleAppleAppSiteAssociation,
+  handleAssetLinks,
+  handleLouvorRedirect,
+} from './well_known.ts';
 export { LiveRoom } from './live/live_room.ts';
 import { proxyColdigomAsset } from './coldigom_assets_proxy';
 import { matchesEtag } from './etag';
@@ -592,6 +597,25 @@ export default {
         return withCors(jsonResponse({ error: 'method not allowed' }, { status: 405 }), request, 'live');
       }
       return withCors(liveRoomRedirect(url.pathname), request, 'live');
+    }
+
+    if (url.pathname === '/.well-known/apple-app-site-association') {
+      return handleAppleAppSiteAssociation();
+    }
+
+    if (url.pathname === '/.well-known/assetlinks.json') {
+      return handleAssetLinks();
+    }
+
+    if (url.pathname.startsWith('/louvor/')) {
+      if (request.method !== 'GET') {
+        return withCors(
+          jsonResponse({ error: 'method not allowed' }, { status: 405 }),
+          request,
+          mode,
+        );
+      }
+      return handleLouvorRedirect(url.pathname, url.search);
     }
 
     if (request.method !== 'GET') {

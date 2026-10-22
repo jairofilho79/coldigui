@@ -48,7 +48,7 @@ final _legacy = PlaylistEntry(
   kind: MaterialKind.pdf,
 );
 final _shortIds = {_pdf.id: '1a2', _audio.id: '0c3', _chord.id: 'fff'};
-const _url = 'https://v2.plpcg.com/?p=1a2-0c3-fff&n=Ensaio';
+const _url = 'https://plpcg.com/?p=1a2-0c3-fff&n=Ensaio';
 
 SavedPlaylist _ensaio(List<PlaylistEntry> entries) => SavedPlaylist(
   playlistId: 'p1',
@@ -158,7 +158,7 @@ void main() {
     await tester.pump();
 
     expect(ok, isTrue);
-    expect(sharedText, 'https://v2.plpcg.com/?p=1a2&n=Ensaio');
+    expect(sharedText, 'https://plpcg.com/?p=1a2&n=Ensaio');
     expect(find.text('2 itens da lista ficaram fora do link'), findsOneWidget);
   });
 
@@ -180,7 +180,7 @@ void main() {
     await tester.pump();
 
     expect(ok, isTrue);
-    expect(doc?.shareUrl, 'https://v2.plpcg.com/?p=1a2&n=Ensaio');
+    expect(doc?.shareUrl, 'https://plpcg.com/?p=1a2&n=Ensaio');
     expect(find.text('1 item da lista ficou fora do link'), findsOneWidget);
   });
 
@@ -237,7 +237,7 @@ void main() {
     );
 
     expect(ok, isTrue);
-    expect(doc?.shareUrl, 'https://v2.plpcg.com/?p=1a2-0c3&n=Ensaio');
+    expect(doc?.shareUrl, 'https://plpcg.com/?p=1a2-0c3&n=Ensaio');
     expect(capturedSubject, 'Folheto PLPCG');
     expect(capturedText, isNull);
   });

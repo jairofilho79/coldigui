@@ -76,12 +76,12 @@ GeneratePlaylistShareUrl _useCase(
 }
 
 void main() {
-  test('vetor do contrato: PDF, áudio e cifra, origem v2 por padrão', () async {
+  test('vetor do contrato: PDF, áudio e cifra, origem principal com deeplink', () async {
     final url = await _useCase(
       [_pdf, _audio, _chord],
       {_pdf.id: '1a2', _audio.id: '0c3', _chord.id: 'fff'},
     )(playlistId: 'p1');
-    expect(url, 'https://v2.plpcg.com/?p=1a2-0c3-fff&n=Culto%20de%20domingo');
+    expect(url, 'https://plpcg.com/?p=1a2-0c3-fff&n=Culto%20de%20domingo');
   });
 
   test('gesto, YouTube e letra também servem', () async {
@@ -100,7 +100,7 @@ void main() {
         {_pdf.id: '0a1', _audio.id: '0a1'},
         nome: 'Ensaio',
       )(playlistId: 'p1');
-      expect(url, 'https://v2.plpcg.com/?p=0a1-0a1&n=Ensaio');
+      expect(url, 'https://plpcg.com/?p=0a1-0a1&n=Ensaio');
     },
   );
 

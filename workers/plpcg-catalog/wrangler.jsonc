@@ -59,6 +59,14 @@
     {
       "pattern": "plpcg.com/ao-vivo/*",
       "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/.well-known/*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/louvor/*",
+      "zone_name": "plpcg.com"
     }
   ]
 }

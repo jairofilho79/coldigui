@@ -1,10 +1,11 @@
 import 'package:coldigui/core/constants/share_config.dart';
 import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
+import 'package:coldigui/core/utils/praise_url_builder.dart' show parsePraiseId;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('origem do link é o PWA v2', () {
-    expect(ShareConfig.appOrigin, 'https://v2.plpcg.com');
+  test('origem do link é o domínio principal com deeplink', () {
+    expect(ShareConfig.appOrigin, 'https://plpcg.com');
   });
 
   group('isPraiseShortId', () {
@@ -54,18 +55,18 @@ void main() {
           praiseShortIds: const ['1a2', '0c3', 'fff'],
           shareName: 'Culto de domingo',
         ),
-        'https://v2.plpcg.com/?p=1a2-0c3-fff&n=Culto%20de%20domingo',
+        'https://plpcg.com/?p=1a2-0c3-fff&n=Culto%20de%20domingo',
       );
     });
 
     test('tira a barra final da origem', () {
       expect(
         buildPraiseShareUrl(
-          origin: 'https://v2.plpcg.com/',
+          origin: 'https://plpcg.com/',
           praiseShortIds: const ['0a1'],
           shareName: 'X',
         ),
-        'https://v2.plpcg.com/?p=0a1&n=X',
+        'https://plpcg.com/?p=0a1&n=X',
       );
     });
 
@@ -323,6 +324,57 @@ void main() {
     test('input que não é link de lista → null', () {
       expect(extractShareParamsFromUserInput('https://example.com'), isNull);
       expect(extractShareParamsFromUserInput('   '), isNull);
+    });
+  });
+
+  group('parsePraiseId', () {
+    test('extrai id de URL https plpcg.com/louvor/:id', () {
+      expect(
+        parsePraiseId(Uri.parse('https://plpcg.com/louvor/abc123')),
+        'abc123',
+      );
+    });
+
+    test('extrai id de URL legada v2.plpcg.com/louvor/:id', () {
+      expect(
+        parsePraiseId(Uri.parse('https://v2.plpcg.com/louvor/abc123')),
+        'abc123',
+      );
+    });
+
+    test('extrai id de custom scheme plpcg://louvor/:id', () {
+      expect(
+        parsePraiseId(Uri.parse('plpcg://louvor/abc123')),
+        'abc123',
+      );
+    });
+
+    test('extrai id de custom scheme plpcg:///louvor/:id', () {
+      expect(
+        parsePraiseId(Uri.parse('plpcg:///louvor/abc123')),
+        'abc123',
+      );
+    });
+
+    test('extrai id de fragmento web /#/louvor/:id', () {
+      expect(
+        parsePraiseId(Uri.parse('https://plpcg.com/#/louvor/abc123')),
+        'abc123',
+      );
+    });
+
+    test('decodifica componente codificado', () {
+      expect(
+        parsePraiseId(Uri.parse('https://plpcg.com/louvor/meu%20louvor')),
+        'meu louvor',
+      );
+    });
+
+    test('devolve null se não for rota de louvor', () {
+      expect(parsePraiseId(Uri.parse('https://plpcg.com/?p=0a1&n=X')), isNull);
+      expect(parsePraiseId(Uri.parse('https://plpcg.com/ao-vivo/k7x2m9q')), isNull);
+      expect(parsePraiseId(Uri.parse('https://plpcg.com/louvor/')), isNull);
+      expect(parsePraiseId(Uri.parse('https://plpcg.com/')), isNull);
     });
   });
 }

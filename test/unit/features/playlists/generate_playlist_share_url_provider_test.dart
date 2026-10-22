@@ -88,7 +88,7 @@ void main() {
       PlaylistEntry(id: movedPdfId, kind: MaterialKind.pdf),
       PlaylistEntry(id: ownAudioId, kind: MaterialKind.audio),
     ]);
-    expect(url, 'https://v2.plpcg.com/?p=0a1-0a1&n=Ensaio');
+    expect(url, 'https://plpcg.com/?p=0a1-0a1&n=Ensaio');
   });
 
   test('id legado órfão fica de fora; os do catálogo seguem', () async {
@@ -99,7 +99,7 @@ void main() {
       ),
       PlaylistEntry(id: ownAudioId, kind: MaterialKind.audio),
     ]);
-    expect(url, 'https://v2.plpcg.com/?p=0a1&n=Ensaio');
+    expect(url, 'https://plpcg.com/?p=0a1&n=Ensaio');
   });
 
   test(
