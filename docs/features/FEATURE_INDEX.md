@@ -2792,7 +2792,7 @@ Ver guia detalhado: **[MVP Roadmap.md](../MVP%20Roadmap.md)** (fases 0–5, depe
 | Item | Valor |
 |------|-------|
 | Target iOS | `ios/` (Flutter 3.38+, Xcode 26) |
-| Bundle ID | `com.example.coldigui` |
+| Bundle ID | `com.plpcg.app` |
 | Display name | Coldigui |
 | Backend homologação | `https://plpcg.com` via [dart_defines/plpcg.json] |
 | Dispositivos físicos | iPhone **ou** iPad (USB; pareamento Xcode obrigatório) |
@@ -2817,7 +2817,7 @@ Conta Apple **pessoal/gratuita** não suporta Associated Domains — builds Debu
 | `scripts/ios_dev_run.sh` | Dispositivo físico USB — hot reload | `flutter build ios --debug` + `flutter run`; [Runner-Homolog.entitlements] |
 | `scripts/ios_homolog_install.sh` | Dispositivo físico — teste como usuário final | `flutter build ios --profile` → `xcodebuild -allowProvisioningUpdates` (inclui UDID do dispositivo) → install (~7 dias) |
 
-Scripts iOS usam [dart_defines/plpcg.json], desinstalam versão anterior (`com.example.coldigui`) e resolvem dispositivo via [ios_resolve_device.py] (só prossegue se o dispositivo aparecer em `flutter devices`).
+Scripts iOS usam [dart_defines/plpcg.json], desinstalam versão anterior (`com.plpcg.app`) e resolvem dispositivo via [ios_resolve_device.py] (só prossegue se o dispositivo aparecer em `flutter devices`).
 
 ### `ios_resolve_device.py` — CLI (jun/2026)
 
@@ -2836,7 +2836,7 @@ Scripts iOS usam [dart_defines/plpcg.json], desinstalam versão anterior (`com.e
 | Etapa | Comando / artefato |
 |-------|-------------------|
 | 1. Resolver dispositivo | [ios_resolve_device.py] → UDID pareado |
-| 2. Desinstalar anterior | `devicectl device uninstall` (`com.example.coldigui`) |
+| 2. Desinstalar anterior | `devicectl device uninstall` (`com.plpcg.app`) |
 | 3. Build Dart/AOT | `flutter build ios --profile` |
 | 4. Provisioning | `xcodebuild -allowProvisioningUpdates -destination id=<UDID>` — inclui UDID no profile (evita `0xe8008012`) |
 | 5. Artefato | `build/ios/XcodeDerivedData/Build/Products/Profile-iphoneos/Runner.app` |

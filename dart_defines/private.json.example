@@ -1,3 +1,4 @@
 {
-  "GOOGLE_CLIENT_ID_WEB": "xxxxx.apps.googleusercontent.com"
+  "GOOGLE_CLIENT_ID_WEB": "xxxxx.apps.googleusercontent.com",
+  "GOOGLE_CLIENT_ID_IOS": "xxxxx.apps.googleusercontent.com"
 }

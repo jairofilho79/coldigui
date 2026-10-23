@@ -1,6 +1,6 @@
 # Setup Google OAuth (login PLPCG)
 
-Checklist operacional para o Client ID Web usado pelo Flutter Web e pelo Worker `plpcg-catalog`.
+Checklist operacional para o Client ID Web, iOS e Android usado pelo Flutter e pelo Worker `plpcg-catalog`.
 
 ## 1. Google Cloud Console
 
@@ -11,7 +11,7 @@ Checklist operacional para o Client ID Web usado pelo Flutter Web e pelo Worker 
    - Domínios autorizados: `plpcg.com` (e `plpcjf.org` se aplicável)
    - Política de privacidade (URL pública)
    - Escopos: `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`
-   - Para abrir a **todas as contas Google**: **Publishing status → In production**
+   - Para abrir a **todas as contas Google**: **Publishing status → In production** (se em Testing, adicione as contas em *Test users*)
 3. **Credenciais → Criar → ID do cliente OAuth → Aplicativo da Web**
    - Nome: `PLPCG Web`
    - Origens JavaScript autorizadas:
@@ -23,7 +23,16 @@ Checklist operacional para o Client ID Web usado pelo Flutter Web e pelo Worker 
      - `http://localhost:8080/`
      - `http://127.0.0.1:8080/` (opcional — só se usar esse host em vez de `localhost` no dev local)
      - (barra final obrigatória: `redirect_uri` é `<origin>/`)
-4. Copie o **Client ID** (`….apps.googleusercontent.com`). Não use Client Secret no app nem no Worker deste fluxo.
+   - Copie o **Client ID Web** (`….apps.googleusercontent.com`).
+4. **Credenciais → Criar → ID do cliente OAuth → iOS**
+   - Nome: `PLPCG iOS`
+   - Bundle ID: `com.plpcg.app`
+   - Copie o **Client ID iOS** (`….apps.googleusercontent.com`) e o **Esquema de URL invertido (REVERSED_CLIENT_ID)** (`com.googleusercontent.apps.…`).
+5. **Credenciais → Criar → ID do cliente OAuth → Android**
+   - Nome: `PLPCG Android`
+   - Nome do pacote: `com.plpcg.app`
+   - Certificado SHA-1: obtido via `keytool` do keystore usado (veja seção 4).
+   - *Nota:* O Android não precisa de um Client ID no Dart; ele usa o Client ID Web como `serverClientId` e valida a assinatura via Play Services.
 
 ## 2. Cloudflare Worker
 
@@ -47,21 +56,44 @@ Arquivo **gitignored**. Modelo: `dart_defines/private.json.example`.
 
 ```json
 {
-  "GOOGLE_CLIENT_ID_WEB": "xxxxx.apps.googleusercontent.com"
+  "GOOGLE_CLIENT_ID_WEB": "xxxxx.apps.googleusercontent.com",
+  "GOOGLE_CLIENT_ID_IOS": "xxxxx.apps.googleusercontent.com"
 }
 ```
 
-`scripts/web_build.sh` e `web_deploy.sh` aplicam automaticamente `private.json` se existir (além de `plpcjf.json`).
+`scripts/web_build.sh`, `scripts/ios_homolog_install.sh` e `scripts/android_homolog_install.sh` aplicam automaticamente `private.json` se existir.
 
-Dev manual:
+## 4. Configuração Nativa por Plataforma
 
-```bash
-flutter run -d chrome \
-  --dart-define-from-file=dart_defines/plpcg.dev.json \
-  --dart-define-from-file=dart_defines/private.json
-```
+### iOS
+1. No arquivo `ios/Runner/Info.plist`, adicione o esquema do `REVERSED_CLIENT_ID` sob `CFBundleURLTypes`:
+   ```xml
+   <key>CFBundleURLTypes</key>
+   <array>
+       <dict>
+           <key>CFBundleTypeRole</key>
+           <string>Editor</string>
+           <key>CFBundleURLName</key>
+           <string>com.plpcg.app</string>
+           <key>CFBundleURLSchemes</key>
+           <array>
+               <string>plpcg</string>
+               <string>com.googleusercontent.apps.XXXXXXXXXXXX-XXXXXXXXXXXXXXXX</string>
+           </array>
+       </dict>
+   </array>
+   ```
+2. Adicione `"GOOGLE_CLIENT_ID_IOS"` em `dart_defines/private.json`.
 
-## 4. Validação rápida
+### Android
+1. Gere o fingerprint SHA-1 da chave de debug (ou release):
+   ```bash
+   keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+   ```
+2. Cadastre o SHA-1 e o pacote `com.plpcg.app` no Google Cloud Console (tipo Android).
+3. O código Flutter já passa automaticamente `serverClientId: AppConfig.googleClientIdWeb` para o Credential Manager do Android, garantindo que o token de retorno tenha a audiência esperada pelo Worker.
+
+## 5. Validação rápida
 
 1. `npm run db:migrate:local` / `db:migrate:remote` (tabela `users`)
 2. `npm run deploy` (rotas `/api/auth/*` + secret)

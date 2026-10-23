@@ -12,7 +12,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-BUNDLE_ID="com.example.coldigui"
+BUNDLE_ID="com.plpcg.app"
 DART_DEFINES_FILE="dart_defines/plpcg.json"
 PRIVATE_DEFINES_FILE="dart_defines/private.json"
 

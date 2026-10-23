@@ -41,22 +41,31 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
-./scripts/ios_dev_run.sh — desenvolvimento com hot reload
-./scripts/ios_homolog_install.sh — testar no iPhone como usuário final, sem cabo/terminal
+## Deploy e Execução
 
+### Deploy Unificado (Web, iPad e Android)
+Deploy em todas as plataformas com abertura automática da pasta do APK no Finder ao concluir:
 
-# 1. Abrir o simulador (se estiver fechado)
+```bash
+./scripts/deploy_all.sh        # ou ./deploy.sh
+./scripts/deploy_all.sh --help # ver opções (--skip-web, --skip-ios, --skip-android, --release, etc.)
+```
+
+### Scripts Individuais
+- `./scripts/web_deploy.sh` — Deploy Web WASM no Cloudflare Pages (v2.plpcg.com)
+- `./scripts/ios_homolog_install.sh` — Testar no iPad/iPhone físico como usuário final (sem cabo/terminal)
+- `./scripts/ios_dev_run.sh` — Desenvolvimento iOS com hot reload
+- `./scripts/android_homolog_install.sh` — Testar no tablet Android físico
+
+### Simuladores / Emuladores
+```bash
+# Simulador iOS:
 xcrun simctl boot "iPhone 17 Pro"
 open -a Simulator
-
-# 2. Rodar o app
-cd "/Volumes/SSD 2TB SD/dev/coldigui"
 flutter run --dart-define-from-file=dart_defines/plpcg.json -d "iPhone 17 Pro"
 
-./scripts/android_homolog_install.sh
-
+# Emulador Android:
 flutter emulators --launch coldigui_tablet
 source scripts/android_env.sh
 flutter run --dart-define-from-file=dart_defines/plpcg.json
-
-./scripts/web_deploy.sh
+```
