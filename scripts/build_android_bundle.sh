@@ -30,16 +30,21 @@ if [[ -f "$PRIVATE_DEFINES_FILE" ]]; then
   DEFINE_ARGS+=(--dart-define-from-file="$PRIVATE_DEFINES_FILE")
 fi
 
-echo "==> Compilando Android App Bundle (.aab) em modo Release..."
+APP_VERSION=$(grep '^version:' "$ROOT_DIR/pubspec.yaml" | sed 's/version:[[:space:]]*//' | tr -d '\r\n')
+
+echo "==> Compilando PLPCG Android App Bundle (.aab) v${APP_VERSION} em modo Release..."
 flutter build appbundle --release "${DEFINE_ARGS[@]}"
 
 AAB_OUTPUT="build/app/outputs/bundle/release/app-release.aab"
+VERSIONED_AAB="build/app/outputs/bundle/release/PLPCG-v${APP_VERSION}.aab"
 if [[ -f "$AAB_OUTPUT" ]]; then
+  cp "$AAB_OUTPUT" "$VERSIONED_AAB"
   echo ""
   echo "================================================================="
-  echo "✅ SUCESSO! Android App Bundle gerado com sucesso:"
-  echo "   $ROOT_DIR/$AAB_OUTPUT"
-  echo "   Tamanho: $(du -h "$AAB_OUTPUT" | cut -f1)"
+  echo "✅ SUCESSO! Android App Bundle v${APP_VERSION} gerado com sucesso:"
+  echo "   Padrão:    $ROOT_DIR/$AAB_OUTPUT"
+  echo "   Versionado: $ROOT_DIR/$VERSIONED_AAB"
+  echo "   Tamanho:   $(du -h "$AAB_OUTPUT" | cut -f1)"
   echo "================================================================="
   echo "Este é o arquivo que você fará upload no Google Play Console!"
 else
