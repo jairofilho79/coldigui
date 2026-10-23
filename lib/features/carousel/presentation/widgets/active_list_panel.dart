@@ -79,6 +79,25 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
         items.any((item) => item.materialId == openItem.materialId);
     final showUnlistedSection = openItem != null && !isInList;
 
+    // Determina a ocorrência do louvor atualmente ativo na lista:
+    // 1. Se há um material aberto no leitor que pertence à lista, ele é o atual.
+    // 2. Caso contrário (fora do leitor), o item focado no carrossel ([carouselFocusedIndexProvider]) é o atual.
+    // Isso garante que o indicativo de louvor atual seja 100% consistente em qualquer tela.
+    final currentKey = () {
+      if (isInList) {
+        if (focusedIndex >= 0 &&
+            focusedIndex < items.length &&
+            items[focusedIndex].materialId == openItem.materialId) {
+          return items[focusedIndex].key;
+        }
+        return items.firstWhere((it) => it.materialId == openItem.materialId).key;
+      }
+      if (items.isNotEmpty && focusedIndex >= 0 && focusedIndex < items.length) {
+        return items[focusedIndex].key;
+      }
+      return null;
+    }();
+
     Widget? header;
     if (showUnlistedSection || items.isEmpty) {
       header = Column(
@@ -191,9 +210,7 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
       onReorderItem: _handleReorder,
       itemBuilder: (context, index) {
         final item = items[index];
-        final isCurrent =
-            openItem != null && item.materialId == openItem.materialId;
-        final highlighted = index == focusedIndex;
+        final isCurrent = currentKey != null && item.key == currentKey;
         final isFirst = index == 0;
 
         final chip = CarouselLouvorChip(
@@ -206,20 +223,6 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
           onTap: widget.onOpen == null ? null : () => _handleTap(item),
           onRemove: () => _handleRemove(item),
         );
-
-        final BoxDecoration? containerDecoration = highlighted && !isCurrent
-            ? BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.goldLight, width: 2),
-                boxShadow: const [
-                  BoxShadow(
-                    color: AppColors.goldGlow,
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                  ),
-                ],
-              )
-            : null;
 
         final Widget itemBody = isCurrent
             ? CurrentLouvorHighlight(child: chip)
@@ -234,10 +237,6 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Container(
               key: ValueKey('activeListPanelItem-${item.key}'),
-              padding: highlighted && !isCurrent
-                  ? const EdgeInsets.all(3.0)
-                  : EdgeInsets.zero,
-              decoration: containerDecoration,
               child: itemBody,
             ),
           ),
@@ -247,12 +246,11 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
   }
 }
 
-/// Destaque com tag "Atual" e layout em [Stack] para o louvor que está
-/// atualmente aberto/em exibição dentro da lista ativa.
+/// Destaque de louvor atual dentro da lista ativa.
 ///
-/// Visual padronizado com o [_TagLabel] do [GoldenTaggedContainer] (§5.2):
-/// fundo 100% opaco [AppColors.background], borda dourada 1.5px e texto
-/// [AppTypography.tagLabel] com "Atual".
+/// O visual do contorno nobre e da etiqueta "Atual" é renderizado internamente
+/// pelo próprio [CarouselLouvorChip] quando `isCurrent: true`, mantendo paridade
+/// visual e dimensional com as etiquetas da tela de pesquisa ([ChipGroupLabel]).
 class CurrentLouvorHighlight extends StatelessWidget {
   const CurrentLouvorHighlight({
     required this.child,
@@ -265,41 +263,7 @@ class CurrentLouvorHighlight extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = tagText ?? 'Atual';
-    final verticalPadding = MediaQuery.textScalerOf(context).scale(2.0);
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 8.0),
-          child: child,
-        ),
-        Positioned(
-          left: 18,
-          top: 0,
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: verticalPadding,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: AppColors.gold, width: 1.5),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x33000000),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Text(label, style: AppTypography.tagLabel),
-          ),
-        ),
-      ],
-    );
+    return child;
   }
 }
 

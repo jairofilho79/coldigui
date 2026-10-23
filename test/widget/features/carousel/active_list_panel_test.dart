@@ -85,19 +85,24 @@ void main() {
     await tester.pumpWidget(buildSubject(editor: FakeActiveEditor(entries)));
     await tester.pumpAndSettle();
 
-    final a = tester.widget<Container>(
-      find.byKey(const ValueKey('activeListPanelItem-a')),
+    final itemBHighlight = find.descendant(
+      of: find.byKey(const ValueKey('activeListPanelItem-b')),
+      matching: find.byType(CurrentLouvorHighlight),
     );
-    final b = tester.widget<Container>(
-      find.byKey(const ValueKey('activeListPanelItem-b')),
-    );
-    final c = tester.widget<Container>(
-      find.byKey(const ValueKey('activeListPanelItem-c')),
-    );
+    expect(itemBHighlight, findsOneWidget, reason: 'focada');
 
-    expect(a.decoration, isNull, reason: 'não focada');
-    expect(b.decoration, isNotNull, reason: 'focada');
-    expect(c.decoration, isNull, reason: 'não focada');
+    final itemAHighlight = find.descendant(
+      of: find.byKey(const ValueKey('activeListPanelItem-a')),
+      matching: find.byType(CurrentLouvorHighlight),
+    );
+    expect(itemAHighlight, findsNothing, reason: 'não focada');
+
+    final itemCHighlight = find.descendant(
+      of: find.byKey(const ValueKey('activeListPanelItem-c')),
+      matching: find.byType(CurrentLouvorHighlight),
+    );
+    expect(itemCHighlight, findsNothing, reason: 'não focada');
+    expect(find.text('Atual'), findsOneWidget);
   });
 
   testWidgets('reorder dispara reorder por chaves', (tester) async {

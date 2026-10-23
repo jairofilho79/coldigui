@@ -392,6 +392,10 @@ class CarouselLouvorChip extends StatelessWidget {
           const SizedBox(width: 6),
           ChipGroupLabel(label: groupLabel!, textWidthLimit: labelTextWidth),
         ],
+        if (isCurrent && !_isTopBar) ...[
+          const SizedBox(width: 6),
+          const _CurrentChip(label: 'Atual'),
+        ],
         if (_trailingAction != null) ...[
           const SizedBox(width: 4),
           _trailingAction!,
@@ -557,6 +561,36 @@ class _NewChip extends StatelessWidget {
         style: AppTypography.label.copyWith(
           fontSize: 10,
           color: Colors.white.withValues(alpha: 0.95),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tag de louvor atual no modal — mesmo estilo visual compacto das etiquetas
+/// dos cards de louvor da tela de pesquisa ([ChipGroupLabel] / [_NewChip]).
+class _CurrentChip extends StatelessWidget {
+  const _CurrentChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.gold.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.goldLight, width: 1),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        style: AppTypography.label.copyWith(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          height: 1.2,
+          color: AppColors.goldLight,
         ),
       ),
     );
