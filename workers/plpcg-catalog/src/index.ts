@@ -634,17 +634,18 @@ export default {
       return handleLouvorRedirect(url.pathname, url.search);
     }
 
-    if (url.pathname === '/') {
-      if (isRootDeepLinkQuery(url.searchParams)) {
-        if (request.method !== 'GET') {
-          return withCors(
-            jsonResponse({ error: 'method not allowed' }, { status: 405 }),
-            request,
-            mode,
-          );
-        }
-        return handleDeepLinkRedirect(url.pathname, url.search);
+    if (url.pathname === '/' && isRootDeepLinkQuery(url.searchParams)) {
+      if (request.method !== 'GET') {
+        return withCors(
+          jsonResponse({ error: 'method not allowed' }, { status: 405 }),
+          request,
+          mode,
+        );
       }
+      return handleDeepLinkRedirect(url.pathname, url.search);
+    }
+
+    if (!url.pathname.startsWith('/api/')) {
       return fetch(request);
     }
 
