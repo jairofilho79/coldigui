@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/routing/route_paths.dart';
@@ -356,109 +355,141 @@ class _SignedInHeader extends ConsumerWidget {
     }
   }
 
+  static const double _wideBreakpoint = 560;
+
+  Widget _buildUserBlock(BuildContext context) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 28,
+          backgroundColor: AppColors.gold.withValues(alpha: 0.3),
+          backgroundImage: user.pictureUrl != null
+              ? NetworkImage(user.pictureUrl!)
+              : null,
+          child: user.pictureUrl == null
+              ? const Icon(Icons.person, size: 28, color: Colors.white)
+              : null,
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                user.name ?? 'Usuário',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (user.email != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  user.email!,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              if (user.hasUsername)
+                Text(
+                  '@${user.username}',
+                  style: const TextStyle(
+                    color: AppColors.gold,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                )
+              else
+                TextButton(
+                  onPressed: () => showCreateUsernameDialog(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.gold,
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  child: Text(
+                    AppLocalizations.of(context)!.usernameCreateButton,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActions(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    return Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 4,
+      runSpacing: 4,
+      children: [
+        TextButton.icon(
+          onPressed: () => ref.read(authStateProvider.notifier).signOut(),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white,
+            visualDensity: VisualDensity.compact,
+          ),
+          icon: const Icon(Icons.logout, size: 18),
+          label: Text(l10n.profileSignOut),
+        ),
+        TextButton.icon(
+          key: const ValueKey('profile-delete-account-button'),
+          onPressed: () => _confirmDeleteAccount(context, ref),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.redAccent.shade100,
+            visualDensity: VisualDensity.compact,
+          ),
+          icon: const Icon(Icons.delete_outline, size: 18),
+          label: Text(l10n.profileDeleteAccount),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: Wrap(
-              alignment: WrapAlignment.end,
-              spacing: 4,
-              children: [
-                TextButton.icon(
-                  onPressed: () => ref.read(authStateProvider.notifier).signOut(),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  icon: const Icon(Icons.logout, size: 18),
-                  label: Text(l10n.profileSignOut),
-                ),
-                TextButton.icon(
-                  key: const ValueKey('profile-delete-account-button'),
-                  onPressed: () => _confirmDeleteAccount(context, ref),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.redAccent.shade100,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  label: Text(l10n.profileDeleteAccount),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 8, 0),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= _wideBreakpoint;
+
+        if (isWide) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: AppColors.gold.withValues(alpha: 0.3),
-                  backgroundImage: user.pictureUrl != null
-                      ? NetworkImage(user.pictureUrl!)
-                      : null,
-                  child: user.pictureUrl == null
-                      ? const Icon(Icons.person, size: 28, color: Colors.white)
-                      : null,
-                ),
+                Expanded(child: _buildUserBlock(context)),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.name ?? 'Usuário',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (user.email != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          user.email!,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      if (user.hasUsername)
-                        Text(
-                          '@${user.username}',
-                          style: const TextStyle(
-                            color: AppColors.gold,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        )
-                      else
-                        TextButton(
-                          onPressed: () => showCreateUsernameDialog(context),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.gold,
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          child: Text(
-                            AppLocalizations.of(context)!.usernameCreateButton,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+                _buildActions(context, ref),
               ],
             ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildUserBlock(context),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: _buildActions(context, ref),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
