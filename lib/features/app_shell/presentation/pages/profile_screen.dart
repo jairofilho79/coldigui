@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/routing/route_paths.dart';
@@ -275,6 +276,86 @@ class _SignedInHeader extends ConsumerWidget {
 
   final AuthUser user;
 
+  Future<void> _confirmDeleteAccount(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.background,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.gold, width: 1.5),
+        ),
+        title: Text(
+          l10n.profileDeleteAccountDialogTitle,
+          style: const TextStyle(
+            color: Colors.redAccent,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          l10n.profileDeleteAccountDialogContent,
+          style: const TextStyle(
+            color: AppColors.textLight,
+            fontSize: 14,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('delete-account-cancel-button'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              l10n.cancel,
+              style: const TextStyle(color: AppColors.textLight),
+            ),
+          ),
+          FilledButton(
+            key: const ValueKey('delete-account-confirm-button'),
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.redAccent.shade700,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              l10n.profileDeleteAccountConfirm,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await ref.read(authStateProvider.notifier).deleteAccount();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.profileDeleteAccountSuccess),
+              backgroundColor: AppColors.background,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.profileDeleteAccountError),
+              backgroundColor: Colors.redAccent.shade700,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -285,14 +366,30 @@ class _SignedInHeader extends ConsumerWidget {
         children: [
           Align(
             alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => ref.read(authStateProvider.notifier).signOut(),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                visualDensity: VisualDensity.compact,
-              ),
-              icon: const Icon(Icons.logout, size: 18),
-              label: Text(l10n.profileSignOut),
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 4,
+              children: [
+                TextButton.icon(
+                  onPressed: () => ref.read(authStateProvider.notifier).signOut(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.logout, size: 18),
+                  label: Text(l10n.profileSignOut),
+                ),
+                TextButton.icon(
+                  key: const ValueKey('profile-delete-account-button'),
+                  onPressed: () => _confirmDeleteAccount(context, ref),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.redAccent.shade100,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: Text(l10n.profileDeleteAccount),
+                ),
+              ],
             ),
           ),
           Padding(

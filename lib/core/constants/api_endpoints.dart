@@ -6,6 +6,9 @@ abstract final class ApiEndpoints {
   /// `POST` + `Authorization: Bearer <id_token>` → perfil (`googleSub`, …).
   static const String authSession = '/api/auth/session';
 
+  /// Exclui a conta e todos os dados associados — `DELETE` + Bearer.
+  static const String authAccount = '/api/auth/account';
+
   /// Define username único — `PUT` + Bearer + `{ username }`.
   static const String authUsername = '/api/auth/username';
 

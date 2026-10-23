@@ -354,13 +354,15 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     final isLoading = activeDownload?.isLoading ?? false;
     final primary = widget.group.primaryLouvor;
     final singleAudio = _singleAudio;
-    final isAdded = primary != null
-        ? ref.watch(
-            activeMaterialIdsProvider.select(
-              (ids) => ids.contains(primary.pdfId),
-            ),
-          )
-        : false;
+    final groupAddableIds = {
+      for (final material in widget.group.materials)
+        if (canAddMaterialToPlaylist(material)) material.id,
+    };
+    final isAdded = ref.watch(
+      activeMaterialIdsProvider.select(
+        (ids) => groupAddableIds.any(ids.contains),
+      ),
+    );
     final isMultiMaterial = widget.group.totalMaterials > 1;
     final hasAudio = widget.group.audioTracks.isNotEmpty;
     final highlightQuery = ref.watch(homeSearchDebouncedQueryProvider);
@@ -419,10 +421,10 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       }),
     );
 
-    final VoidCallback? onAdd = isLoading
+    final VoidCallback? onAdd = isLoading || isAdded
         ? null
         : isSinglePdfOnly
-        ? (isAdded ? null : _handleAddToCarousel)
+        ? _handleAddToCarousel
         : (preferredMaterial == null
               ? null
               : () =>
@@ -440,7 +442,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
           ? null
           : () => unawaited(_handleLongPress(preferredMaterial)),
       onAdd: onAdd,
-      isAdded: isMultiMaterial ? false : isAdded,
+      isAdded: isAdded,
       loading: isLoading,
       offlineAvailability: offlineAvailability,
       isNew: widget.isNew,

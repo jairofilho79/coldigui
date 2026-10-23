@@ -3559,4 +3559,32 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tutorialWelcomeTourStep4Message =>
       'Access the **Playlists** tab to organize rehearsal playlists and open **Offline Storage** in Profile to praise **offline** anywhere!';
+
+  @override
+  String get privacyPolicyTitle => 'Privacy Policy';
+
+  @override
+  String get privacyPolicyAboutDescription =>
+      'Learn how we protect your data and privacy.';
+
+  @override
+  String get profileDeleteAccount => 'Delete account';
+
+  @override
+  String get profileDeleteAccountDialogTitle => 'Delete account and data?';
+
+  @override
+  String get profileDeleteAccountDialogContent =>
+      'This action is irreversible. Your account, synced playlists, audio flags, and preferences will be permanently deleted from the PLPCG servers.';
+
+  @override
+  String get profileDeleteAccountConfirm => 'Delete permanently';
+
+  @override
+  String get profileDeleteAccountSuccess =>
+      'Your account and all associated data were successfully deleted.';
+
+  @override
+  String get profileDeleteAccountError =>
+      'Could not delete your account. Check your connection and try again.';
 }

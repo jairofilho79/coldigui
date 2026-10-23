@@ -6151,6 +6151,54 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Acesse a aba **Listas** para organizar playlists de ensaio e abra o **Armazenamento Offline** no Perfil para louvar **sem internet** em qualquer lugar!'**
   String get tutorialWelcomeTourStep4Message;
+
+  /// No description provided for @privacyPolicyTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Política de Privacidade'**
+  String get privacyPolicyTitle;
+
+  /// No description provided for @privacyPolicyAboutDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saiba como protegemos seus dados e sua privacidade.'**
+  String get privacyPolicyAboutDescription;
+
+  /// No description provided for @profileDeleteAccount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir conta'**
+  String get profileDeleteAccount;
+
+  /// No description provided for @profileDeleteAccountDialogTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir conta e dados?'**
+  String get profileDeleteAccountDialogTitle;
+
+  /// No description provided for @profileDeleteAccountDialogContent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta ação é irreversível. Sua conta, playlists sincronizadas, marcações e preferências serão permanentemente excluídas dos servidores do PLPCG.'**
+  String get profileDeleteAccountDialogContent;
+
+  /// No description provided for @profileDeleteAccountConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir definitivamente'**
+  String get profileDeleteAccountConfirm;
+
+  /// No description provided for @profileDeleteAccountSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua conta e todos os dados foram excluídos com sucesso.'**
+  String get profileDeleteAccountSuccess;
+
+  /// No description provided for @profileDeleteAccountError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível excluir sua conta. Verifique sua conexão e tente novamente.'**
+  String get profileDeleteAccountError;
 }
 
 class _AppLocalizationsDelegate

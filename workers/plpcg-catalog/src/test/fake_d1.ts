@@ -35,6 +35,13 @@
  * | `SELECT … FROM short_links WHERE code = ?` (`GET /l/:code`) | `short_links` + `WHERE code = ?` |
  * | `INSERT INTO short_links (…) VALUES (…) ON CONFLICT DO NOTHING RETURNING code` | `INSERT INTO short_links` |
  * | `UPDATE short_links SET hits = hits + 1 WHERE code = ?` | `UPDATE short_links` |
+ * | `DELETE FROM user_playlists WHERE user_id = ?` | `DELETE FROM user_playlists` |
+ * | `DELETE FROM user_audio_flags WHERE user_id = ?` | `DELETE FROM user_audio_flags` |
+ * | `DELETE FROM user_material_kind_prefs WHERE user_id = ?` | `DELETE FROM user_material_kind_prefs` |
+ * | `DELETE FROM short_links WHERE created_by = ?` | `DELETE FROM short_links` |
+ * | `DELETE FROM live_rooms WHERE owner_sub = ?` | `DELETE FROM live_rooms` |
+ * | `DELETE FROM user_sessions WHERE google_sub = ?` | `DELETE FROM user_sessions` |
+ * | `DELETE FROM users WHERE google_sub = ?` | `DELETE FROM users` |
  * | `DELETE FROM user_sessions WHERE expires_at < ?` (purga, `auth/user_sessions.ts`) | `user_sessions` + `expires_at < ?` |
  * | `INSERT INTO user_sessions (…) VALUES (…)` | `user_sessions` |
  * | `SELECT google_sub, last_seen_at FROM user_sessions WHERE token_hash = ? AND expires_at > ?` | `user_sessions` + `SELECT` |
@@ -55,7 +62,7 @@
  * Não implementa: `JOIN` (logo, o `searchSocialUsers`), `LIMIT`, `ORDER BY` de
  * verdade (a listagem ordena na mão por `updated_at` desc, ou por
  * `published_at` desc quando o SQL pede), tipos, constraints, transações,
- * `batch`, `exec`, `dump` nem `withSession`.
+ * `exec`, `dump` nem `withSession`.
  */
 
 export interface PlaylistRow {
@@ -136,7 +143,7 @@ interface StoredRow {
 
 export interface FakeD1Options {
   /** Linhas de `users` (a rota social resolve `username` → `google_sub`). */
-  users?: Array<{ google_sub: string; username: string; name?: string; email?: string | null }>;
+  users?: Array<{ google_sub: string; username?: string; name?: string; email?: string | null }>;
   /** Linhas de `user_audio_flags`. */
   audioFlags?: AudioFlagRow[];
   /** Linhas de `short_links`. */
@@ -287,6 +294,8 @@ export class FakeD1Database {
   readonly playlists = new Map<string, PlaylistRow>();
   /** Linhas de `user_audio_flags`, por `user_id` + `id`. */
   readonly audioFlags = new Map<string, AudioFlagRow>();
+  /** Conjunto de `google_sub` de `users`. */
+  readonly users = new Set<string>();
   /** `user_id` → `username`, para o `getUsername` da publicação. */
   readonly usernames = new Map<string, string>();
   /** `username` → `user_id`, para a rota social. */
@@ -316,8 +325,11 @@ export class FakeD1Database {
     for (const row of options.sessions ?? []) this.sessions.set(row.token_hash, row);
     for (const row of options.liveRooms ?? []) this.liveRooms.set(row.code, row);
     for (const user of options.users ?? []) {
-      this.usernames.set(user.google_sub, user.username);
-      this.usersByUsername.set(user.username, user.google_sub);
+      this.users.add(user.google_sub);
+      if (user.username) {
+        this.usernames.set(user.google_sub, user.username);
+        this.usersByUsername.set(user.username, user.google_sub);
+      }
       if (user.name) this.userNames.set(user.google_sub, user.name);
       this.userEmails.set(user.google_sub, user.email ?? null);
     }
@@ -338,6 +350,29 @@ export class FakeD1Database {
     return this;
   }
 
+  seedUser(user: { google_sub: string; username?: string; name?: string; email?: string | null }): this {
+    this.users.add(user.google_sub);
+    if (user.username) {
+      this.usernames.set(user.google_sub, user.username);
+      this.usersByUsername.set(user.username, user.google_sub);
+    }
+    if (user.name) this.userNames.set(user.google_sub, user.name);
+    this.userEmails.set(user.google_sub, user.email ?? null);
+    return this;
+  }
+
+  getUser(googleSub: string): { google_sub: string; username: string | null; name: string | null; email: string | null } | undefined {
+    if (!this.users.has(googleSub) && !this.usernames.has(googleSub) && !this.userNames.has(googleSub)) {
+      return undefined;
+    }
+    return {
+      google_sub: googleSub,
+      username: this.usernames.get(googleSub) ?? null,
+      name: this.userNames.get(googleSub) ?? null,
+      email: this.userEmails.get(googleSub) ?? null,
+    };
+  }
+
   get(userId: string, id: string): PlaylistRow | undefined {
     return this.playlists.get(key(userId, id));
   }
@@ -352,6 +387,14 @@ export class FakeD1Database {
 
   prepare(sql: string): FakeStatement {
     return new FakeStatement(this, sql, []);
+  }
+
+  async batch<T = unknown>(statements: FakeStatement[]): Promise<Array<{ results: T[]; success: true }>> {
+    const out: Array<{ results: T[]; success: true }> = [];
+    for (const s of statements) {
+      out.push(await s.all<T>());
+    }
+    return out;
   }
 
   /** @internal — usado pelo `FakeStatement`. */
@@ -440,6 +483,53 @@ export class FakeD1Database {
       return [];
     }
 
+    if (/^DELETE FROM users/i.test(normalized)) {
+      const sub = bindings[0] as string;
+      this.users.delete(sub);
+      const username = this.usernames.get(sub);
+      if (username !== undefined) {
+        this.usersByUsername.delete(username);
+      }
+      this.usernames.delete(sub);
+      this.userNames.delete(sub);
+      this.userEmails.delete(sub);
+      return [];
+    }
+
+    if (/^DELETE FROM short_links/i.test(normalized)) {
+      if (/created_by = \?/i.test(normalized)) {
+        const createdBy = bindings[0] as string;
+        for (const [code, row] of this.shortLinks) {
+          if (row.created_by === createdBy) this.shortLinks.delete(code);
+        }
+        return [];
+      }
+      this.shortLinks.delete(bindings[0] as string);
+      return [];
+    }
+
+    if (/^DELETE FROM (user_playlists|user_audio_flags)/i.test(normalized)) {
+      const table = this.tableFor(normalized);
+      if (table) {
+        if (/AND id = \?/i.test(normalized)) {
+          const userId = bindings[0] as string;
+          const id = bindings[1] as string;
+          table.delete(key(userId, id));
+          return [];
+        }
+        if (/WHERE user_id = \?/i.test(normalized)) {
+          const userId = bindings[0] as string;
+          for (const [k, row] of table) {
+            if (row.user_id === userId) {
+              table.delete(k);
+            }
+          }
+          return [];
+        }
+      }
+      throw new Error(`fake D1: DELETE não suportado: ${normalized}`);
+    }
+
     throw new Error(`fake D1: consulta não suportada: ${normalized}`);
   }
 
@@ -488,6 +578,11 @@ export class FakeD1Database {
       this.materialKindPrefs.set(userId, next as unknown as MaterialKindPrefsRow);
       return [];
     }
+    if (/^DELETE/i.test(normalized)) {
+      const userId = bindings[0] as string;
+      this.materialKindPrefs.delete(userId);
+      return [];
+    }
     throw new Error(`fake D1: prefs não suportado: ${normalized}`);
   }
 
@@ -534,6 +629,13 @@ export class FakeD1Database {
         }
         return [];
       }
+      if (/google_sub = \?/i.test(normalized)) {
+        const sub = bindings[0] as string;
+        for (const [hash, row] of this.sessions) {
+          if (row.google_sub === sub) this.sessions.delete(hash);
+        }
+        return [];
+      }
       this.sessions.delete(bindings[0] as string);
       return [];
     }
@@ -548,8 +650,8 @@ export class FakeD1Database {
     }
     const sub = bindings[0] as string;
     const username = this.usernames.get(sub);
-    if (username === undefined) return [];
-    return [{ username, name: this.userNames.get(sub) ?? null, email: this.userEmails.get(sub) ?? null }];
+    if (!this.users.has(sub) && username === undefined) return [];
+    return [{ username: username ?? null, name: this.userNames.get(sub) ?? null, email: this.userEmails.get(sub) ?? null }];
   }
 
   /**
@@ -600,6 +702,17 @@ export class FakeD1Database {
         this.liveRooms.set(newCode, { ...row, code: newCode });
         return [{ code: newCode }];
       }
+      return [];
+    }
+    if (/^DELETE/i.test(normalized)) {
+      if (/owner_sub = \?/i.test(normalized)) {
+        const ownerSub = bindings[0] as string;
+        for (const [code, row] of this.liveRooms) {
+          if (row.owner_sub === ownerSub) this.liveRooms.delete(code);
+        }
+        return [];
+      }
+      this.liveRooms.delete(bindings[0] as string);
       return [];
     }
     throw new Error(`fake D1: live_rooms não suportado: ${normalized}`);

@@ -1,4 +1,5 @@
 import 'package:coldigui/features/app_shell/presentation/pages/about_screen.dart';
+import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
@@ -15,14 +16,19 @@ void main() {
 
     await tester.pumpWidget(
       const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: Locale('pt'),
         home: Scaffold(
           body: AboutScreen(),
         ),
       ),
     );
+    await tester.pumpAndSettle();
 
     expect(find.text('Quem somos'), findsOneWidget);
     expect(find.text('Objetivo'), findsOneWidget);
+    expect(find.text('Política de Privacidade'), findsOneWidget);
 
     final targets = tester.widgetList<SpotlightGuideTarget>(
       find.byType(SpotlightGuideTarget),
@@ -35,6 +41,7 @@ void main() {
         'about-mission',
         'about-shortcuts-card',
         'about-welcome-tour-card',
+        'about-privacy-policy-card',
       ]),
     );
     expect(find.text('Tour de Boas-Vindas'), findsOneWidget);

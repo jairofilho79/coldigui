@@ -1866,5 +1866,13 @@
   "tutorialWelcomeTourStep3Title": "3. Monte seu Repertório de Culto",
   "tutorialWelcomeTourStep3Message": "Toque no botão **(+)** para incluir louvores no **Carrossel Ativo**, permitindo alternar rapidamente entre partituras durante a ministração.",
   "tutorialWelcomeTourStep4Title": "4. Repertório Sempre com Você",
-  "tutorialWelcomeTourStep4Message": "Acesse a aba **Listas** para organizar playlists de ensaio e abra o **Armazenamento Offline** no Perfil para louvar **sem internet** em qualquer lugar!"
+  "tutorialWelcomeTourStep4Message": "Acesse a aba **Listas** para organizar playlists de ensaio e abra o **Armazenamento Offline** no Perfil para louvar **sem internet** em qualquer lugar!",
+  "privacyPolicyTitle": "Política de Privacidade",
+  "privacyPolicyAboutDescription": "Saiba como protegemos seus dados e sua privacidade.",
+  "profileDeleteAccount": "Excluir conta",
+  "profileDeleteAccountDialogTitle": "Excluir conta e dados?",
+  "profileDeleteAccountDialogContent": "Esta ação é irreversível. Sua conta, playlists sincronizadas, marcações e preferências serão permanentemente excluídas dos servidores do PLPCG.",
+  "profileDeleteAccountConfirm": "Excluir definitivamente",
+  "profileDeleteAccountSuccess": "Sua conta e todos os dados foram excluídos com sucesso.",
+  "profileDeleteAccountError": "Não foi possível excluir sua conta. Verifique sua conexão e tente novamente."
 }

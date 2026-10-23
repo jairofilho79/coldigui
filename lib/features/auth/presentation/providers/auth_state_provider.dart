@@ -301,4 +301,22 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     ref.read(authSessionStoreProvider).write(updated);
     state = AsyncData(updated);
   }
+
+  /// Exclui permanentemente a conta do usuário no Worker e limpa a sessão local.
+  Future<void> deleteAccount() async {
+    final current = state.asData?.value;
+    if (current == null) {
+      throw StateError('not_authenticated');
+    }
+    await ref
+        .read(authRemoteDatasourceProvider)
+        .deleteAccount(current.sessionToken);
+    ref.read(authSessionStoreProvider).clear();
+    state = const AsyncData(null);
+    try {
+      await GoogleSignIn.instance.signOut();
+    } on Object {
+      // Sessão local já limpa.
+    }
+  }
 }

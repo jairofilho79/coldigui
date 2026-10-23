@@ -159,4 +159,54 @@ void main() {
       ]);
     },
   );
+
+  testWidgets(
+    'toque no «+» adiciona o material e atualiza o card para o modo de adicionado (✓)',
+    (tester) async {
+      final editor = await pumpCard(tester);
+
+      expect(find.byType(CarouselLouvorAddButton), findsOneWidget);
+      expect(find.byType(ChipAddedIndicator), findsNothing);
+      expect(find.byIcon(Icons.check), findsNothing);
+
+      await tester.tap(find.byType(CarouselLouvorAddButton));
+      await tester.pumpAndSettle();
+
+      expect(editor.added, [(id: 'pdf1', kind: MaterialKind.pdf)]);
+      expect(find.byType(CarouselLouvorAddButton), findsNothing);
+      expect(find.byType(ChipAddedIndicator), findsOneWidget);
+      expect(find.byIcon(Icons.check), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'card com material já na lista ativa monta diretamente no modo adicionado (✓)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final editor = FakeActiveEditor([
+        const PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
+      ]);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            activePlaylistEditorProvider.overrideWith(() => editor),
+            playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: Scaffold(body: LouvorGroupCard(group: _multiMaterialGroup())),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CarouselLouvorAddButton), findsNothing);
+      expect(find.byType(ChipAddedIndicator), findsOneWidget);
+      expect(find.byIcon(Icons.check), findsOneWidget);
+    },
+  );
 }

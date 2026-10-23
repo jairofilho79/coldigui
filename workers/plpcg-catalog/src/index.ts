@@ -1,6 +1,7 @@
 import { handleIntrospect } from './auth/introspect';
 import { upsertUser } from './auth/session';
 import { handleDeleteSession, sessionResponse } from './auth/session_handlers';
+import { handleDeleteAccount } from './auth/account_deletion';
 import { setUsername } from './auth/username';
 import type { GoogleClaims } from './auth/verify_google_token';
 import { verifyGoogleIdToken } from './auth/verify_google_token';
@@ -37,8 +38,11 @@ import { ensureLiveRoom, liveRoomRedirect, regenerateLiveRoom } from './live/han
 import {
   handleAppleAppSiteAssociation,
   handleAssetLinks,
+  handleDeepLinkRedirect,
   handleLouvorRedirect,
+  isRootDeepLinkQuery,
 } from './well_known.ts';
+import { handlePrivacyPolicy } from './privacy.ts';
 export { LiveRoom } from './live/live_room.ts';
 import { proxyColdigomAsset } from './coldigom_assets_proxy';
 import { matchesEtag } from './etag';
@@ -506,6 +510,14 @@ export default {
       return withCors(await handleAuthSession(request, env), request, 'auth');
     }
 
+    if (url.pathname === '/api/auth/account') {
+      return withCors(
+        await handleDeleteAccount(request, env),
+        request,
+        'auth',
+      );
+    }
+
     if (url.pathname === '/api/auth/introspect') {
       if (request.method !== 'GET') {
         return jsonResponse({ error: 'method not allowed' }, { status: 405 });
@@ -599,6 +611,10 @@ export default {
       return withCors(liveRoomRedirect(url.pathname), request, 'live');
     }
 
+    if (url.pathname === '/privacy' || url.pathname === '/politica-de-privacidade') {
+      return handlePrivacyPolicy();
+    }
+
     if (url.pathname === '/.well-known/apple-app-site-association') {
       return handleAppleAppSiteAssociation();
     }
@@ -616,6 +632,20 @@ export default {
         );
       }
       return handleLouvorRedirect(url.pathname, url.search);
+    }
+
+    if (url.pathname === '/') {
+      if (isRootDeepLinkQuery(url.searchParams)) {
+        if (request.method !== 'GET') {
+          return withCors(
+            jsonResponse({ error: 'method not allowed' }, { status: 405 }),
+            request,
+            mode,
+          );
+        }
+        return handleDeepLinkRedirect(url.pathname, url.search);
+      }
+      return fetch(request);
     }
 
     if (request.method !== 'GET') {

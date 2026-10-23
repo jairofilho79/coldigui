@@ -89,6 +89,17 @@ class AuthRemoteDatasource {
     );
   }
 
+  /// `DELETE /api/auth/account` — exclui a conta e todos os dados do usuário.
+  Future<void> deleteAccount(String sessionToken) async {
+    await _dio.delete<void>(
+      ApiEndpoints.authAccount,
+      options: Options(
+        headers: {'Authorization': 'Bearer $sessionToken'},
+        validateStatus: (status) => status != null && status < 500,
+      ),
+    );
+  }
+
   /// `PUT /api/auth/username` — define handle único (uma vez).
   Future<String> setUsername({
     required String sessionToken,

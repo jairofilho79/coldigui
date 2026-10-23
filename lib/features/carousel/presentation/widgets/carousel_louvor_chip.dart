@@ -18,7 +18,8 @@ import 'chip_parts/metadata_row.dart';
 import 'chip_parts/peanut_lobe_border.dart';
 import 'chip_parts/share_overflow_button.dart';
 
-export 'chip_parts/chip_buttons.dart' show CarouselLouvorAddButton;
+export 'chip_parts/chip_buttons.dart'
+    show CarouselLouvorAddButton, ChipAddedIndicator;
 
 /// Altura do chip na variante modal/pill (usada pelos cartões «Abertos
 /// recentemente» da home).

@@ -3592,4 +3592,32 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get tutorialWelcomeTourStep4Message =>
       'Acesse a aba **Listas** para organizar playlists de ensaio e abra o **Armazenamento Offline** no Perfil para louvar **sem internet** em qualquer lugar!';
+
+  @override
+  String get privacyPolicyTitle => 'Política de Privacidade';
+
+  @override
+  String get privacyPolicyAboutDescription =>
+      'Saiba como protegemos seus dados e sua privacidade.';
+
+  @override
+  String get profileDeleteAccount => 'Excluir conta';
+
+  @override
+  String get profileDeleteAccountDialogTitle => 'Excluir conta e dados?';
+
+  @override
+  String get profileDeleteAccountDialogContent =>
+      'Esta ação é irreversível. Sua conta, playlists sincronizadas, marcações e preferências serão permanentemente excluídas dos servidores do PLPCG.';
+
+  @override
+  String get profileDeleteAccountConfirm => 'Excluir definitivamente';
+
+  @override
+  String get profileDeleteAccountSuccess =>
+      'Sua conta e todos os dados foram excluídos com sucesso.';
+
+  @override
+  String get profileDeleteAccountError =>
+      'Não foi possível excluir sua conta. Verifique sua conexão e tente novamente.';
 }

@@ -1579,5 +1579,13 @@
   "tutorialWelcomeTourStep3Title": "3. Build Your Worship Setlist",
   "tutorialWelcomeTourStep3Message": "Tap the **(+)** button to include praises in the **Active Carousel**, allowing you to quickly switch between sheets during worship.",
   "tutorialWelcomeTourStep4Title": "4. Setlist Always with You",
-  "tutorialWelcomeTourStep4Message": "Access the **Playlists** tab to organize rehearsal playlists and open **Offline Storage** in Profile to praise **offline** anywhere!"
+  "tutorialWelcomeTourStep4Message": "Access the **Playlists** tab to organize rehearsal playlists and open **Offline Storage** in Profile to praise **offline** anywhere!",
+  "privacyPolicyTitle": "Privacy Policy",
+  "privacyPolicyAboutDescription": "Learn how we protect your data and privacy.",
+  "profileDeleteAccount": "Delete account",
+  "profileDeleteAccountDialogTitle": "Delete account and data?",
+  "profileDeleteAccountDialogContent": "This action is irreversible. Your account, synced playlists, audio flags, and preferences will be permanently deleted from the PLPCG servers.",
+  "profileDeleteAccountConfirm": "Delete permanently",
+  "profileDeleteAccountSuccess": "Your account and all associated data were successfully deleted.",
+  "profileDeleteAccountError": "Could not delete your account. Check your connection and try again."
 }

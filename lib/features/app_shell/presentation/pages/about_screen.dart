@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/routing/shell_navigation.dart';
@@ -195,6 +196,86 @@ class AboutScreen extends StatelessWidget {
                         const Icon(
                           Icons.chevron_right,
                           color: AppColors.title,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SpotlightGuideTarget(
+              id: 'about-privacy-policy-card',
+              child: Material(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  key: const ValueKey('about-privacy-policy-button'),
+                  onTap: () async {
+                    const baseUrl = String.fromEnvironment(
+                      'PLPCG_API_BASE_URL',
+                      defaultValue: 'https://plpcg.com',
+                    );
+                    final uri = Uri.parse('$baseUrl/privacy');
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border:
+                          Border.all(color: AppColors.background, width: 1.5),
+                      boxShadow: AppColors.shadowMd,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(8),
+                            border:
+                                Border.all(color: AppColors.gold, width: 1),
+                          ),
+                          child: const Icon(
+                            Icons.privacy_tip_outlined,
+                            color: AppColors.goldLight,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.privacyPolicyTitle,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.garamondFamily,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18,
+                                  letterSpacing: 0.3,
+                                  color: AppColors.title,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.privacyPolicyAboutDescription,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.sansFamily,
+                                  fontSize: 13,
+                                  color: AppColors.textDark,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.open_in_new,
+                          color: AppColors.title,
+                          size: 20,
                         ),
                       ],
                     ),

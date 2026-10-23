@@ -112,4 +112,13 @@ void main() {
       throwsA(isA<DioException>()),
     );
   });
+
+  test('deleteAccount: 204 e 401 são sucesso; 5xx lança', () async {
+    await AuthRemoteDatasource(_dioWith(204)).deleteAccount('sess_a');
+    await AuthRemoteDatasource(_dioWith(401)).deleteAccount('sess_a');
+    await expectLater(
+      AuthRemoteDatasource(_dioWith(503)).deleteAccount('sess_a'),
+      throwsA(isA<DioException>()),
+    );
+  });
 }

@@ -67,6 +67,18 @@
     {
       "pattern": "plpcg.com/louvor/*",
       "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/privacy*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/politica-de-privacidade*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/",
+      "zone_name": "plpcg.com"
     }
   ]
 }
