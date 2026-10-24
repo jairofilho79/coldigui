@@ -38,17 +38,22 @@ export const ANDROID_ASSET_LINKS = [
   },
 ];
 
-const DEEP_LINK_QUERY_PARAMS = [
+/**
+ * Parâmetros de query na raiz ('/') que pertencem ao novo app PLPCG / Coldigui v2.
+ *
+ * NOTA DE COMPATIBILIDADE:
+ * Os parâmetros da versão clássica da web ('s', 'sharepdfs', 'shareitems', 'shareaudios')
+ * NÃO devem entrar aqui. Eles pertencem ao PLPCG Web (plpcjf / Cloudflare Pages) e devem
+ * ser repassados diretamente via fetch(request) para que as listas continuem abrindo
+ * normalmente no navegador sem acionar o protocolo nativo plpcg://.
+ */
+const APP_DEEP_LINK_QUERY_PARAMS = [
   'p',
   'live',
-  's',
-  'shareitems',
-  'sharepdfs',
-  'shareaudios',
 ];
 
 export function isRootDeepLinkQuery(searchParams: URLSearchParams): boolean {
-  return DEEP_LINK_QUERY_PARAMS.some((key) => searchParams.has(key));
+  return APP_DEEP_LINK_QUERY_PARAMS.some((key) => searchParams.has(key));
 }
 
 function escapeHtmlAttr(raw: string): string {

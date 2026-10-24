@@ -64,11 +64,11 @@ test('handleDeepLinkRedirect na raiz gera plpcg:///?p=...&n=... para listas comp
   assert.ok(!html.includes('v2.plpcg.com'));
 });
 
-test('isRootDeepLinkQuery identifica parâmetros de compartilhamento e sala ao vivo', () => {
+test('isRootDeepLinkQuery identifica parâmetros de compartilhamento do app e preserva listas da web', () => {
   assert.equal(isRootDeepLinkQuery(new URLSearchParams('p=1a2&n=Culto')), true);
   assert.equal(isRootDeepLinkQuery(new URLSearchParams('live=abc1234')), true);
-  assert.equal(isRootDeepLinkQuery(new URLSearchParams('s=0000&n=Demo')), true);
-  assert.equal(isRootDeepLinkQuery(new URLSearchParams('sharepdfs=TEST')), true);
+  assert.equal(isRootDeepLinkQuery(new URLSearchParams('s=0000&n=Demo')), false);
+  assert.equal(isRootDeepLinkQuery(new URLSearchParams('sharepdfs=TEST')), false);
   assert.equal(isRootDeepLinkQuery(new URLSearchParams('')), false);
   assert.equal(isRootDeepLinkQuery(new URLSearchParams('pesquisa=amor')), false);
 });
