@@ -177,9 +177,9 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
         icon ?? LouvorMaterialIcons.forMaterial(material),
         color: iconColor,
       ),
-      title: Text(
-        material.categoria,
-        style: AppTypography.body.copyWith(color: AppColors.textDark),
+      title: PraiseMaterialTitle(
+        categoria: material.categoria,
+        notes: material.notes,
       ),
       subtitle: subtitle == null || subtitle.isEmpty
           ? null
@@ -838,6 +838,86 @@ class _KindSegmentChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Título do material com nota opcional (ex: "I", "II", "Cifrado").
+///
+/// Responsivo:
+/// - Em telas maiores (largura >= 600px): posiciona a nota ao lado do nome em linha (Row).
+/// - Em telas menores (largura < 600px): posiciona a nota embaixo do nome em coluna (Column).
+class PraiseMaterialTitle extends StatelessWidget {
+  const PraiseMaterialTitle({
+    required this.categoria,
+    required this.notes,
+    super.key,
+  });
+
+  final String categoria;
+  final String? notes;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasNotes = notes != null && notes!.trim().isNotEmpty;
+    if (!hasNotes) {
+      return Text(
+        categoria,
+        style: AppTypography.body.copyWith(color: AppColors.textDark),
+      );
+    }
+
+    final trimmedNotes = notes!.trim();
+    final isWide = MediaQuery.sizeOf(context).width >= 600;
+
+    final badge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: AppColors.gold.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: AppColors.gold.withValues(alpha: 0.5),
+          width: 0.8,
+        ),
+      ),
+      child: Text(
+        trimmedNotes,
+        style: AppTypography.label.copyWith(
+          color: AppColors.textDark.withValues(alpha: 0.85),
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+
+    if (isWide) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              categoria,
+              style: AppTypography.body.copyWith(color: AppColors.textDark),
+            ),
+          ),
+          const SizedBox(width: 8),
+          badge,
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          categoria,
+          style: AppTypography.body.copyWith(color: AppColors.textDark),
+        ),
+        const SizedBox(height: 3),
+        badge,
+      ],
     );
   }
 }

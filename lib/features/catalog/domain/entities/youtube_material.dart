@@ -10,6 +10,7 @@ class YoutubeMaterial {
     required this.classificacao,
     this.author = '',
     this.materialKindId,
+    this.notes,
   });
 
   final String id;
@@ -29,4 +30,7 @@ class YoutubeMaterial {
 
   /// Id do `material_kind` Coldigom; `null` quando o dump não traz o kind.
   final String? materialKindId;
+
+  /// Anotação rápida do arranjo/material (ex.: "I", "II", "Cifrado").
+  final String? notes;
 }

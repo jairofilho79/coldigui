@@ -32,6 +32,9 @@ sealed class CatalogMaterial {
 
   /// Id do `material_kind` Coldigom; `null` quando o acervo não o conhece.
   String? get materialKindId;
+
+  /// Anotação rápida do arranjo/material (ex.: "I", "II", "Cifrado").
+  String? get notes;
 }
 
 /// PDF (partitura, gestos…) — abre no leitor interno `/leitor`.
@@ -54,6 +57,9 @@ final class PdfMaterial extends CatalogMaterial {
 
   @override
   String? get materialKindId => louvor.materialKindId;
+
+  @override
+  String? get notes => louvor.notes;
 }
 
 /// Cifra ChordPro — abre em `/cifra`.
@@ -79,6 +85,9 @@ final class ChordMaterialRef extends CatalogMaterial {
 
   @override
   String? get materialKindId => chord.materialKindId;
+
+  @override
+  String? get notes => chord.notes;
 }
 
 /// Documento de gestos CIAs — abre em `/gestos`.
@@ -101,6 +110,9 @@ final class GestureMaterialRef extends CatalogMaterial {
 
   @override
   String? get materialKindId => gesture.materialKindId;
+
+  @override
+  String? get notes => gesture.notes;
 }
 
 /// Faixa de áudio Coldigom — toca na sessão global e abre `/audio`.
@@ -123,6 +135,9 @@ final class AudioMaterial extends CatalogMaterial {
 
   @override
   String? get materialKindId => track.materialKindId;
+
+  @override
+  String? get notes => track.notes;
 }
 
 /// Link YouTube — abre fora do app (app do YouTube ou navegador).
@@ -145,6 +160,9 @@ final class YoutubeMaterialRef extends CatalogMaterial {
 
   @override
   String? get materialKindId => material.materialKindId;
+
+  @override
+  String? get notes => material.notes;
 }
 
 /// Letra do louvor (Coldigom) — abre no leitor `/letra`.
@@ -179,4 +197,7 @@ final class LyricsMaterial extends CatalogMaterial {
 
   @override
   String? get materialKindId => null;
+
+  @override
+  String? get notes => null;
 }

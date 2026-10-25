@@ -24,6 +24,7 @@ class ColdigomCatalogMaterialEntry {
     required this.r2Key,
     this.size,
     this.url,
+    this.notes,
   });
 
   final String id;
@@ -36,6 +37,9 @@ class ColdigomCatalogMaterialEntry {
   final int? size;
   final String? url;
 
+  /// Anotação rápida do arranjo/material (ex.: "I", "II", "Cifrado").
+  final String? notes;
+
   Map<String, Object?> toJson() => {
     'id': id,
     if (kindId != null) 'kind': kindId,
@@ -44,6 +48,7 @@ class ColdigomCatalogMaterialEntry {
     if (r2Key != null) 'r2': r2Key,
     if (size != null) 'size': size,
     if (url != null) 'url': url,
+    if (notes != null && notes!.isNotEmpty) 'notes': notes,
   };
 
   /// Só `id` pode derrubar o item (propaga o `TypeError` para o catch por
@@ -60,6 +65,7 @@ class ColdigomCatalogMaterialEntry {
       r2Key: json['r2'] is String ? json['r2'] as String : null,
       size: json['size'] is num ? (json['size'] as num).toInt() : null,
       url: json['url'] is String ? json['url'] as String : null,
+      notes: json['notes'] is String ? (json['notes'] as String).trim() : null,
     );
   }
 }
@@ -95,6 +101,7 @@ abstract final class ColdigomPraiseCacheMapper {
             r2Key: m.r2Key,
             size: m.size,
             url: m.url,
+            notes: m.notes,
           ),
       ],
       shortId: praise.shortId,
@@ -132,6 +139,7 @@ abstract final class ColdigomPraiseCacheMapper {
               type: m.type,
               r2Key: m.r2Key,
               url: m.url,
+              notes: m.notes,
             ),
       ],
       shortId: praise.shortId,
@@ -158,6 +166,7 @@ abstract final class ColdigomPraiseCacheMapper {
           kindName: material.categoria,
           type: 'mp3',
           r2Key: track.r2Key,
+          notes: material.notes,
         ),
         YoutubeMaterialRef(material: final youtube) =>
           ColdigomCatalogMaterialEntry(
@@ -167,6 +176,7 @@ abstract final class ColdigomPraiseCacheMapper {
             type: 'youtube',
             r2Key: null,
             url: youtube.url,
+            notes: material.notes,
           ),
         LyricsMaterial() => null,
       };
@@ -206,6 +216,7 @@ abstract final class ColdigomPraiseCacheMapper {
       kindName: material.categoria,
       type: type,
       r2Key: r2Key,
+      notes: material.notes,
     );
   }
 
@@ -320,6 +331,7 @@ abstract final class ColdigomPraiseCacheMapper {
             url: m.url,
             materialKindName: m.kindName.isEmpty ? null : m.kindName,
             materialKindId: m.kindId,
+            notes: m.notes,
           ),
       if (row.lyrics.trim().isNotEmpty)
         MaterialDto(id: 'lyrics:${row.praiseId}', type: 'lyrics'),

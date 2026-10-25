@@ -50,6 +50,7 @@ abstract final class ColdigomLouvorAdapter {
           materialKindId: material.materialKindId,
           praiseId: praise.id,
           materialId: material.id,
+          notes: material.notes,
         ),
       );
     }
@@ -77,6 +78,7 @@ abstract final class ColdigomLouvorAdapter {
           classificacao: praise.rhythm,
           author: praise.author,
           materialKindId: material.materialKindId,
+          notes: material.notes,
         ),
       );
     }
@@ -105,6 +107,7 @@ abstract final class ColdigomLouvorAdapter {
           classificacao: praise.rhythm,
           author: praise.author,
           materialKindId: material.materialKindId,
+          notes: material.notes,
         ),
       );
     }
@@ -132,6 +135,7 @@ abstract final class ColdigomLouvorAdapter {
           classificacao: praise.rhythm,
           author: praise.author,
           materialKindId: material.materialKindId,
+          notes: material.notes,
         ),
       );
     }
@@ -159,6 +163,7 @@ abstract final class ColdigomLouvorAdapter {
           classificacao: praise.rhythm,
           author: praise.author,
           materialKindId: material.materialKindId,
+          notes: material.notes,
         ),
       );
     }

@@ -70,7 +70,6 @@ flutter:
     - assets/branding/logo_colorido_no_bg.svg
     - assets/branding/logo_colorido_no_bg_inline.svg
     - assets/branding/logo_colorido_no_bg_logo_only.svg
-    - assets/fixtures/sample.pdf
   fonts:
     - family: EBGaramond
       fonts:

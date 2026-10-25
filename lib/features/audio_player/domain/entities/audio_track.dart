@@ -11,6 +11,7 @@ class AudioTrack {
     this.author = '',
     this.duration,
     this.materialKindId,
+    this.notes,
   });
 
   /// Identificador estável (mesmo codec Base64 do path relativo).
@@ -37,6 +38,9 @@ class AudioTrack {
   /// Id do `material_kind` Coldigom; `null` quando o dump não traz o kind.
   final String? materialKindId;
 
+  /// Anotação rápida do arranjo/material (ex.: "I", "II", "Cifrado").
+  final String? notes;
+
   AudioTrack copyWith({Duration? duration}) {
     return AudioTrack(
       audioId: audioId,
@@ -49,6 +53,7 @@ class AudioTrack {
       author: author,
       duration: duration ?? this.duration,
       materialKindId: materialKindId,
+      notes: notes,
     );
   }
 }

@@ -21,6 +21,7 @@ class Louvor {
     this.materialKindId,
     this.praiseId,
     this.materialId,
+    this.notes,
   });
 
   /// Título do louvor (manifest `nome`).
@@ -63,6 +64,9 @@ class Louvor {
   /// `assets/praises/<praiseId>/<materialId>.pdf`). `null` como [praiseId].
   final String? materialId;
 
+  /// Anotação rápida do arranjo/material (ex.: "I", "II", "Cifrado").
+  final String? notes;
+
   /// Identidade do louvor lógico: [praiseId] quando existe (um card por
   /// praise, spec D3); senão o `groupId` do manifest; senão calculado.
   String get effectiveGroupId =>
@@ -83,6 +87,7 @@ class Louvor {
     String? materialKindId,
     String? praiseId,
     String? materialId,
+    String? notes,
   }) {
     final normalizedNumero = LouvorNumeroNormalizer.normalize(numero);
     final searchTitleNorm = LouvorSearchTokens.normalize(nome);
@@ -108,6 +113,7 @@ class Louvor {
       materialKindId: materialKindId,
       praiseId: praiseId,
       materialId: materialId,
+      notes: notes,
     );
   }
 }

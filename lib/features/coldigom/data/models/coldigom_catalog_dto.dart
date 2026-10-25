@@ -29,6 +29,7 @@ class ColdigomCatalogMaterialDto {
     this.kindId,
     this.size,
     this.url,
+    this.notes,
   });
 
   final String id;
@@ -45,6 +46,9 @@ class ColdigomCatalogMaterialDto {
 
   /// URL externa (YouTube).
   final String? url;
+
+  /// Anotação rápida do arranjo/material (ex.: "I", "II", "Cifrado").
+  final String? notes;
 
   /// `r2` explícito do dump quando presente, senão o derivado por [type];
   /// `null` quando o material não vive no R2.
@@ -75,6 +79,7 @@ class ColdigomCatalogMaterialDto {
       // tolerância de kindId/type acima).
       size: json['size'] is num ? (json['size'] as num).toInt() : null,
       url: json['url'] is String ? json['url'] as String : null,
+      notes: json['notes'] is String ? (json['notes'] as String).trim() : null,
       r2Key: r2Key,
     );
   }

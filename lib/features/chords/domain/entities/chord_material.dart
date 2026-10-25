@@ -15,6 +15,7 @@ class ChordMaterial {
     required this.classificacao,
     this.author = '',
     this.materialKindId,
+    this.notes,
   });
 
   /// `encodePdfId(r2Key)` — mesmo espaço do `pdfId`.
@@ -35,4 +36,7 @@ class ChordMaterial {
 
   /// Id do `material_kind` Coldigom; `null` quando o dump não traz o kind.
   final String? materialKindId;
+
+  /// Anotação rápida do arranjo/material (ex.: "I", "II", "Cifrado").
+  final String? notes;
 }

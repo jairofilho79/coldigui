@@ -12,7 +12,8 @@ import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 /// as linhas sem ele para sempre.
 ///
 /// 1 = `groupId`.
-const coldigomCatalogSchemaVersion = 1;
+/// 2 = `notes` em praise_materials.
+const coldigomCatalogSchemaVersion = 2;
 
 /// Metadados do sync do catálogo Coldigom em SharedPreferences: o ETag que
 /// vai no `If-None-Match`, quando foi a última validação e quantos praises o

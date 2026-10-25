@@ -12,6 +12,7 @@ class MaterialDto {
     this.url,
     this.materialKindName,
     this.materialKindId,
+    this.notes,
   });
 
   final String id;
@@ -26,6 +27,9 @@ class MaterialDto {
   /// Null no placeholder de letra e em respostas antigas.
   final String? materialKindId;
 
+  /// Anotação rápida do arranjo/material (ex.: "I", "II", "Cifrado").
+  final String? notes;
+
   factory MaterialDto.fromJson(Map<String, dynamic> json) {
     return MaterialDto(
       // API PLPCG envia id null no placeholder de letra.
@@ -39,6 +43,7 @@ class MaterialDto {
       materialKindId: json['material_kind'] is String
           ? json['material_kind'] as String
           : null,
+      notes: json['notes'] is String ? (json['notes'] as String).trim() : null,
     );
   }
 }
