@@ -32,6 +32,7 @@ class _RecordingAudioSession extends AudioPlayerSessionNotifier {
   var playPauseCalls = 0;
   var skipToPreviousCalls = 0;
   var skipToNextCalls = 0;
+  var closeCalls = 0;
   Duration? seeked;
 
   @override
@@ -45,6 +46,12 @@ class _RecordingAudioSession extends AudioPlayerSessionNotifier {
 
   @override
   Future<void> skipToNext() async => skipToNextCalls++;
+
+  @override
+  Future<void> close() async {
+    closeCalls++;
+    state = const AudioPlayerSessionState();
+  }
 
   @override
   Future<void> seek(Duration position) async => seeked = position;
@@ -507,4 +514,130 @@ void main() {
     // A faixa segue tocando — voltar à leitura não mexe na sessão.
     expect(session.playPauseCalls, 0);
   });
+
+  testWidgets('tap no botão fechar chama close() na sessão', (tester) async {
+    final session = _RecordingAudioSession(
+      const AudioPlayerSessionState(queue: [track]),
+    );
+    await tester.pumpWidget(buildSubject(session));
+    await tester.pumpAndSettle();
+
+    final closeButton = find.widgetWithIcon(IconButton, Icons.close);
+    expect(closeButton, findsOneWidget);
+    final iconButton = tester.widget<IconButton>(closeButton);
+    expect(iconButton.tooltip, 'Fechar áudio');
+
+    await tester.tap(closeButton);
+    await tester.pumpAndSettle();
+
+    expect(session.closeCalls, 1);
+  });
+
+  testWidgets('em /audio, tap no botão fechar chama close() e volta', (
+    tester,
+  ) async {
+    final session = _RecordingAudioSession(
+      const AudioPlayerSessionState(queue: [track]),
+    );
+    final router = GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, _) => const Scaffold(body: Text('tela home')),
+        ),
+        GoRoute(
+          path: RoutePaths.audio,
+          builder: (_, _) => const Scaffold(
+            body: Column(children: [MiniPlayerBar(), Text('tela de áudio')]),
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          audioPlayerSessionProvider.overrideWith(() => session),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          ...flagOverrides(),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    router.push(RoutePaths.audio);
+    await tester.pumpAndSettle();
+
+    expect(find.text('tela de áudio'), findsOneWidget);
+
+    final closeButton = find.widgetWithIcon(IconButton, Icons.close);
+    expect(closeButton, findsOneWidget);
+
+    await tester.tap(closeButton);
+    await tester.pumpAndSettle();
+
+    expect(session.closeCalls, 1);
+    expect(find.text('tela home'), findsOneWidget);
+  });
+
+  testWidgets(
+    'em /audio sem histórico (canPop=false), tap no botão fechar chama close() e vai para home',
+    (tester) async {
+      final session = _RecordingAudioSession(
+        const AudioPlayerSessionState(queue: [track]),
+      );
+      final router = GoRouter(
+        initialLocation: RoutePaths.audio,
+        routes: [
+          GoRoute(
+            path: RoutePaths.home,
+            builder: (_, _) => const Scaffold(body: Text('tela home')),
+          ),
+          GoRoute(
+            path: RoutePaths.audio,
+            builder: (_, _) => const Scaffold(
+              body: Column(children: [MiniPlayerBar(), Text('tela de áudio')]),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            audioPlayerSessionProvider.overrideWith(() => session),
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            ...flagOverrides(),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('tela de áudio'), findsOneWidget);
+
+      final closeButton = find.widgetWithIcon(IconButton, Icons.close);
+      expect(closeButton, findsOneWidget);
+
+      await tester.tap(closeButton);
+      await tester.pumpAndSettle();
+
+      expect(session.closeCalls, 1);
+      expect(find.text('tela home'), findsOneWidget);
+    },
+  );
 }
