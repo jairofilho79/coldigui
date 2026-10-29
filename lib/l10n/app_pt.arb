@@ -537,6 +537,10 @@
   "@miniPlayerBackToReading": {
     "description": "Tooltip do botão do mini-player que, na tela de áudio (/audio), substitui «abrir» e volta à partitura/cifra do louvor da faixa (troca a rota, não empilha)"
   },
+  "miniPlayerClose": "Fechar áudio",
+  "@miniPlayerClose": {
+    "description": "Tooltip do botão do mini-player que encerra a reprodução e fecha a barra de áudio"
+  },
   "audioClosePlayer": "Encerrar e voltar à busca",
   "audioOpenSheetMusic": "Partitura/cifra deste louvor",
   "@audioOpenSheetMusic": {

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/routing/route_paths.dart';
+import '../../../../core/routing/shell_navigation.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -210,6 +211,24 @@ class MiniPlayerBar extends ConsumerWidget {
                   icon: const Icon(Icons.open_in_full),
                   onPressed: () => pushAudioPlayerRoute(context, track),
                 ),
+              IconButton(
+                tooltip: l10n.miniPlayerClose,
+                iconSize: 20,
+                style: iconButtonStyle,
+                icon: const Icon(Icons.close),
+                onPressed: () async {
+                  await ref.read(audioPlayerSessionProvider.notifier).close();
+                  if (!context.mounted) return;
+                  if (isOnAudioScreen) {
+                    final router = GoRouter.maybeOf(context);
+                    if (router != null && router.canPop()) {
+                      router.pop();
+                    } else {
+                      goToShellDestination(context, RoutePaths.home);
+                    }
+                  }
+                },
+              ),
             ],
           ),
         ),

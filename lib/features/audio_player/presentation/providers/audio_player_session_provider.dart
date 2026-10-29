@@ -861,6 +861,10 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     // é do player, e quem o incrementou devolve no próprio `finally`.
     _generation++;
     _cancelBufferingWatchdog();
+    final position = ref.read(audioPlayerPositionProvider).position;
+    if (position > Duration.zero) {
+      _persistCurrentPosition(position, force: true);
+    }
     try {
       await _player?.stop();
       // Fix round 3 (Minor): `close()` não descarta `_player` — o mesmo
@@ -874,7 +878,11 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       debugPrint('[audio] close falhou ao parar o player: $e');
     }
     _sourceResolver?.revokeAll();
+    _mediaSession?.updatePlaybackState(playing: false);
     _mediaSession?.updateTrack(null);
+    _mediaSession?.detach();
+    _mediaSessionAttached = false;
+    _durationForAudioId = null;
     ref.read(audioPlayerPositionProvider.notifier).reset();
     _mediaSessionPositionThrottle.reset();
     _positionStoreThrottle.reset();

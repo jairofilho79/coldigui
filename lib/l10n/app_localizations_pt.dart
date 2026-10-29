@@ -841,6 +841,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get miniPlayerBackToReading => 'Voltar à leitura';
 
   @override
+  String get miniPlayerClose => 'Fechar áudio';
+
+  @override
   String get audioClosePlayer => 'Encerrar e voltar à busca';
 
   @override

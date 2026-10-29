@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/features/audio_player/data/datasources/audio_playback_position_store.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
@@ -108,5 +109,51 @@ void main() {
       container.read(audioPlayerSessionProvider).restoredWithoutPlayback,
       isFalse,
     );
+  });
+
+  test('close grava a posição atual se houver reprodução ativa', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(container.dispose);
+
+    final notifier = container.read(audioPlayerSessionProvider.notifier);
+    await notifier.restoreQueue(_tracks);
+
+    // Simula posição em reprodução
+    container
+        .read(audioPlayerPositionProvider.notifier)
+        .update(position: const Duration(seconds: 42));
+
+    await notifier.close();
+
+    final store = AudioPlaybackPositionStore(prefs);
+    final stored = store.read();
+    expect(stored?.trackId, 'aud-a');
+    expect(stored?.position, const Duration(seconds: 42));
+
+    // Após o close, provider de posição foi resetado
+    expect(container.read(audioPlayerPositionProvider).position, Duration.zero);
+    expect(container.read(audioPlayerSessionProvider).currentTrack, isNull);
+  });
+
+  test('close consecutivo é idempotente e gracioso', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(container.dispose);
+
+    final notifier = container.read(audioPlayerSessionProvider.notifier);
+    await notifier.restoreQueue(_tracks);
+
+    await notifier.close();
+    await notifier.close();
+
+    final state = container.read(audioPlayerSessionProvider);
+    expect(state.queue, isEmpty);
+    expect(state.currentTrack, isNull);
+    expect(state.playing, isFalse);
   });
 }

@@ -37,6 +37,8 @@ class AudioMediaSessionController {
       session.setActionHandler(action, null);
     }
     session.metadata = null;
+    session.playbackState = 'none';
+    _wasPlayingBeforeHide = false;
   }
 
   void updateTrack(AudioTrack? track) {

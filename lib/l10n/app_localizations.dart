@@ -1520,6 +1520,12 @@ abstract class AppLocalizations {
   /// **'Voltar à leitura'**
   String get miniPlayerBackToReading;
 
+  /// Tooltip do botão do mini-player que encerra a reprodução e fecha a barra de áudio
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar áudio'**
+  String get miniPlayerClose;
+
   /// No description provided for @audioClosePlayer.
   ///
   /// In pt, this message translates to:
