@@ -161,4 +161,61 @@ void main() {
     expect(find.text('Cifra'), findsNothing);
     expect(find.text('Partitura'), findsNothing);
   });
+
+  testWidgets('toque fora da barra de busca tira o foco', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+    await _pumpHome(tester, prefs: prefs);
+
+    final field = find.byType(TextField);
+    await tester.tap(field);
+    await tester.pumpAndSettle();
+
+    final focusNode = tester.widget<TextField>(field).focusNode!;
+    expect(focusNode.hasFocus, isTrue);
+
+    // Toque fora da barra de busca
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    expect(focusNode.hasFocus, isFalse);
+  });
+
+  testWidgets('toque no botão limpar mantém o foco no campo', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+    await _pumpHome(tester, prefs: prefs);
+
+    final field = find.byType(TextField);
+    await tester.enterText(field, 'aleluia');
+    await tester.pumpAndSettle();
+
+    final focusNode = tester.widget<TextField>(field).focusNode!;
+    expect(focusNode.hasFocus, isTrue);
+
+    // Toque no botão limpar (ícone close) dentro da barra de busca
+    final clearButton = find.byIcon(Icons.close);
+    expect(clearButton, findsOneWidget);
+    await tester.tap(clearButton);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<TextField>(field).controller!.text, isEmpty);
+    expect(focusNode.hasFocus, isTrue);
+  });
+
+  testWidgets('arrastar a tela tira o foco do campo', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+    await _pumpHome(tester, prefs: prefs, results: [_multiMaterialGroup()]);
+
+    final field = find.byType(TextField);
+    await tester.tap(field);
+    await tester.pumpAndSettle();
+
+    final focusNode = tester.widget<TextField>(field).focusNode!;
+    expect(focusNode.hasFocus, isTrue);
+
+    // Arrastar a lista de resultados
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -100));
+    await tester.pumpAndSettle();
+
+    expect(focusNode.hasFocus, isFalse);
+  });
 }

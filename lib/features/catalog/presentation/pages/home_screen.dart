@@ -269,6 +269,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               vertical: 16,
             ),
             child: CustomScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: [
                 SliverToBoxAdapter(
                   child: SpotlightGuideTarget(

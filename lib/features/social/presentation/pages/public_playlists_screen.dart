@@ -30,6 +30,7 @@ class PublicPlaylistsScreen extends ConsumerWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: _maxContentWidth),
         child: CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: [
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
