@@ -17,10 +17,17 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-BUNDLE_ID="com.example.coldigui"
+BUNDLE_ID="com.plpcg.app"
 DART_DEFINES_FILE="dart_defines/plpcg.json"
+PRIVATE_DEFINES_FILE="dart_defines/private.json"
 DERIVED_DATA="build/ios/XcodeDerivedData"
 APP_PATH="$DERIVED_DATA/Build/Products/Profile-iphoneos/Runner.app"
+
+DEFINE_ARGS=(--dart-define-from-file="$DART_DEFINES_FILE")
+if [[ -f "$PRIVATE_DEFINES_FILE" ]]; then
+  echo "==> dart_defines privados: $PRIVATE_DEFINES_FILE"
+  DEFINE_ARGS+=(--dart-define-from-file="$PRIVATE_DEFINES_FILE")
+fi
 
 resolve_ios_device() {
   python3 "$ROOT_DIR/scripts/ios_resolve_device.py"
@@ -49,7 +56,7 @@ echo "==> Dependências Flutter..."
 "$ROOT_DIR/scripts/setup_deps.sh"
 
 echo "==> Build iOS (profile — standalone, ~7 dias de validade)..."
-flutter build ios --profile --dart-define-from-file="$DART_DEFINES_FILE"
+flutter build ios --profile "${DEFINE_ARGS[@]}"
 
 echo "==> Assinatura para o dispositivo conectado (provisioning profile)..."
 xcodebuild \

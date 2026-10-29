@@ -1,50 +1,118 @@
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'dart:async';
+
+import '../../../support/fakes/fake_playlists_notifier.dart';
+
+import 'package:coldigui/core/constants/feature_flags.dart';
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
+import 'package:coldigui/core/providers/feature_flags_provider.dart';
+import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
+import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
+import 'package:coldigui/features/live/data/live_room_remote_datasource.dart';
+import 'package:coldigui/features/live/presentation/providers/my_live_room_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
+import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
 import 'package:coldigui/features/playlists/presentation/pages/playlists_screen.dart';
-import 'package:coldigui/features/playlists/presentation/widgets/import_playlist_dialog.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_sync_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/shared_import_outcome.dart';
+import 'package:coldigui/features/playlists/presentation/widgets/playlist_sync_error_banner.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  _FakePlaylistsNotifier(this.initial);
+class _LoggedOutAuth extends AuthNotifier {
+  @override
+  Future<AuthUser?> build() async => null;
+}
 
-  final List<PlaylistViewItem> initial;
-  ImportPlaylistDialogResult? lastImport;
+class _LoggedInAuth extends AuthNotifier {
+  @override
+  Future<AuthUser?> build() async =>
+      const AuthUser(googleSub: 'sub-1', sessionToken: 'tok', name: 'Jairo');
+}
+
+/// Fake de [LiveRoomRemoteDatasource] para o FAB «Abrir Sala» — nunca toca
+/// em Dio de verdade, devolve [info] fixo e conta chamadas.
+class _FakeLiveRoomRemoteDatasource extends LiveRoomRemoteDatasource {
+  _FakeLiveRoomRemoteDatasource(this.info)
+    : super(Dio(), sessionToken: () => null);
+  final LiveRoomInfo info;
+  int ensureCalls = 0;
 
   @override
-  List<PlaylistViewItem> build() => initial;
-
-  @override
-  Future<String?> importSharedFromUrl({
-    required String sharePdfs,
-    required String shareName,
-  }) async {
-    lastImport = ImportPlaylistDialogResult(
-      sharePdfs: sharePdfs,
-      shareName: shareName,
-    );
-    return 'imported-id';
+  Future<LiveRoomInfo> ensureRoom() async {
+    ensureCalls++;
+    return info;
   }
 }
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  _FakeCarouselNotifier(this.initial);
+/// Estado de sync fixo, sem `ref.listen` de auth nem rede.
+///
+/// [gate], quando informado, segura o `sync()` até o teste completá-lo — é
+/// assim que se descarta a tela no meio de um retry.
+class _FakeSyncNotifier extends PlaylistSyncNotifier {
+  _FakeSyncNotifier([
+    this.initial = const PlaylistSyncState(),
+    this.result = const PlaylistSyncResult(),
+    this.gate,
+  ]);
 
-  final List<CarouselItem> initial;
+  final PlaylistSyncState initial;
+  final PlaylistSyncResult result;
+  final Completer<void>? gate;
+  var syncCalls = 0;
 
   @override
-  List<CarouselItem> build() => initial;
+  PlaylistSyncState build() => initial;
+
+  @override
+  Future<PlaylistSyncResult> sync() async {
+    syncCalls++;
+    await gate?.future;
+    // Como o notifier real: a tela recarrega quando a rodada moveu linhas.
+    if (result.movedRows && ref.mounted) {
+      await ref.read(playlistsProvider.notifier).reload();
+    }
+    return result;
+  }
+}
+
+/// Sync que o teste move de estado depois da montagem — é como se observa o
+/// `ref.listen` da tela, que só dispara em transição.
+class _MutableSyncNotifier extends PlaylistSyncNotifier {
+  @override
+  PlaylistSyncState build() => const PlaylistSyncState();
+
+  void emit(PlaylistSyncState next) => state = next;
+
+  @override
+  Future<PlaylistSyncResult> sync() async => const PlaylistSyncResult();
 }
 
 void main() {
-  Widget buildSubject(List<PlaylistViewItem> items) {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
+  Widget buildSubject(
+    List<PlaylistViewItem> items, {
+    FeatureFlags flags = const FeatureFlags(),
+  }) {
     return ProviderScope(
       overrides: [
-        playlistsProvider.overrideWith(() => _FakePlaylistsNotifier(items)),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        authStateProvider.overrideWith(_LoggedOutAuth.new),
+        playlistsProvider.overrideWith(() => FakePlaylistsNotifier(items)),
+        featureFlagsProvider.overrideWithValue(flags),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -62,9 +130,30 @@ void main() {
     expect(find.textContaining('Nenhuma lista não salva'), findsOneWidget);
   });
 
+  testWidgets('com FF_SOCIAL, mostra o botão «Listas públicas»', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildSubject(const []));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Listas públicas'), findsOneWidget);
+    expect(find.byIcon(Icons.public), findsOneWidget);
+  });
+
+  testWidgets('sem FF_SOCIAL, o botão «Listas públicas» não aparece', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildSubject(const [], flags: const FeatureFlags(social: false)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Listas públicas'), findsNothing);
+  });
+
   testWidgets('renderiza playlist salva', (tester) async {
     final item = PlaylistViewItem(
-      playlist: SavedPlaylist(
+      playlist: SavedPlaylist.fromLegacyLists(
         playlistId: 'p1',
         nome: 'Ensaio domingo',
         pdfIds: ['a', 'b'],
@@ -80,7 +169,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ensaio domingo'), findsOneWidget);
-    expect(find.text('2 louvores'), findsOneWidget);
+    expect(find.text('2 partituras'), findsOneWidget);
   });
 
   testWidgets('exibe FAB importar lista', (tester) async {
@@ -90,15 +179,160 @@ void main() {
     expect(find.text('Importar lista'), findsOneWidget);
   });
 
-  testWidgets('importar via FAB dispara importSharedFromUrl', (tester) async {
-    final notifier = _FakePlaylistsNotifier(const []);
+  testWidgets('FAB «Entrar na sala» leva à sala do link colado', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/listas',
+      routes: [
+        GoRoute(path: '/listas', builder: (_, _) => const PlaylistsScreen()),
+        GoRoute(
+          path: RoutePaths.liveRoom,
+          builder: (_, state) =>
+              Scaffold(body: Text('sala ${state.pathParameters['code']}')),
+        ),
+      ],
+    );
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authStateProvider.overrideWith(_LoggedOutAuth.new),
+          playlistsProvider.overrideWith(() => FakePlaylistsNotifier(const [])),
+        ],
+        child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Entrar na sala'), findsNothing);
+    await tester.tap(find.text('Sala ao Vivo'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Entrar na sala'), findsOneWidget);
+    await tester.tap(find.text('Entrar na sala'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField),
+      'https://v2.plpcg.com/?live=k7x2m9q',
+    );
+    await tester.tap(find.widgetWithText(TextButton, 'Entrar'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.toString(), '/ao-vivo/k7x2m9q');
+    expect(find.text('sala k7x2m9q'), findsOneWidget);
+  });
+
+  testWidgets('FAB «Sala ao Vivo» → «Abrir Sala» deslogado vai ao Perfil', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/listas',
+      routes: [
+        GoRoute(path: '/listas', builder: (_, _) => const PlaylistsScreen()),
+        GoRoute(
+          path: RoutePaths.profile,
+          builder: (_, _) => const Scaffold(body: Text('tela de perfil')),
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authStateProvider.overrideWith(_LoggedOutAuth.new),
+          playlistsProvider.overrideWith(() => FakePlaylistsNotifier(const [])),
+        ],
+        child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Sala ao Vivo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Abrir Sala'), findsOneWidget);
+
+    await tester.tap(find.text('Abrir Sala'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.toString(), RoutePaths.profile);
+    expect(find.text('tela de perfil'), findsOneWidget);
+  });
+
+  testWidgets('FAB «Sala ao Vivo» → «Abrir Sala» logado vai à própria sala', (
+    tester,
+  ) async {
+    final fakeDatasource = _FakeLiveRoomRemoteDatasource(
+      const LiveRoomInfo(
+        code: 'k7x2m9q',
+        url: 'https://plpcg.com/ao-vivo/k7x2m9q',
+        ownerName: 'Fulano',
+      ),
+    );
+    final router = GoRouter(
+      initialLocation: '/listas',
+      routes: [
+        GoRoute(path: '/listas', builder: (_, _) => const PlaylistsScreen()),
+        GoRoute(
+          path: RoutePaths.liveRoom,
+          builder: (_, state) =>
+              Scaffold(body: Text('sala ${state.pathParameters['code']}')),
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authStateProvider.overrideWith(_LoggedInAuth.new),
+          liveRoomRemoteDatasourceProvider.overrideWithValue(fakeDatasource),
+          playlistsProvider.overrideWith(() => FakePlaylistsNotifier(const [])),
+        ],
+        child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Sala ao Vivo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Abrir Sala'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.toString(), '/ao-vivo/k7x2m9q');
+    expect(find.text('sala k7x2m9q'), findsOneWidget);
+    expect(fakeDatasource.ensureCalls, 1);
+  });
+
+  Future<FakePlaylistsNotifier> pasteInImportDialog(
+    WidgetTester tester,
+    String text, {
+    SharedImportOutcome importOutcome = const SharedImportOutcome.imported(
+      'imported-id',
+    ),
+  }) async {
+    final notifier = FakePlaylistsNotifier(const [])
+      ..importOutcome = importOutcome;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authStateProvider.overrideWith(_LoggedOutAuth.new),
           playlistsProvider.overrideWith(() => notifier),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(const []),
-          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -112,16 +346,316 @@ void main() {
 
     await tester.tap(find.text('Importar lista'));
     await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byType(TextField),
-      'sharepdfs=x&sharename=Teste',
-    );
+    await tester.enterText(find.byType(TextField), text);
     await tester.tap(find.text('Importar'));
     await tester.pumpAndSettle();
+    return notifier;
+  }
 
-    expect(notifier.lastImport?.sharePdfs, 'x');
+  testWidgets('importar via FAB leva os tokens do link ao notifier', (
+    tester,
+  ) async {
+    final notifier = await pasteInImportDialog(
+      tester,
+      'https://v2.plpcg.com/?p=0a1-fff-0a1&n=Teste',
+    );
+
+    expect(notifier.lastImport?.praiseShortIds, ['0a1', 'fff', '0a1']);
     expect(notifier.lastImport?.shareName, 'Teste');
     expect(find.text('Lista importada'), findsOneWidget);
+  });
+
+  testWidgets('import com louvores de fora avisa a contagem', (tester) async {
+    await pasteInImportDialog(
+      tester,
+      'https://v2.plpcg.com/?p=0a1-abc-fff&n=Teste',
+      importOutcome: const SharedImportOutcome.imported(
+        'imported-id',
+        skippedCount: 1,
+      ),
+    );
+
+    expect(
+      find.text('Lista importada — 1 louvor ficou de fora'),
+      findsOneWidget,
+    );
+    expect(find.text('Lista importada'), findsNothing);
+  });
+
+  testWidgets('desfecho legacy do notifier dá o aviso de link antigo', (
+    tester,
+  ) async {
+    await pasteInImportDialog(
+      tester,
+      'https://v2.plpcg.com/?p=0a1&n=Teste',
+      importOutcome: SharedImportOutcome.legacy,
+    );
+
+    expect(
+      find.text(
+        'Este link é de uma versão antiga e já não abre. '
+        'Peça um link novo à pessoa.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Lista importada'), findsNothing);
+  });
+
+  // D6: importar cria uma lista nova e a torna ativa — a anterior continua
+  // salva, então não há "substituição" a confirmar (paridade com o deep link).
+  testWidgets('importar por URL não pede confirmação', (tester) async {
+    final notifier = await pasteInImportDialog(tester, 'p=0a1&n=Teste');
+
+    expect(find.text('Substituir seleção?'), findsNothing);
+    expect(find.text('Confirmar'), findsNothing);
+    expect(notifier.lastImport?.shareName, 'Teste');
+    expect(find.text('Lista importada'), findsOneWidget);
+  });
+
+  // Review Focus 4: o PWA do iOS nunca abre o link no app — o caminho é colar.
+  for (final legacy in [
+    'sharepdfs=x&sharename=Teste',
+    'https://plpcg.com/?s=1a2f-0000&n=Culto',
+  ]) {
+    testWidgets('link antigo colado avisa e não importa ($legacy)', (
+      tester,
+    ) async {
+      final notifier = await pasteInImportDialog(tester, legacy);
+
+      expect(notifier.lastImport, isNull);
+      expect(
+        find.text(
+          'Este link é de uma versão antiga e já não abre. '
+          'Peça um link novo à pessoa.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Lista importada'), findsNothing);
+    });
+  }
+
+  Widget buildWithSync(
+    PlaylistSyncNotifier syncNotifier, {
+    PlaylistsNotifier? playlists,
+  }) {
+    return ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        authStateProvider.overrideWith(_LoggedOutAuth.new),
+        playlistsProvider.overrideWith(
+          () => playlists ?? FakePlaylistsNotifier(const []),
+        ),
+        playlistSyncProvider.overrideWith(() => syncNotifier),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('pt'),
+        home: const PlaylistsScreen(),
+      ),
+    );
+  }
+
+  testWidgets('sync sem problema não mostra banner', (tester) async {
+    await tester.pumpWidget(buildWithSync(_FakeSyncNotifier()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PlaylistSyncErrorBanner), findsOneWidget);
+    expect(find.text('Não foi possível sincronizar suas listas'), findsNothing);
+    expect(find.text('Tentar novamente'), findsNothing);
+  });
+
+  testWidgets('erro de sync vira banner traduzido com Tentar novamente', (
+    tester,
+  ) async {
+    final syncNotifier = _FakeSyncNotifier(
+      const PlaylistSyncState(
+        lastErrorCause: StorageUnavailableException('sem storage'),
+      ),
+    );
+    await tester.pumpWidget(buildWithSync(syncNotifier));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Não foi possível sincronizar suas listas'),
+      findsOneWidget,
+    );
+    // Mensagem do `userMessageFor`, não o `toString()` da exceção.
+    expect(
+      find.text(
+        'Armazenamento local indisponível. Recarregue a página ou libere espaço.',
+      ),
+      findsOneWidget,
+    );
+
+    // A tela já sincroniza sozinha ao montar (lifecycle): o que importa é o
+    // toque somar mais uma.
+    final before = syncNotifier.syncCalls;
+    await tester.tap(find.text('Tentar novamente'));
+    await tester.pumpAndSettle();
+    expect(syncNotifier.syncCalls, before + 1);
+  });
+
+  testWidgets('conflitos aparecem no banner', (tester) async {
+    await tester.pumpWidget(
+      buildWithSync(_FakeSyncNotifier(const PlaylistSyncState(conflicts: 1))),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 lista em conflito'), findsOneWidget);
+  });
+
+  testWidgets('erro e conflito convivem no mesmo banner', (tester) async {
+    await tester.pumpWidget(
+      buildWithSync(
+        _FakeSyncNotifier(
+          const PlaylistSyncState(
+            lastErrorCause: StorageUnavailableException('sem storage'),
+            conflicts: 2,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Não foi possível sincronizar suas listas'),
+      findsOneWidget,
+    );
+    expect(find.text('2 listas em conflito'), findsOneWidget);
+  });
+
+  testWidgets('cópia guardada no 409 aparece no banner (A.3)', (tester) async {
+    await tester.pumpWidget(
+      buildWithSync(
+        _FakeSyncNotifier(
+          const PlaylistSyncState(conflictCopies: ['Culto (cópia local)']),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Edições locais de «Culto» guardadas em «Culto (cópia local)»'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('remoção em outro aparelho vira snackbar (A.2)', (tester) async {
+    final syncNotifier = _MutableSyncNotifier();
+    await tester.pumpWidget(buildWithSync(syncNotifier));
+    await tester.pumpAndSettle();
+
+    syncNotifier.emit(
+      const PlaylistSyncState(
+        lastResult: PlaylistSyncResult(deletedRemotely: 2),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('2 listas removidas em outro aparelho'), findsOneWidget);
+  });
+
+  testWidgets('sync sem remoção remota não mostra snackbar', (tester) async {
+    final syncNotifier = _MutableSyncNotifier();
+    await tester.pumpWidget(buildWithSync(syncNotifier));
+    await tester.pumpAndSettle();
+
+    syncNotifier.emit(
+      const PlaylistSyncState(lastResult: PlaylistSyncResult(pulled: 3)),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
+  testWidgets('retry que move linhas recarrega a lista visível', (
+    tester,
+  ) async {
+    final playlists = FakePlaylistsNotifier(const []);
+    final syncNotifier = _FakeSyncNotifier(
+      const PlaylistSyncState(
+        lastErrorCause: StorageUnavailableException('sem storage'),
+      ),
+      const PlaylistSyncResult(pulled: 1),
+    );
+    await tester.pumpWidget(buildWithSync(syncNotifier, playlists: playlists));
+    await tester.pumpAndSettle();
+
+    final before = playlists.reloadCalls;
+    await tester.tap(find.text('Tentar novamente'));
+    await tester.pumpAndSettle();
+
+    expect(playlists.reloadCalls, before + 1);
+  });
+
+  testWidgets('sair da tela no meio do retry não explode', (tester) async {
+    final gate = Completer<void>();
+    final playlists = FakePlaylistsNotifier(const []);
+    final syncNotifier = _FakeSyncNotifier(
+      const PlaylistSyncState(
+        lastErrorCause: StorageUnavailableException('sem storage'),
+      ),
+      const PlaylistSyncResult(pulled: 1),
+      gate,
+    );
+    await tester.pumpWidget(buildWithSync(syncNotifier, playlists: playlists));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Tentar novamente'));
+    await tester.pump();
+
+    // Some com a tela (e com o ProviderScope) antes de a sync responder.
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await tester.pumpAndSettle();
+
+    gate.complete();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('retry sem novidade não recarrega a lista', (tester) async {
+    final playlists = FakePlaylistsNotifier(const []);
+    final syncNotifier = _FakeSyncNotifier(
+      const PlaylistSyncState(
+        lastErrorCause: StorageUnavailableException('sem storage'),
+      ),
+    );
+    await tester.pumpWidget(buildWithSync(syncNotifier, playlists: playlists));
+    await tester.pumpAndSettle();
+
+    final before = playlists.reloadCalls;
+    await tester.tap(find.text('Tentar novamente'));
+    await tester.pumpAndSettle();
+
+    expect(playlists.reloadCalls, before);
+  });
+
+  testWidgets('storage indisponível ao limpar rascunhos vira snackbar', (
+    tester,
+  ) async {
+    final playlists = FakePlaylistsNotifier(
+      const [],
+      StorageUnavailableException('sem storage'),
+    );
+    await tester.pumpWidget(
+      buildWithSync(_FakeSyncNotifier(), playlists: playlists),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.delete_sweep_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirmar'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Armazenamento local indisponível. Recarregue a página ou libere espaço.',
+      ),
+      findsOneWidget,
+    );
   });
 }

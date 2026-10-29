@@ -38,8 +38,8 @@ void playlistOpenDebugLogError(
   debugPrint('[UC-06 playlist-open] $stackTrace');
 }
 
-/// Registra falha lógica sem exceção — ex.: louvor ausente no manifest ou
-/// [PlaylistsNotifier.loadIntoCarousel] retornou `false`.
+/// Registra falha lógica sem exceção — ex.: louvor ausente no catálogo
+/// coldigom ou lista sem face de partituras para abrir.
 void playlistOpenDebugLogFailure(String stage, String detail) {
   if (!kDebugMode) return;
   playlistOpenLastStage = stage;
@@ -52,8 +52,9 @@ String playlistOpenDebugErrorSummary() {
   final error = playlistOpenLastError;
   final stage = playlistOpenLastStage;
   if (error == null) return stage ?? 'erro desconhecido';
-  final errorText =
-      error.runtimeType == String ? '$error' : '${error.runtimeType}: $error';
+  final errorText = error.runtimeType == String
+      ? '$error'
+      : '${error.runtimeType}: $error';
   if (stage == null) return errorText;
   return '$stage — $errorText';
 }

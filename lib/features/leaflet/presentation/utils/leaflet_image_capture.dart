@@ -100,12 +100,63 @@ Future<Uint8List> captureWidgetToPng(
   leafletDebugLog(
     'captureWidgetToPng: toImage OK (${image.width}x${image.height})',
   );
-  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-  if (byteData == null) {
-    leafletDebugLog('captureWidgetToPng: toByteData retornou null');
-    throw StateError('Failed to encode leaflet as PNG');
+  try {
+    return await encodePngMatchingImage(image);
+  } finally {
+    image.dispose();
   }
+}
 
-  leafletDebugLog('captureWidgetToPng: PNG ${byteData.lengthInBytes} bytes');
-  return byteData.buffer.asUint8List();
+/// Largura/altura declaradas no IHDR de um PNG (bytes 16–23, big-endian).
+({int width, int height}) pngDimensions(ByteData png) {
+  return (width: png.getUint32(16), height: png.getUint32(20));
+}
+
+/// Codifica [image] em PNG e garante que o PNG tem o tamanho da imagem.
+///
+/// No skwasm (web), `toByteData(png)` redimensiona o canvas offscreen para a
+/// imagem e rasteriza num segundo passo assíncrono — e é o mesmo canvas em
+/// que o engine desenha os frames da app. Um frame que comece nesse
+/// intervalo (ex.: o sheet de compartilhar fechando) devolve o canvas ao
+/// tamanho da janela, e o PNG sai com o tamanho da janela: folheto cortado à
+/// direita e transparente embaixo. O IHDR denuncia a corrida; cada tentativa
+/// começa logo após um frame, quando o próximo está mais longe.
+///
+/// Lança [StateError] se a codificação falhar ou se todas as [maxAttempts]
+/// saírem com tamanho errado.
+Future<Uint8List> encodePngMatchingImage(
+  ui.Image image, {
+  int maxAttempts = 5,
+}) async {
+  for (var attempt = 1;; attempt++) {
+    await SchedulerBinding.instance.endOfFrame;
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (byteData == null) {
+      leafletDebugLog('captureWidgetToPng: toByteData retornou null');
+      throw StateError('Failed to encode leaflet as PNG');
+    }
+
+    final png = pngDimensions(byteData);
+    if (png.width == image.width && png.height == image.height) {
+      leafletDebugLog(
+        'captureWidgetToPng: PNG ${byteData.lengthInBytes} bytes '
+        '(tentativa $attempt)',
+      );
+      return byteData.buffer.asUint8List(
+        byteData.offsetInBytes,
+        byteData.lengthInBytes,
+      );
+    }
+
+    leafletDebugLog(
+      'captureWidgetToPng: PNG ${png.width}x${png.height} ≠ imagem '
+      '${image.width}x${image.height} (tentativa $attempt/$maxAttempts)',
+    );
+    if (attempt >= maxAttempts) {
+      throw StateError(
+        'Leaflet PNG came out ${png.width}x${png.height}, '
+        'expected ${image.width}x${image.height}',
+      );
+    }
+  }
 }

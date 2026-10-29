@@ -2,12 +2,16 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:coldigui/core/database/collections/louvor_cache.dart';
+import 'offline_test_helpers.dart';
+
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
+import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
 import 'package:coldigui/core/utils/pdf_path_normalizer.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
+import 'package:coldigui/features/offline/domain/ports/pdf_storage_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 
@@ -23,12 +27,55 @@ Uint8List _validPdfBytes([List<int> extra = const []]) {
   return Uint8List.fromList([0x25, 0x50, 0x44, 0x46, ...extra]);
 }
 
+/// Delega tudo ao [_delegate] real, exceto [getTotalOfflineBytes] — prova
+/// que a quota (A6) não escaneia mais o store, só o índice Isar.
+class _ThrowingTotalBytesStore implements PdfStoragePort {
+  _ThrowingTotalBytesStore(this._delegate);
+
+  final PdfStoragePort _delegate;
+
+  @override
+  Future<String> get rootPath => _delegate.rootPath;
+
+  @override
+  Future<String> writeAtomic(Uint8List bytes, String relPath) =>
+      _delegate.writeAtomic(bytes, relPath);
+
+  @override
+  Future<bool> exists(String storageKey) => _delegate.exists(storageKey);
+
+  @override
+  Future<void> delete(String storageKey) => _delegate.delete(storageKey);
+
+  @override
+  Future<void> deleteTree() => _delegate.deleteTree();
+
+  @override
+  Future<int> getTotalOfflineBytes() {
+    throw StateError(
+      'getTotalOfflineBytes não deve ser chamado por totalCachedBytes (A6)',
+    );
+  }
+
+  @override
+  Future<List<String>> listOrphans(Set<String> indexedStorageKeys) =>
+      _delegate.listOrphans(indexedStorageKeys);
+
+  @override
+  Future<Uint8List?> readBytes(String storageKey, {int? maxBytes}) =>
+      _delegate.readBytes(storageKey, maxBytes: maxBytes);
+
+  @override
+  Future<void> purgeLegacyStorage() => _delegate.purgeLegacyStorage();
+}
+
 void main() {
   late Directory tempDir;
   late Directory docsDir;
   late Isar isar;
   late PdfLocalStore store;
   late OfflinePdfRepositoryImpl repository;
+  late OfflinePdfLocalDatasource local;
 
   const category = 'ColAdultos';
   const relPath = 'ColAdultos/001.pdf';
@@ -43,16 +90,15 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = Isar.open(schemas: [LouvorCacheSchema, OfflinePdfIndexSchema],
-      directory: tempDir.path,
-    );
+    isar = Isar.open(schemas: [OfflinePdfIndexSchema], directory: tempDir.path);
 
     store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
+    local = OfflinePdfLocalDatasource(isar);
     repository = OfflinePdfRepositoryImpl(
-      store: store,
-      local: OfflinePdfLocalDatasource(isar),
+      store: pdfStoragePortFor(store),
+      local: local,
     );
   });
 
@@ -77,16 +123,16 @@ void main() {
     expect(entry.category, category);
     expect(entry.fileSize, bytes.length);
     expect(
-        entry.downloadedAt.isAfter(before.subtract(const Duration(seconds: 1))),
-        isTrue);
+      entry.downloadedAt.isAfter(before.subtract(const Duration(seconds: 1))),
+      isTrue,
+    );
     expect(await File(entry.absolutePath).exists(), isTrue);
     expect(
       entry.absolutePath,
       endsWith(PdfPathNormalizer.getPdfRelPath(pdfId)),
     );
 
-    final index =
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+    final index = isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
     expect(index, isNotNull);
     expect(index!.fileSize, bytes.length);
     expect(index.storagePath, entry.absolutePath);
@@ -108,8 +154,10 @@ void main() {
 
     final staleAccess = DateTime.now().subtract(const Duration(hours: 1));
     await isar.write((isar) {
-      final index =
-          isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+      final index = isar.offlinePdfIndexs
+          .where()
+          .pdfIdEqualTo(pdfId)
+          .findFirst();
       index!.lastAccessedAt = staleAccess;
       isar.offlinePdfIndexs.put(index);
     });
@@ -117,8 +165,10 @@ void main() {
     await repository.lookup(pdfId);
     await repository.flushPendingTouchLastAccessed();
 
-    final indexAfter =
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+    final indexAfter = isar.offlinePdfIndexs
+        .where()
+        .pdfIdEqualTo(pdfId)
+        .findFirst();
     expect(indexAfter!.lastAccessedAt, isNotNull);
     expect(indexAfter.lastAccessedAt!.isAfter(staleAccess), isTrue);
   });
@@ -130,15 +180,19 @@ void main() {
     await repository.lookup(pdfId);
     await repository.flushPendingTouchLastAccessed();
 
-    final indexAfterFirst =
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+    final indexAfterFirst = isar.offlinePdfIndexs
+        .where()
+        .pdfIdEqualTo(pdfId)
+        .findFirst();
     final firstTouch = indexAfterFirst!.lastAccessedAt!;
 
     await repository.lookup(pdfId);
     await repository.flushPendingTouchLastAccessed();
 
-    final indexAfterSecond =
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+    final indexAfterSecond = isar.offlinePdfIndexs
+        .where()
+        .pdfIdEqualTo(pdfId)
+        .findFirst();
     expect(indexAfterSecond!.lastAccessedAt, firstTouch);
   });
 
@@ -150,10 +204,7 @@ void main() {
       category: category,
     );
 
-    expect(
-      await repository.findPdfIdByAbsolutePath(entry.absolutePath),
-      pdfId,
-    );
+    expect(await repository.findPdfIdByAbsolutePath(entry.absolutePath), pdfId);
     expect(
       await repository.findPdfIdByAbsolutePath('/inexistente/foo.pdf'),
       isNull,
@@ -177,8 +228,7 @@ void main() {
     expect(await repository.lookup(pdfId), isNull);
 
     // Índice órfão permanece (reconcile 3.6).
-    final index =
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+    final index = isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
     expect(index, isNotNull);
   });
 
@@ -230,10 +280,56 @@ void main() {
     await repository.remove(pdfId);
 
     expect(await File(entry.absolutePath).exists(), isFalse);
-    expect(
-      isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(),
-      0,
+    expect(isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(), 0);
+  });
+
+  test('removeMany apaga N PDFs (disco + índice) com uma única notificação de '
+      'mudança — não N como remove() em laço faria', () async {
+    var indexChanges = 0;
+    final trackedLocal = OfflinePdfLocalDatasource(
+      isar,
+      onIndexChanged: () => indexChanges++,
     );
+    final trackedRepo = OfflinePdfRepositoryImpl(
+      store: pdfStoragePortFor(store),
+      local: trackedLocal,
+    );
+
+    final id1 = _encodePdfId('ColAdultos/many-a.pdf');
+    final id2 = _encodePdfId('ColAdultos/many-b.pdf');
+    final id3 = _encodePdfId('ColAdultos/many-c.pdf');
+    final entries = [
+      await trackedRepo.upsert(
+        pdfId: id1,
+        bytes: _validPdfBytes(),
+        category: 'ColAdultos',
+      ),
+      await trackedRepo.upsert(
+        pdfId: id2,
+        bytes: _validPdfBytes(),
+        category: 'ColAdultos',
+      ),
+      await trackedRepo.upsert(
+        pdfId: id3,
+        bytes: _validPdfBytes(),
+        category: 'ColAdultos',
+      ),
+    ];
+    indexChanges = 0; // só a remoção importa daqui pra frente.
+
+    await trackedRepo.removeMany({id1, id2, id3});
+
+    expect(indexChanges, 1);
+    expect(isar.offlinePdfIndexs.where().count(), 0);
+    for (final entry in entries) {
+      expect(await File(entry.absolutePath).exists(), isFalse);
+    }
+  });
+
+  test('removeMany é idempotente (conjunto vazio ou pdfId ausente)', () async {
+    await repository.removeMany({});
+    await repository.removeMany({'inexistente'});
+    // Não lança — só o comportamento importa aqui.
   });
 
   test('lookupBatch retorna pdfIds com índice e arquivo válido', () async {
@@ -316,7 +412,7 @@ void main() {
     expect(entry.absolutePath, endsWith('ColAdultos/001.pdf'));
   });
 
-  test('totalCachedBytes soma fileSize do índice', () async {
+  test('totalCachedBytes soma bytes no store', () async {
     final id1 = _encodePdfId('ColAdultos/a.pdf');
     final id2 = _encodePdfId('ColAdultos/b.pdf');
 
@@ -332,6 +428,30 @@ void main() {
     );
 
     expect(await repository.totalCachedBytes(), 15);
+  });
+
+  test('totalCachedBytes soma o índice Isar sem chamar o store (A6)', () async {
+    final throwingStore = _ThrowingTotalBytesStore(pdfStoragePortFor(store));
+    final repositoryWithThrowingStore = OfflinePdfRepositoryImpl(
+      store: throwingStore,
+      local: OfflinePdfLocalDatasource(isar),
+    );
+
+    final id1 = _encodePdfId('ColAdultos/c.pdf');
+    final id2 = _encodePdfId('ColAdultos/d.pdf');
+
+    await repositoryWithThrowingStore.upsert(
+      pdfId: id1,
+      bytes: _validPdfBytes(List.filled(1000, 1)),
+      category: 'ColAdultos',
+    );
+    await repositoryWithThrowingStore.upsert(
+      pdfId: id2,
+      bytes: _validPdfBytes(List.filled(234, 1)),
+      category: 'ColAdultos',
+    );
+
+    expect(await repositoryWithThrowingStore.totalCachedBytes(), 1242);
   });
 
   group('evictOldestPdfs LRU', () {
@@ -428,10 +548,7 @@ void main() {
 
     await repository.clearAll();
 
-    expect(
-      isar.offlinePdfIndexs.where().count(),
-      0,
-    );
+    expect(isar.offlinePdfIndexs.where().count(), 0);
   });
 
   group('validação magic bytes %PDF', () {
@@ -445,10 +562,7 @@ void main() {
       expect(await repository.lookup(pdfId), isNull);
 
       expect(await File(entry.absolutePath).exists(), isFalse);
-      expect(
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(),
-        0,
-      );
+      expect(isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(), 0);
     });
 
     test('lookup miss e purge para bytes aleatórios', () async {
@@ -461,10 +575,7 @@ void main() {
       expect(await repository.lookup(pdfId), isNull);
 
       expect(await File(entry.absolutePath).exists(), isFalse);
-      expect(
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(),
-        0,
-      );
+      expect(isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(), 0);
     });
 
     test('lookup hit para PDF válido com header %PDF', () async {
@@ -478,10 +589,7 @@ void main() {
       final found = await repository.lookup(pdfId);
       expect(found, isNotNull);
       expect(found!.absolutePath, entry.absolutePath);
-      expect(
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(),
-        1,
-      );
+      expect(isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(), 1);
     });
 
     test('lookup hit para PDF truncado com header válido', () async {
@@ -515,23 +623,261 @@ void main() {
       final found = await repository.lookupBatch({validId, corruptId});
       expect(found, {validId});
       expect(await File(corruptEntry.absolutePath).exists(), isFalse);
-      expect(
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(corruptId).count(),
-        0,
+      expect(isar.offlinePdfIndexs.where().pdfIdEqualTo(corruptId).count(), 0);
+    });
+
+    test(
+      'lookupWithIndexState purge corrupto retorna hasIndexEntry false',
+      () async {
+        await repository.upsert(
+          pdfId: pdfId,
+          bytes: Uint8List.fromList([0xCA, 0xFE, 0xBA, 0xBE]),
+          category: category,
+        );
+
+        final result = await repository.lookupWithIndexState(pdfId);
+        expect(result.$1, isNull);
+        expect(result.$2, isFalse);
+      },
+    );
+  });
+
+  group('modo degradado (Isar indisponível)', () {
+    late OfflinePdfRepositoryImpl degraded;
+
+    setUp(() {
+      degraded = OfflinePdfRepositoryImpl(
+        store: pdfStoragePortFor(store),
+        local: const OfflinePdfLocalDatasource.unavailable(),
       );
     });
 
-    test('lookupWithIndexState purge corrupto retorna hasIndexEntry false',
-        () async {
-      await repository.upsert(
+    test('upsert grava o PDF e devolve a entrada mesmo sem índice', () async {
+      final bytes = _validPdfBytes();
+
+      final entry = await degraded.upsert(
         pdfId: pdfId,
-        bytes: Uint8List.fromList([0xCA, 0xFE, 0xBA, 0xBE]),
+        bytes: bytes,
         category: category,
       );
 
-      final result = await repository.lookupWithIndexState(pdfId);
-      expect(result.$1, isNull);
-      expect(result.$2, isFalse);
+      expect(entry.pdfId, pdfId);
+      expect(entry.fileSize, bytes.length);
+      expect(await File(entry.absolutePath).exists(), isTrue);
+      expect(await File(entry.absolutePath).readAsBytes(), bytes);
+    });
+
+    test('upsertBatch continua propagando a falha de índice', () async {
+      expect(
+        () => degraded.upsertBatch([
+          OfflinePdfBatchItem(
+            pdfId: pdfId,
+            bytes: _validPdfBytes(),
+            category: category,
+          ),
+        ]),
+        throwsA(isA<StorageUnavailableException>()),
+      );
+    });
+
+    test('clearAll continua propagando a falha de índice', () {
+      expect(
+        () => degraded.clearAll(),
+        throwsA(isA<StorageUnavailableException>()),
+      );
+    });
+  });
+
+  test(
+    'markPersistent promove só os presentes e devolve quantos mudaram',
+    () async {
+      // 'lru-1'/'lru-2' literais não decodificam como pdfId (o repositório
+      // exige Base64 URL-safe de um path, via PdfPathNormalizer) — usa-se
+      // encodePdfId como o resto do arquivo (ex.: teste de eviction acima).
+      final lru1 = _encodePdfId('ColAdultos/lru-1.pdf');
+      final lru2 = _encodePdfId('ColAdultos/lru-2.pdf');
+      await repository.upsert(
+        pdfId: lru1,
+        bytes: _validPdfBytes(),
+        category: 'x',
+      );
+      await repository.upsert(
+        pdfId: lru2,
+        bytes: _validPdfBytes(),
+        category: 'x',
+        isPersistent: true,
+      );
+
+      final changed = await local.markPersistent({lru1, lru2, 'ausente'});
+
+      expect(changed, 1);
+      expect((await repository.findIndexEntry(lru1))!.isPersistent, isTrue);
+      expect(await local.markPersistent({lru1}), 0);
+    },
+  );
+
+  group('remapPdfIds (ids legados → coldigom, spec fim-fonte-plpcg §6.2)', () {
+    late int indexChanges;
+    late OfflinePdfRepositoryImpl tracked;
+
+    OfflinePdfIndex row(String pdfId, {bool persistent = true}) =>
+        OfflinePdfIndex()
+          ..pdfId = pdfId
+          ..storagePath = '${docsDir.path}/$pdfId.pdf'
+          ..category = category
+          ..fileSize = 4
+          ..downloadedAt = DateTime.utc(2026, 9, 1)
+          ..isPersistent = persistent;
+
+    Future<OfflinePdfIndex?> find(String pdfId) => local.findByPdfId(pdfId);
+
+    setUp(() {
+      indexChanges = 0;
+      tracked = OfflinePdfRepositoryImpl(
+        store: pdfStoragePortFor(store),
+        local: OfflinePdfLocalDatasource(
+          isar,
+          onIndexChanged: () => indexChanges++,
+        ),
+      );
+    });
+
+    test('milhares de linhas numa escrita só: um aviso ao índice', () async {
+      const total = 3000;
+      String legacy(int i) => _encodePdfId('ColAdultos/${i + 1}.pdf');
+      String coldigom(int i) => _encodePdfId('assets/praises/p$i/m$i.pdf');
+      await local.putAllByPdfId([
+        for (var i = 0; i < total; i++) row(legacy(i)),
+      ]);
+
+      final changed = await tracked.remapPdfIds({
+        for (var i = 0; i < total; i++) legacy(i): coldigom(i),
+      });
+
+      expect(changed, total);
+      expect(indexChanges, 1);
+      expect(isar.offlinePdfIndexs.where().count(), total);
+      expect(await find(legacy(0)), isNull);
+      final last = await find(coldigom(total - 1));
+      expect(last?.storagePath, '${docsDir.path}/${legacy(total - 1)}.pdf');
+      expect(last?.isPersistent, isTrue);
+    });
+
+    test('resolvido: a chave muda e o resto da linha fica', () async {
+      final legacy = _encodePdfId('ColAdultos/001.pdf');
+      final coldigom = _encodePdfId('assets/praises/p1/m1.pdf');
+      final original = row(legacy, persistent: false)
+        ..lastAccessedAt = DateTime.utc(2026, 9, 10);
+      await local.put(original);
+
+      expect(await tracked.remapPdfIds({legacy: coldigom}), 1);
+
+      expect(await find(legacy), isNull);
+      final remapped = await find(coldigom);
+      expect(remapped?.storagePath, original.storagePath);
+      expect(remapped?.category, original.category);
+      expect(remapped?.fileSize, original.fileSize);
+      expect(remapped?.downloadedAt.toUtc(), original.downloadedAt);
+      expect(remapped?.lastAccessedAt?.toUtc(), DateTime.utc(2026, 9, 10));
+      expect(remapped?.isPersistent, isFalse);
+    });
+
+    group('colisão (o id coldigom já está indexado)', () {
+      final legacy = _encodePdfId('ColAdultos/001.pdf');
+      final coldigom = _encodePdfId('assets/praises/p1/m1.pdf');
+
+      Future<OfflinePdfIndex?> collide({
+        required bool legacyPersistent,
+        required bool coldigomPersistent,
+      }) async {
+        await local.putAllByPdfId([
+          row(legacy, persistent: legacyPersistent),
+          row(coldigom, persistent: coldigomPersistent),
+        ]);
+        expect(await tracked.remapPdfIds({legacy: coldigom}), 1);
+        expect(indexChanges, 1);
+        expect(await find(legacy), isNull);
+        expect(isar.offlinePdfIndexs.where().count(), 1);
+        return find(coldigom);
+      }
+
+      test('a linha legada sai e a coldigom fica com o seu ficheiro', () async {
+        final kept = await collide(
+          legacyPersistent: false,
+          coldigomPersistent: true,
+        );
+        expect(kept?.storagePath, '${docsDir.path}/$coldigom.pdf');
+        expect(kept?.isPersistent, isTrue);
+      });
+
+      test('a que fica é persistente se a legada era', () async {
+        final kept = await collide(
+          legacyPersistent: true,
+          coldigomPersistent: false,
+        );
+        expect(kept?.isPersistent, isTrue);
+      });
+
+      test('duas linhas só de cache continuam só de cache', () async {
+        final kept = await collide(
+          legacyPersistent: false,
+          coldigomPersistent: false,
+        );
+        expect(kept?.isPersistent, isFalse);
+      });
+    });
+
+    test('dois legados para o mesmo id coldigom: fica uma linha', () async {
+      final a = _encodePdfId('ColAdultos/001.pdf');
+      final b = _encodePdfId('ColAdultos/002.pdf');
+      final coldigom = _encodePdfId('assets/praises/p1/m1.pdf');
+      await local.putAllByPdfId([
+        row(a, persistent: false),
+        row(b, persistent: true),
+      ]);
+
+      expect(await tracked.remapPdfIds({a: coldigom, b: coldigom}), 2);
+
+      expect(indexChanges, 1);
+      expect(isar.offlinePdfIndexs.where().count(), 1);
+      expect((await find(coldigom))?.isPersistent, isTrue);
+    });
+
+    test('remove sai na mesma escrita (um aviso só)', () async {
+      final legacy = _encodePdfId('ColAdultos/001.pdf');
+      final unknown = _encodePdfId('ColAdultos/999.pdf');
+      final coldigom = _encodePdfId('assets/praises/p1/m1.pdf');
+      await local.putAllByPdfId([row(legacy), row(unknown)]);
+
+      final changed = await tracked.remapPdfIds(
+        {legacy: coldigom},
+        remove: {unknown},
+      );
+
+      expect(changed, 2);
+      expect(indexChanges, 1);
+      expect(await find(unknown), isNull);
+      expect(await find(coldigom), isNotNull);
+    });
+
+    test('nada a mudar: sem escrita e sem aviso', () async {
+      final coldigom = _encodePdfId('assets/praises/p1/m1.pdf');
+      await local.put(row(coldigom));
+
+      expect(
+        await tracked.remapPdfIds(
+          {
+            _encodePdfId('ColAdultos/ausente.pdf'): coldigom,
+            coldigom: coldigom,
+          },
+          remove: {_encodePdfId('ColAdultos/ausente-2.pdf')},
+        ),
+        0,
+      );
+      expect(await tracked.remapPdfIds(const {}), 0);
+
+      expect(indexChanges, 0);
+      expect(await find(coldigom), isNotNull);
     });
   });
 }

@@ -1,15 +1,20 @@
+import 'dart:async';
+
+import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_repository.dart';
+
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
+
 import 'package:coldigui/l10n/app_localizations.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide SearchBar;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
@@ -27,25 +32,101 @@ Louvor _louvor({required String nome, required String numero}) =>
       pdfId: 'id-$numero',
     );
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
+LouvorGroup _group(Louvor louvor) => LouvorGroup(
+  groupId: 'cg-${louvor.numero}',
+  numero: louvor.numero,
+  nome: louvor.nome,
+  sections: [
+    LouvorMaterialSection(
+      classificacao: louvor.classificacao,
+      displayLabel: louvor.classificacao,
+      materials: [
+        LouvorMaterialEntry(
+          categoria: louvor.categoria,
+          pdfId: louvor.pdfId,
+          louvor: louvor,
+        ),
+      ],
+    ),
+  ],
+);
+
+class _FakeColdigomRepo implements ColdigomSearchRepository {
+  _FakeColdigomRepo(this.catalog);
+
+  final List<Louvor> catalog;
+
   @override
-  List<CarouselItem> build() => const [];
+  Future<ColdigomSearchResult> search(
+    String query, {
+    int page = 1,
+    SearchCancellation? cancellation,
+  }) async {
+    final q = query.trim().toLowerCase();
+    final matched = catalog
+        .where(
+          (l) =>
+              l.numero.toLowerCase().contains(q) ||
+              l.nome.toLowerCase().contains(q),
+        )
+        .toList();
+    final groups = matched.map(_group).toList();
+    return ColdigomSearchResult(
+      groups: groups,
+      louvores: matched,
+      page: page,
+      hasNextPage: false,
+    );
+  }
+}
+
+/// Repositório coldigom que falha até o teste liberar — cobre a linha de
+/// "indisponível", o retry manual e a reconexão.
+class _ScriptedColdigomRepo implements ColdigomSearchRepository {
+  var shouldFail = true;
+  var calls = 0;
+
+  @override
+  Future<ColdigomSearchResult> search(
+    String query, {
+    int page = 1,
+    SearchCancellation? cancellation,
+  }) async {
+    calls++;
+    if (shouldFail) throw Exception('coldigom indisponível');
+    return ColdigomSearchResult(
+      groups: const [],
+      louvores: const [],
+      page: page,
+      hasNextPage: false,
+    );
+  }
 }
 
 List<Override> _homeSearchTestOverrides({
   required SharedPreferences prefs,
   required List<Louvor> catalog,
+  ColdigomSearchRepository? coldigom,
+  List<Override> extra = const [],
 }) {
   return [
     sharedPreferencesProvider.overrideWithValue(prefs),
-    louvoresManifestProvider.overrideWith(
-      (ref) async => LouvoresManifest.fromLouvores(catalog),
+    // O catálogo destes testes vem do índice, e a busca remota fica vazia por
+    // omissão (a validação remota tem cobertura própria).
+    ...catalogIndexOverrides(
+      catalogIndexOf([
+        for (final louvor in catalog)
+          catalogGroup(
+            praiseId: 'p-${louvor.numero}',
+            number: louvor.numero,
+            name: louvor.nome,
+          ),
+      ]),
     ),
-    carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-    homeSearchPipelineExecutorProvider.overrideWith(
-      (ref) =>
-          (input) async => runHomeSearchPipeline(input),
+    coldigomSearchRepositoryProvider.overrideWithValue(
+      coldigom ?? _FakeColdigomRepo(const []),
     ),
+    ...extra,
   ];
 }
 
@@ -138,6 +219,96 @@ void main() {
   );
 
   testWidgets(
+    'falha remota mostra a linha de retry e o toque re-busca a mesma página',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final catalog = [_louvor(nome: 'Aleluia', numero: '001')];
+      final repo = _ScriptedColdigomRepo();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: _homeSearchTestOverrides(
+            prefs: prefs,
+            catalog: catalog,
+            coldigom: repo,
+          ),
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: const HomeScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '001');
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Em cache · não foi possível verificar'),
+        findsOneWidget,
+      );
+      // O resultado PLPCG segue na tela apesar da falha remota.
+      expect(find.textContaining('Aleluia'), findsOneWidget);
+
+      repo.shouldFail = false;
+      await tester.tap(find.text('Em cache · não foi possível verificar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Em cache · não foi possível verificar'), findsNothing);
+      expect(repo.calls, 2);
+    },
+  );
+
+  testWidgets('reconexão re-busca a página remota quando ela está em erro', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final catalog = [_louvor(nome: 'Aleluia', numero: '001')];
+    final repo = _ScriptedColdigomRepo();
+    final connectivity = StreamController<bool>.broadcast();
+    addTearDown(connectivity.close);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: _homeSearchTestOverrides(
+          prefs: prefs,
+          catalog: catalog,
+          coldigom: repo,
+          extra: [
+            connectivityStreamProvider.overrideWith(
+              (ref) => connectivity.stream,
+            ),
+          ],
+        ),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '001');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Em cache · não foi possível verificar'), findsOneWidget);
+    expect(repo.calls, 1);
+
+    repo.shouldFail = false;
+    connectivity.add(true);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Em cache · não foi possível verificar'), findsNothing);
+    expect(repo.calls, 2);
+  });
+
+  testWidgets(
     'SearchBar mantém texto digitado quando initialValue muda por eco de URL',
     (tester) async {
       await tester.pumpWidget(
@@ -177,5 +348,31 @@ void main() {
 
       expect(tester.widget<TextField>(field).controller!.text, 'hello');
     },
+  );
+
+  testWidgets(
+    'SearchBar autofoca só com teclado físico (defaultTargetPlatform — na web, '
+    'o SO do navegador)',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: Scaffold(
+            body: SearchBar(hintText: 'Buscar', onQueryChanged: (_) {}),
+          ),
+        ),
+      );
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      final desktop = const {
+        TargetPlatform.macOS,
+        TargetPlatform.windows,
+        TargetPlatform.linux,
+      }.contains(defaultTargetPlatform);
+      expect(field.autofocus, desktop);
+    },
+    variant: TargetPlatformVariant.all(),
   );
 }

@@ -12,8 +12,15 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-BUNDLE_ID="com.example.coldigui"
+BUNDLE_ID="com.plpcg.app"
 DART_DEFINES_FILE="dart_defines/plpcg.json"
+PRIVATE_DEFINES_FILE="dart_defines/private.json"
+
+DEFINE_ARGS=(--dart-define-from-file="$DART_DEFINES_FILE")
+if [[ -f "$PRIVATE_DEFINES_FILE" ]]; then
+  echo "==> dart_defines privados: $PRIVATE_DEFINES_FILE"
+  DEFINE_ARGS+=(--dart-define-from-file="$PRIVATE_DEFINES_FILE")
+fi
 
 resolve_ios_device() {
   python3 "$ROOT_DIR/scripts/ios_resolve_device.py"
@@ -40,9 +47,9 @@ echo "==> Dependências Flutter..."
 "$ROOT_DIR/scripts/setup_deps.sh"
 
 echo "==> Build iOS (debug)..."
-flutter build ios --debug --dart-define-from-file="$DART_DEFINES_FILE"
+flutter build ios --debug "${DEFINE_ARGS[@]}"
 
 echo "==> Executando no dispositivo (workspace real: ios/Runner.xcworkspace)..."
 flutter run \
-  --dart-define-from-file="$DART_DEFINES_FILE" \
+  "${DEFINE_ARGS[@]}" \
   -d "$DEVICE_ID"

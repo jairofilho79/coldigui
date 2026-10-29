@@ -1,62 +1,47 @@
+import 'dart:async';
+
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/golden_tagged_container.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
+import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/library/presentation/pages/library_screen.dart';
-import 'package:coldigui/features/library/presentation/providers/library_group_results_provider.dart';
-import 'package:coldigui/features/library/presentation/providers/library_group_worker.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Louvor _louvor({
-  required String nome,
-  required String numero,
-  String classificacao = 'ColAdultos',
-}) => Louvor.fromManifest(
-  nome: nome,
-  numero: numero,
-  categoria: 'Partitura',
-  classificacao: classificacao,
-  pdf: '$numero.pdf',
-  pdfId: 'id-$numero',
-);
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
+List<LouvorGroup> _groups(int count) => [
+  for (var i = 1; i <= count; i++)
+    catalogGroup(
+      praiseId: 'p$i',
+      number: '$i'.padLeft(3, '0'),
+      name: 'Louvor $i',
+    ),
+];
 
 Widget _libraryTestApp({
   required SharedPreferences prefs,
-  required List<Louvor> catalog,
-  List<Override> extraOverrides = const [],
-  Widget? home,
+  required List<Override> catalogOverrides,
 }) {
   return ProviderScope(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      louvoresManifestProvider.overrideWith(
-        (ref) async => LouvoresManifest.fromLouvores(catalog),
-      ),
-      carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-      libraryGroupPipelineExecutorProvider.overrideWith(
-        (ref) =>
-            (input) async => runLibraryGroupPipeline(input),
-      ),
-      ...extraOverrides,
+      ...catalogOverrides,
     ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('pt'),
-      home: home ?? const Scaffold(body: LibraryScreen()),
+      home: const Scaffold(body: LibraryScreen()),
     ),
   );
 }
@@ -66,56 +51,40 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  Future<void> pumpLibrary(WidgetTester tester, Widget app) async {
+  Future<void> pumpLibrary(
+    WidgetTester tester,
+    List<LouvorGroup> groups,
+  ) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(app);
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(
+      _libraryTestApp(
+        prefs: prefs,
+        catalogOverrides: catalogIndexOverrides(catalogIndexOf(groups)),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
-  testWidgets('LibraryScreen exibe LouvorCards e chips de filtro', (
+  testWidgets('lista os louvores do índice local, sem seletor de fonte', (
     tester,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final catalog = List.generate(
-      15,
-      (i) => _louvor(
-        nome: 'Louvor ${i + 1}',
-        numero: '${i + 1}'.padLeft(3, '0'),
-        classificacao: i.isEven ? 'ColAdultos' : 'ColAdultos (Especial)',
-      ),
-    );
-
-    await pumpLibrary(tester, _libraryTestApp(prefs: prefs, catalog: catalog));
-
-    await tester.tap(find.text('Filtros'));
-    await tester.pumpAndSettle();
+    await pumpLibrary(tester, _groups(15));
 
     expect(find.text('#001 — Louvor 1'), findsOneWidget);
-    expect(find.text('Partitura'), findsWidgets);
-    expect(find.text('Arranjo especial'), findsOneWidget);
-    expect(find.text('Padrão'), findsOneWidget);
-    expect(find.text('Especial'), findsOneWidget);
+    // O seletor «Fonte: PLPCG | Coldigom» não existe mais.
+    expect(find.text('Fonte'), findsNothing);
   });
 
-  testWidgets('LibraryScreen exibe resumo dentro do card Visualização', (
-    tester,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final catalog = List.generate(
-      15,
-      (i) =>
-          _louvor(nome: 'Louvor ${i + 1}', numero: '${i + 1}'.padLeft(3, '0')),
-    );
-
-    await pumpLibrary(tester, _libraryTestApp(prefs: prefs, catalog: catalog));
+  testWidgets('resumo dentro do card Visualização', (tester) async {
+    await pumpLibrary(tester, _groups(15));
 
     final summary = find.textContaining('Mostrando 1');
     expect(summary, findsOneWidget);
     expect(find.text('10 por página'), findsOneWidget);
-
     expect(
       find.descendant(
         of: find.ancestor(
@@ -128,38 +97,183 @@ void main() {
     );
   });
 
-  testWidgets('LibraryScreen troca página e ordenação', (tester) async {
-    final prefs = await SharedPreferences.getInstance();
-    final catalog = List.generate(
-      15,
-      (i) =>
-          _louvor(nome: 'Louvor ${i + 1}', numero: '${i + 1}'.padLeft(3, '0')),
-    );
-
-    await pumpLibrary(tester, _libraryTestApp(prefs: prefs, catalog: catalog));
+  testWidgets('troca página e ordenação', (tester) async {
+    await pumpLibrary(tester, _groups(15));
 
     expect(find.text('#001 — Louvor 1'), findsOneWidget);
     expect(find.text('#011 — Louvor 11'), findsNothing);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
-
     expect(find.text('#011 — Louvor 11'), findsOneWidget);
     expect(find.text('#001 — Louvor 1'), findsNothing);
 
     await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pumpAndSettle();
-
     expect(find.text('#001 — Louvor 1'), findsOneWidget);
 
     await tester.tap(find.text('Nome'));
     await tester.pumpAndSettle();
-
-    final louvor1Finder = find.text('#001 — Louvor 1');
-    final louvor10Finder = find.text('#010 — Louvor 10');
     expect(
-      tester.getTopLeft(louvor1Finder).dy,
-      lessThan(tester.getTopLeft(louvor10Finder).dy),
+      tester.getTopLeft(find.text('#001 — Louvor 1')).dy,
+      lessThan(tester.getTopLeft(find.text('#010 — Louvor 10')).dy),
     );
   });
+
+  testWidgets('skeleton enquanto o índice hidrata', (tester) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final prefs = await SharedPreferences.getInstance();
+    final pending = Completer<ColdigomSearchIndex>();
+
+    await tester.pumpWidget(
+      _libraryTestApp(
+        prefs: prefs,
+        catalogOverrides: [
+          coldigomCatalogHydrationProvider.overrideWith(
+            (ref) => pending.future,
+          ),
+          coldigomCatalogSyncProvider.overrideWith(
+            FakeColdigomCatalogSyncNotifier.new,
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(LouvorGroupCardSkeleton), findsWidgets);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 600));
+  });
+
+  testWidgets('o painel de filtros usa o índice e filtra a lista', (
+    tester,
+  ) async {
+    await pumpLibrary(tester, [
+      catalogGroup(
+        praiseId: 'p1',
+        number: '001',
+        name: 'Louvor 1',
+        tonality: 'Dm',
+      ),
+      catalogGroup(
+        praiseId: 'p2',
+        number: '002',
+        name: 'Louvor 2',
+        tonality: 'G',
+      ),
+    ]);
+
+    await tester.tap(find.text('Filtros'));
+    await tester.pumpAndSettle();
+    final dm = find.widgetWithText(FilterChip, 'Dm');
+    await tester.ensureVisible(dm);
+    await tester.tap(dm);
+    await tester.pumpAndSettle();
+
+    expect(find.text('#001 — Louvor 1'), findsOneWidget);
+    expect(find.text('#002 — Louvor 2'), findsNothing);
+  });
+
+  testWidgets(
+    'sync da URL leva os filtros e tira os params mortos (fonte, materiais, '
+    'arranjo, arranjoEspecial)',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final prefs = await SharedPreferences.getInstance();
+      final router = GoRouter(
+        initialLocation:
+            '${RoutePaths.library}?fonte=coldigom&materiais=Partitura'
+            '&arranjo=ColAdultos&arranjoEspecial=Especial&tags=PES',
+        routes: [
+          GoRoute(
+            path: RoutePaths.library,
+            builder: (context, state) {
+              final params = state.uri.queryParameters;
+              return Scaffold(
+                body: LibraryScreen(
+                  initialTonality: params[UrlSyncParams.tonality],
+                  initialRhythm: params[UrlSyncParams.rhythm],
+                  initialCategory: params[UrlSyncParams.category],
+                  initialTags: params[UrlSyncParams.tags],
+                  initialMaterialKinds: params[UrlSyncParams.materialKinds],
+                  initialOrdenar: params[UrlSyncParams.ordenar],
+                  initialItensPorPagina: params[UrlSyncParams.itensPorPagina],
+                  initialPagina: params[UrlSyncParams.pagina],
+                ),
+              );
+            },
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            ...catalogIndexOverrides(
+              catalogIndexOf([
+                for (var i = 1; i <= 15; i++)
+                  catalogGroup(
+                    praiseId: 'p$i',
+                    number: '$i'.padLeft(3, '0'),
+                    name: 'Louvor $i',
+                    tonality: 'Dm',
+                    tags: const ['PES'],
+                  ),
+                catalogGroup(
+                  praiseId: 'p99',
+                  number: '099',
+                  name: 'Fora',
+                  tonality: 'G',
+                  tags: const ['CIAs'],
+                ),
+              ]),
+            ),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Map<String, String> query() =>
+          router.routerDelegate.currentConfiguration.uri.queryParameters;
+
+      // A URL hidratou o filtro de tags: o painel abre e a lista já filtra.
+      expect(find.text('#099 — Fora'), findsNothing);
+
+      final dm = find.widgetWithText(FilterChip, 'Dm');
+      await tester.ensureVisible(dm);
+      await tester.tap(dm);
+      await tester.pumpAndSettle();
+
+      expect(query()[UrlSyncParams.tags], 'PES');
+      expect(query()[UrlSyncParams.tonality], 'Dm');
+      for (final dead in ['fonte', 'materiais', 'arranjo', 'arranjoEspecial']) {
+        expect(query(), isNot(contains(dead)), reason: dead);
+      }
+
+      // Mudar a vista (página) mantém os filtros na URL.
+      final next = find.byIcon(Icons.chevron_right);
+      await tester.ensureVisible(next);
+      await tester.tap(next);
+      await tester.pumpAndSettle();
+
+      expect(query()[UrlSyncParams.pagina], '2');
+      expect(query()[UrlSyncParams.tags], 'PES');
+      expect(query()[UrlSyncParams.tonality], 'Dm');
+    },
+  );
 }

@@ -11,9 +11,73 @@
       "migrations_dir": "migrations"
     }
   ],
+  "durable_objects": {
+    "bindings": [{ "name": "LIVE", "class_name": "LiveRoom" }]
+  },
+  "migrations": [{ "tag": "live-v1", "new_sqlite_classes": ["LiveRoom"] }],
   "routes": [
     {
       "pattern": "plpcg.com/api/catalog/*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/auth/*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/playlists*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/audio-flags*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/material-kind-prefs*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/social/*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/coldigom/*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/l/*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/links*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/live/*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/ao-vivo/*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/.well-known/*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/louvor/*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/privacy*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/politica-de-privacidade*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/*",
       "zone_name": "plpcg.com"
     }
   ]

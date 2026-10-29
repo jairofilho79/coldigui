@@ -1,150 +1,48 @@
-import 'dart:typed_data';
-
-import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
-import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
-import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
-import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
-import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
-import 'package:coldigui/features/offline/presentation/providers/offline_reconcile_provider.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/reconcile_result.dart';
-import 'package:coldigui/features/offline/domain/usecases/get_offline_stats_by_category.dart';
+import 'package:coldigui/features/offline/domain/ports/pdf_storage_port.dart';
+import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
+import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
+import 'package:coldigui/features/offline/presentation/providers/offline_reconcile_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar_plus/isar_plus.dart';
-import 'dart:io';
 
-class _StubIsar implements Isar {
+/// Store que só sabe o tamanho do acervo — o resto não é chamado aqui.
+class _BytesPort implements PdfStoragePort {
+  _BytesPort(this.bytes);
+
+  final int bytes;
+
   @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
+  Future<int> getTotalOfflineBytes() async => bytes;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName}');
 }
 
-class _StatsRepo implements OfflinePdfRepository {
-  _StatsRepo(this.byCategory);
-
-  final Map<String, int> byCategory;
-
-  @override
-  Future<Map<String, int>> countByCategory() async => byCategory;
-
-  @override
-  Future<void> clearAll() async {}
-
-  @override
-  Future<OfflinePdfEntry?> findIndexEntry(String pdfId) async => null;
-
-  @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) async {}
-
-  @override
-  Future<List<OfflinePdfEntry>> listAll() async => [];
-
-  @override
-  Future<OfflinePdfEntry?> lookup(String pdfId) async => null;
-
-  @override
-  Future<(OfflinePdfEntry? entry, bool hasIndexEntry)> lookupWithIndexState(
-    String pdfId,
-  ) async => (null, false);
-
-  @override
-  Future<Set<String>> lookupBatch(Set<String> pdfIds) async => {};
-
-  @override
-  Future<void> remove(String pdfId) async {}
-
-  @override
-  Future<void> remapPdfId({
-    required String fromPdfId,
-    required String toPdfId,
-  }) async {}
-
-  @override
-  Future<String?> findPdfIdByAbsolutePath(String absolutePath) async => null;
-
-  @override
-  Future<int> removeIndexEntries(Set<String> pdfIds) async => 0;
-
-  @override
-  Future<OfflinePdfEntry> upsert({
-    required String pdfId,
-    required Uint8List bytes,
-    required String category,
-    bool isPersistent = false,
-  }) async => throw UnimplementedError();
-
-  @override
-  Future<void> upsertBatch(List<OfflinePdfBatchItem> items) async {}
-
-  @override
-  Future<int> totalCachedBytes() async => 0;
-
-  @override
-  Future<int> evictOldestPdfs({
-    required int targetBytes,
-    Set<String> excludePdfIds = const {},
-  }) async => 0;
-
-  @override
-  Future<void> flushPendingTouchLastAccessed() async {}
-}
-
-class _StubCatalogLocal extends CatalogLocalDatasource {
-  _StubCatalogLocal() : super(_StubIsar());
-
-  @override
-  Future<Map<String, String>> loadPdfIdToCategoriaMap() async => const {};
-}
-
-class _FixedGetOfflineStatsByCategory extends GetOfflineStatsByCategory {
-  _FixedGetOfflineStatsByCategory(this.result)
-    : super(
-        _StatsRepo({}),
-        _StubCatalogLocal(),
-        PdfLocalStore(
-          getApplicationDocumentsDirectory: () async => Directory.systemTemp,
-        ),
-      );
-
-  final OfflineStats result;
-
-  @override
-  Future<OfflineStats> call({bool includeMissing = true}) async => result;
-}
-
-List<Override> _offlineCacheStatusTestOverrides({required OfflineStats stats}) {
-  return [
-    getOfflineStatsByCategoryProvider.overrideWith(
-      (ref) => _FixedGetOfflineStatsByCategory(stats),
-    ),
-  ];
-}
+List<Override> _offlineCacheStatusTestOverrides({int diskBytes = 0}) => [
+  pdfStoragePortProvider.overrideWithValue(_BytesPort(diskBytes)),
+];
 
 void main() {
-  test('refresh populates stats and isReady', () async {
+  test('refresh lê o uso de disco', () async {
     final container = ProviderContainer(
-      overrides: _offlineCacheStatusTestOverrides(
-        stats: const OfflineStats(byCategory: {'Partitura': 2}),
-      ),
+      overrides: _offlineCacheStatusTestOverrides(diskBytes: 2048),
     );
     addTearDown(container.dispose);
 
     await container.read(offlineCacheStatusProvider.notifier).refresh();
 
     final status = container.read(offlineCacheStatusProvider);
-    expect(status.validCount, 2);
-    expect(status.isReady, isTrue);
+    expect(status.diskUsageBytes, 2048);
     expect(status.removedCount, 0);
   });
 
   test('refresh with removedCount propagates aviso', () async {
     final container = ProviderContainer(
-      overrides: _offlineCacheStatusTestOverrides(
-        stats: const OfflineStats(byCategory: {}),
-      ),
+      overrides: _offlineCacheStatusTestOverrides(),
     );
     addTearDown(container.dispose);
 
@@ -161,9 +59,7 @@ void main() {
 
   test('dismissRemovedWarning clears removedCount', () async {
     final container = ProviderContainer(
-      overrides: _offlineCacheStatusTestOverrides(
-        stats: const OfflineStats(byCategory: {}),
-      ),
+      overrides: _offlineCacheStatusTestOverrides(),
     );
     addTearDown(container.dispose);
 
@@ -182,9 +78,7 @@ void main() {
   test('reconcile completion triggers refresh with removedFromIndex', () async {
     final container = ProviderContainer(
       overrides: [
-        ..._offlineCacheStatusTestOverrides(
-          stats: const OfflineStats(byCategory: {'Partitura': 1}),
-        ),
+        ..._offlineCacheStatusTestOverrides(diskBytes: 1024),
         offlineReconcileProvider.overrideWith(_TestReconcileNotifier.new),
       ],
     );
@@ -198,9 +92,46 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     final status = container.read(offlineCacheStatusProvider);
-    expect(status.validCount, 1);
+    expect(status.diskUsageBytes, 1024);
     expect(status.removedCount, 2);
   });
+
+  test(
+    'refreshAll com reconcile pulado não propaga removedCount velho',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          ..._offlineCacheStatusTestOverrides(diskBytes: 1024),
+          offlineReconcileProvider.overrideWith(_SkippedReconcileNotifier.new),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(offlineCacheStatusProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      await container.read(offlineCacheStatusProvider.notifier).refreshAll();
+
+      final status = container.read(offlineCacheStatusProvider);
+      expect(status.diskUsageBytes, 1024);
+      expect(status.removedCount, 0);
+      expect(status.showRemovedWarning, isFalse);
+    },
+  );
+}
+
+/// Reconcile que devolve um `lastResult` antigo e sinaliza que foi pulado —
+/// o `removedFromIndex` dele não vale para esta rodada.
+class _SkippedReconcileNotifier extends OfflineReconcileNotifier {
+  @override
+  OfflineReconcileState build() => const OfflineReconcileState(
+    lastResult: ReconcileResult(removedFromIndex: 5, orphanFiles: 0),
+  );
+
+  @override
+  Future<void> requestReconcile() async {
+    state = state.copyWith(lastSkipReason: ReconcileSkipReason.locked);
+  }
 }
 
 class _TestReconcileNotifier extends OfflineReconcileNotifier {

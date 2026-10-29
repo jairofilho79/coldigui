@@ -1,26 +1,31 @@
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 
-/// Monta path da Home com query params sincronizados (§2.5 MAPEAMENTO).
+/// Monta path da página inicial com query params sincronizados (spec
+/// fim-fonte §2.5).
 ///
-/// Omite params com valor padrão: [pesquisa] vazia, [materiais] todos
-/// selecionados, [arranjo] vazio. Valores codificados via [Uri.encodeComponent].
+/// [pesquisa] vazia é omitida; os filtros do catálogo (os mesmos da
+/// /biblioteca) vão em CSV — [tags] por nome, [materialKinds] por id de kind
+/// — e são omitidos quando vazios. Valores codificados via
+/// [Uri.encodeComponent].
 String buildHomeLocation({
   String pesquisa = '',
-  String? materiais,
-  String? arranjo,
+  String? tonality,
+  String? rhythm,
+  String? tags,
+  String? materialKinds,
 }) {
   final params = <String, String>{};
 
-  if (pesquisa.isNotEmpty) {
-    params[UrlSyncParams.pesquisa] = pesquisa;
+  void put(String key, String? value) {
+    if (value != null && value.isNotEmpty) params[key] = value;
   }
-  if (materiais != null && materiais.isNotEmpty) {
-    params[UrlSyncParams.materiais] = materiais;
-  }
-  if (arranjo != null && arranjo.isNotEmpty) {
-    params[UrlSyncParams.arranjo] = arranjo;
-  }
+
+  put(UrlSyncParams.pesquisa, pesquisa);
+  put(UrlSyncParams.tonality, tonality);
+  put(UrlSyncParams.rhythm, rhythm);
+  put(UrlSyncParams.tags, tags);
+  put(UrlSyncParams.materialKinds, materialKinds);
 
   if (params.isEmpty) return RoutePaths.home;
 
@@ -30,11 +35,16 @@ String buildHomeLocation({
   return '${RoutePaths.home}?$query';
 }
 
-/// Normaliza [uri] da Home para comparação com [buildHomeLocation].
+/// Normaliza [uri] da página inicial para comparação com [buildHomeLocation].
 ///
-/// Usado por [HomeScreen] para evitar `go()` redundante no sync de URL.
+/// `materiais`/`arranjo` de links antigos são ignorados (spec fim-fonte
+/// §2.5), e `category` também: a hidratação já o converteu em tags (spec
+/// seções-coletânea §4.2). Quem compara precisa forçar a regravação quando
+/// o param legado está presente (ver `HomeScreen._applyUrlSyncFromState`).
 String buildHomeLocationFromUri(Uri uri) => buildHomeLocation(
-      pesquisa: uri.queryParameters[UrlSyncParams.pesquisa] ?? '',
-      materiais: uri.queryParameters[UrlSyncParams.materiais],
-      arranjo: uri.queryParameters[UrlSyncParams.arranjo],
-    );
+  pesquisa: uri.queryParameters[UrlSyncParams.pesquisa] ?? '',
+  tonality: uri.queryParameters[UrlSyncParams.tonality],
+  rhythm: uri.queryParameters[UrlSyncParams.rhythm],
+  tags: uri.queryParameters[UrlSyncParams.tags],
+  materialKinds: uri.queryParameters[UrlSyncParams.materialKinds],
+);

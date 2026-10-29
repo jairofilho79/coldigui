@@ -2,17 +2,18 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/constants/storage_keys.dart';
+import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/features/offline/data/datasources/offline_available_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
-import 'package:coldigui/features/offline/domain/entities/reconcile_result.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
 import 'package:coldigui/features/offline/domain/usecases/migrate_offline_storage.dart';
 import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
+import 'package:coldigui/features/offline/presentation/providers/offline_maintenance_lock_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_reconcile_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,12 +23,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'offline_test_helpers.dart';
 
 class _CountingMigrate extends MigrateOfflineStorage {
-  _CountingMigrate(super.prefs, super.local, super.offlineAvailableStore);
+  _CountingMigrate(super.prefs, super.local, super.store);
 
   int callCount = 0;
+  bool throwStorageUnavailable = false;
 
   @override
   Future<void> call() async {
+    if (throwStorageUnavailable) {
+      throw const StorageUnavailableException('offline.clearAll');
+    }
     callCount++;
   }
 }
@@ -36,11 +41,17 @@ class _CountingReconcile extends ReconcileOfflineIndex {
   _CountingReconcile(super.repository, super.store);
 
   int callCount = 0;
+  bool? lastIsIndexAvailable;
 
   @override
-  Future<ReconcileResult> call({materialPackage, materialCategory}) async {
+  Future<ReconcileOutcome> call({bool isIndexAvailable = true}) async {
     callCount++;
-    return const ReconcileResult(removedFromIndex: 0, orphanFiles: 0);
+    lastIsIndexAvailable = isIndexAvailable;
+    return const ReconcileDone(
+      removedFromIndex: 0,
+      orphanFiles: 0,
+      keptFiles: 0,
+    );
   }
 }
 
@@ -53,9 +64,6 @@ class _StubRepo implements OfflinePdfRepository {
 
   @override
   Future<OfflinePdfEntry?> findIndexEntry(String pdfId) async => null;
-
-  @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) async {}
 
   @override
   Future<List<OfflinePdfEntry>> listAll() async => [];
@@ -75,10 +83,13 @@ class _StubRepo implements OfflinePdfRepository {
   Future<void> remove(String pdfId) async {}
 
   @override
-  Future<void> remapPdfId({
-    required String fromPdfId,
-    required String toPdfId,
-  }) async {}
+  Future<void> removeMany(Set<String> pdfIds) async {}
+
+  @override
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
+  }) async => 0;
 
   @override
   Future<String?> findPdfIdByAbsolutePath(String absolutePath) async => null;
@@ -125,13 +136,20 @@ void main() {
     migrate = _CountingMigrate(
       prefs,
       OfflinePdfLocalDatasource(isar),
-      OfflineAvailableStore(prefs),
+      pdfStoragePortFor(
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async =>
+              Directory.systemTemp.createTempSync('reconcile_migrate_store_'),
+        ),
+      ),
     );
     reconcile = _CountingReconcile(
       _StubRepo(),
-      PdfLocalStore(
-        getApplicationDocumentsDirectory: () async =>
-            Directory.systemTemp.createTempSync('reconcile_test_'),
+      pdfStoragePortFor(
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async =>
+              Directory.systemTemp.createTempSync('reconcile_test_'),
+        ),
       ),
     );
   });
@@ -140,12 +158,13 @@ void main() {
     isar.close(deleteFromDisk: true);
   });
 
-  ProviderContainer createContainer() {
+  ProviderContainer createContainer({bool isarAvailable = true}) {
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         migrateOfflineStorageProvider.overrideWith((ref) => migrate),
         reconcileOfflineIndexProvider.overrideWith((ref) => reconcile),
+        isarAvailableProvider.overrideWithValue(isarAvailable),
       ],
     );
     addTearDown(container.dispose);
@@ -173,13 +192,20 @@ void main() {
     migrate = _CountingMigrate(
       prefs,
       OfflinePdfLocalDatasource(isar),
-      OfflineAvailableStore(prefs),
+      pdfStoragePortFor(
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async =>
+              Directory.systemTemp.createTempSync('reconcile_migrate_store_'),
+        ),
+      ),
     );
     reconcile = _CountingReconcile(
       _StubRepo(),
-      PdfLocalStore(
-        getApplicationDocumentsDirectory: () async =>
-            Directory.systemTemp.createTempSync('reconcile_test_'),
+      pdfStoragePortFor(
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async =>
+              Directory.systemTemp.createTempSync('reconcile_test_'),
+        ),
       ),
     );
 
@@ -202,13 +228,20 @@ void main() {
     migrate = _CountingMigrate(
       prefs,
       OfflinePdfLocalDatasource(isar),
-      OfflineAvailableStore(prefs),
+      pdfStoragePortFor(
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async =>
+              Directory.systemTemp.createTempSync('reconcile_migrate_store_'),
+        ),
+      ),
     );
     reconcile = _CountingReconcile(
       _StubRepo(),
-      PdfLocalStore(
-        getApplicationDocumentsDirectory: () async =>
-            Directory.systemTemp.createTempSync('reconcile_test_'),
+      pdfStoragePortFor(
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async =>
+              Directory.systemTemp.createTempSync('reconcile_test_'),
+        ),
       ),
     );
 
@@ -219,5 +252,52 @@ void main() {
     expect(migrate.callCount, 1);
     expect(reconcile.callCount, 1);
     expect(container.read(offlineReconcileProvider).lastRunAt, isNotNull);
+  });
+
+  test('reconcile repassa isIndexAvailable do isarAvailableProvider', () async {
+    final container = createContainer(isarAvailable: false);
+
+    await container.read(offlineReconcileProvider.notifier).requestReconcile();
+
+    expect(reconcile.lastIsIndexAvailable, isFalse);
+  });
+
+  test('lock ocupado por outro dono não chama o usecase', () async {
+    final container = createContainer();
+    container
+        .read(offlineMaintenanceLockProvider.notifier)
+        .tryAcquire(OfflineMaintenanceOwner.coldigom);
+
+    await container.read(offlineReconcileProvider.notifier).requestReconcile();
+
+    expect(migrate.callCount, 0);
+    expect(reconcile.callCount, 0);
+    expect(
+      container.read(offlineReconcileProvider).lastSkipReason,
+      ReconcileSkipReason.locked,
+    );
+    expect(prefs.getInt(StorageKeys.lastReconcileAt), isNull);
+  });
+
+  test('reconcile libera o lock ao terminar', () async {
+    final container = createContainer();
+
+    await container.read(offlineReconcileProvider.notifier).requestReconcile();
+
+    expect(container.read(offlineMaintenanceLockProvider), isNull);
+  });
+
+  test('StorageUnavailableException na migração não escapa', () async {
+    migrate.throwStorageUnavailable = true;
+    final container = createContainer();
+
+    await container.read(offlineReconcileProvider.notifier).requestReconcile();
+
+    expect(reconcile.callCount, 0);
+    expect(
+      container.read(offlineReconcileProvider).lastSkipReason,
+      ReconcileSkipReason.indexUnavailable,
+    );
+    expect(container.read(offlineMaintenanceLockProvider), isNull);
   });
 }

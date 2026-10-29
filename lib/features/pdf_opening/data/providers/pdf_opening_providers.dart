@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/dio_provider.dart';
 import '../../../pdf_reader/domain/usecases/open_pdf_document.dart';
 import '../datasources/pdf_bytes_datasource.dart';
+import '../datasources/save_pdf_platform_impl.dart';
 import '../../domain/usecases/open_pdf_in_reader.dart';
 import '../../domain/usecases/save_pdf.dart';
 import '../../domain/usecases/share_pdf.dart';
@@ -28,10 +29,11 @@ final sharePdfProvider = Provider<SharePdf>((ref) {
   );
 });
 
-/// UC-04 — salvar PDF em documents/saved_pdfs/.
+/// UC-04 — salvar PDF em documents/saved_pdfs/ (nativo) ou download (web).
 final savePdfProvider = Provider<SavePdf>((ref) {
   return SavePdf(
     ref.watch(pdfBytesDatasourceProvider),
     const OpenPdfDocument(),
+    createSavePdfPlatform(),
   );
 });

@@ -1,31 +1,18 @@
-import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../core/utils/share_position_origin.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/widgets/app_snackbar.dart';
-import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
-import '../../../offline/data/providers/offline_providers.dart';
-import '../../../offline/domain/exceptions/pdf_resolve_exceptions.dart';
-import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
-import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
-import '../../../pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../domain/entities/playlist_tab.dart';
-import '../../domain/entities/playlist_share_option.dart';
-import '../providers/playlist_share_actions_provider.dart';
+import '../../domain/entities/saved_playlist.dart';
 import '../providers/playlists_provider.dart';
-import '../utils/playlist_open_debug_log.dart';
-import '../utils/playlist_share_debug_log.dart';
-import 'playlist_share_sheet.dart';
-import 'save_playlist_dialog.dart';
+import '../providers/playlists_ui_provider.dart';
+import '../utils/playlist_count_label.dart';
+import 'playlist_tile_actions.dart';
+import 'playlist_tile_detail_chips.dart';
+import 'playlist_tile_header.dart';
 
 /// Tile de playlist com favorito, expansão e ações (UC-06).
 ///
@@ -37,22 +24,21 @@ import 'save_playlist_dialog.dart';
 /// visual com modal do carousel e [LouvorCard] (pesquisa/biblioteca).
 ///
 /// Fase 4.2: CRUD (renomear, excluir, remover PDF, favorito).
-/// Fase 4.3: menu **Carregar no carousel** e **Abrir no leitor**; toque em
-/// chip expandido abre o PDF selecionado no leitor — ambos confirmam
-/// substituição quando [carouselLouvoresProvider] não está vazio, carregam a
-/// playlist no carousel e navegam via [openPdfInReaderProvider] +
+/// Onda 3 (D6): menu **Editar por aqui** (sem modal — snackbar com
+/// «Desfazer») e **Abrir no leitor**; toque em chip expandido abre o PDF
+/// selecionado no leitor — os dois tornam a lista ativa
+/// ([ActivePlaylistEditor.activate]) e navegam via [openPdfInReaderProvider] +
 /// `context.push` (rota `/leitor` com [rootNavigatorKey]).
 ///
-/// Metadados dos chips enriquecidos via [louvoresManifestProvider] quando
+/// Metadados dos chips enriquecidos via [catalogMaterialLookupProvider] quando
 /// disponível; fallback parse do label `"numero — nome"` em [PlaylistViewItem.pdfLabels].
+///
+/// Cabeçalho, chips de detalhe e ações do menu (E4) vivem em
+/// [PlaylistTileHeader], [PlaylistTileDetailChips] e [PlaylistTileActions].
 class PlaylistListTile extends ConsumerStatefulWidget {
-  const PlaylistListTile({
-    required this.item,
-    required this.tab,
-    super.key,
-  });
+  const PlaylistListTile({required this.item, required this.tab, super.key});
 
-  /// Playlist enriquecida com labels do manifest para exibição e chips.
+  /// Playlist enriquecida com os rótulos do catálogo para exibição e chips.
   final PlaylistViewItem item;
 
   /// Aba atual — define ícone de ação no cabeçalho.
@@ -67,10 +53,35 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
   var _loading = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncExpandFromUi());
+  }
+
+  void _syncExpandFromUi() {
+    if (!mounted) return;
+    final expandId = ref.read(playlistsUiProvider).expandPlaylistId;
+    if (expandId == widget.item.playlist.playlistId && !_expanded) {
+      setState(() => _expanded = true);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    ref.listen(playlistsUiProvider, (_, next) {
+      if (next.expandPlaylistId == widget.item.playlist.playlistId &&
+          !_expanded) {
+        setState(() => _expanded = true);
+      }
+    });
+
     final l10n = AppLocalizations.of(context)!;
     final playlist = widget.item.playlist;
-    final count = playlist.pdfIds.length;
+    final countLabel = playlistCountLabel(
+      l10n,
+      pdfs: playlist.pdfIds.length,
+      audios: playlist.audioIds.length,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -86,10 +97,20 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _PlaylistHeader(
+              PlaylistTileHeader(
                 nome: _displayName(playlist.nome),
                 hora: _formatTime(playlist.createdAt),
-                countLabel: l10n.playlistPdfCount(count),
+                countLabel: countLabel,
+                isPublished: playlist.isPublished,
+                publicBadgeLabel: l10n.playlistPublicBadge,
+                categoryLabel: playlist.publicationCategory == null
+                    ? null
+                    : _categoryLabel(l10n, playlist.publicationCategory!),
+                reachLabel: playlist.publicationReach == null
+                    ? null
+                    : (playlist.publicationReach == PlaylistReach.usual
+                          ? l10n.playlistPublishReachUsual
+                          : l10n.playlistPublishReachPontual),
                 tab: widget.tab,
                 saveTooltip: l10n.playlistSaveAction,
                 favoriteOffTooltip: l10n.playlistFavoriteOn,
@@ -99,7 +120,7 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
                 onPrimaryAction: () =>
                     _handlePrimaryAction(playlist.playlistId),
                 onMenuSelected: (action) => _handleAction(context, action),
-                menuItems: _menuItems(l10n),
+                menuItems: _actions(context, l10n).menuItems(),
                 onTap: () => setState(() => _expanded = !_expanded),
               ),
               AnimatedCrossFade(
@@ -112,10 +133,13 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
                       thickness: 1,
                       color: AppColors.gold.withValues(alpha: 0.35),
                     ),
-                    _PlaylistDetailChips(
+                    PlaylistTileDetailChips(
                       item: widget.item,
                       loading: _loading,
-                      onPdfTap: (pdfId) => _openPdfInReader(pdfId),
+                      onPdfTap: (pdfId) =>
+                          _actions(context, l10n).openPdfInReader(pdfId),
+                      onAudioTap: (track) =>
+                          _actions(context, l10n).openAudioTrack(track),
                     ),
                   ],
                 ),
@@ -132,22 +156,42 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
     );
   }
 
-  List<PopupMenuEntry<String>> _menuItems(AppLocalizations l10n) {
-    return [
-      PopupMenuItem(value: 'load', child: Text(l10n.playlistLoadIntoCarousel)),
-      PopupMenuItem(
-        value: 'openReader',
-        child: Text(l10n.playlistOpenInReader),
-      ),
-      PopupMenuItem(value: 'share', child: Text(l10n.playlistShare)),
-      PopupMenuItem(value: 'rename', child: Text(l10n.playlistRename)),
-      PopupMenuItem(value: 'delete', child: Text(l10n.playlistDelete)),
-    ];
+  /// Monta a ação (UC-06) com o que ela precisa do `State`: `ref`, `context`,
+  /// `l10n`, a playlist e os callbacks que espelham `setState` em
+  /// `_loading`/`_expanded` (E4 — `PlaylistTileActions`).
+  PlaylistTileActions _actions(BuildContext context, AppLocalizations l10n) {
+    return PlaylistTileActions(
+      ref: ref,
+      context: context,
+      l10n: l10n,
+      playlist: widget.item.playlist,
+      tab: widget.tab,
+      loading: _loading,
+      onLoadingChanged: _setLoading,
+      onExpandedChanged: _setExpanded,
+    );
   }
 
-  void _showError(String message) {
+  void _setLoading(bool value) {
     if (!mounted) return;
-    showAppSnackbar(context, message);
+    setState(() => _loading = value);
+  }
+
+  void _setExpanded(bool value) {
+    if (!mounted) return;
+    setState(() => _expanded = value);
+  }
+
+  static String _categoryLabel(
+    AppLocalizations l10n,
+    PlaylistCategory category,
+  ) {
+    return switch (category) {
+      PlaylistCategory.evangelizacao => l10n.playlistCategoryEvangelizacao,
+      PlaylistCategory.aprendizado => l10n.playlistCategoryAprendizado,
+      PlaylistCategory.medleys => l10n.playlistCategoryMedleys,
+      PlaylistCategory.cultoEspecial => l10n.playlistCategoryCultoEspecial,
+    };
   }
 
   Future<void> _handlePrimaryAction(String playlistId) async {
@@ -162,195 +206,21 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
     }
   }
 
-  Future<bool> _confirmReplaceIfNeeded(AppLocalizations l10n) async {
-    final carouselItems = ref.read(carouselLouvoresProvider);
-    if (carouselItems.isEmpty) return true;
-
-    final confirmed = await showConfirmDialog(
-      context: context,
-      title: l10n.playlistLoadConfirmTitle,
-      message: l10n.playlistLoadConfirmMessage,
-    );
-    return confirmed == true;
-  }
-
-  Future<void> _openPdfInReader(String pdfId) async {
-    if (_loading) return;
-
-    final l10n = AppLocalizations.of(context)!;
-    final playlist = widget.item.playlist;
-    playlistOpenDebugClearLastFailure();
-    playlistOpenDebugLog(
-      '_openPdfInReader: início playlistId=${playlist.playlistId} '
-      'salva=${playlist.salva} pdfId=$pdfId '
-      'pdfIds (${playlist.pdfIds.length}): ${playlist.pdfIds.join(', ')}',
-    );
-
-    setState(() => _loading = true);
-    try {
-      final loaded = await _loadPlaylist(l10n);
-      if (!loaded || !mounted) return;
-
-      final louvor =
-          ref.read(playlistsProvider.notifier).findLouvorByPdfId(pdfId);
-      if (louvor == null) {
-        if (mounted) showPlaylistOpenErrorSnackbar(context, l10n);
-        return;
-      }
-
-      final remotePath = LouvorPdfPath.fromLouvor(louvor);
-      playlistOpenDebugLog(
-        '_openPdfInReader: resolvePdf pdfId=${louvor.pdfId} '
-        'remotePath=$remotePath',
-      );
-      final source = await ref.read(resolvePdfForReaderProvider)(
-        pdfId: louvor.pdfId,
-        remotePath: remotePath,
-      );
-      playlistOpenDebugLog(
-        '_openPdfInReader: resolvePdf ok path=${source.absolutePath} '
-        'fromCache=${source.fromCache}',
-      );
-      if (!mounted) return;
-
-      final location = ref.read(openPdfInReaderProvider).call(
-            pdfPath: source.absolutePath,
-            pdfId: louvor.pdfId,
-            titulo: louvor.nome,
-          );
-      playlistOpenDebugLog('_openPdfInReader: navegando → $location');
-      if (!mounted) return;
-      await context.push(location);
-      playlistOpenDebugLog('_openPdfInReader: concluído');
-    } on InvalidPdfPathException catch (error, stackTrace) {
-      playlistOpenDebugLogError('caminho PDF inválido', error, stackTrace);
-      if (mounted) showPlaylistOpenErrorSnackbar(context, l10n);
-    } on PdfOfflineUnavailableException catch (e) {
-      playlistOpenDebugLogFailure('PDF offline indisponível', e.message);
-      _showError(e.message);
-    } on PdfExternallyDeletedException catch (e) {
-      playlistOpenDebugLogFailure('PDF removido externamente', e.message);
-      _showError(e.message);
-    } on PdfFetchFailedException catch (e, stackTrace) {
-      playlistOpenDebugLogError('falha ao baixar PDF', e, stackTrace);
-      _showError(e.message);
-    } on Object catch (error, stackTrace) {
-      playlistOpenDebugLogError('_openPdfInReader', error, stackTrace);
-      if (mounted) showPlaylistOpenErrorSnackbar(context, l10n);
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<bool> _loadPlaylist(AppLocalizations l10n) async {
-    final playlist = widget.item.playlist;
-    playlistOpenDebugLog(
-      '_loadPlaylist: playlistId=${playlist.playlistId} '
-      'pdfIds (${playlist.pdfIds.length})',
-    );
-    if (playlist.pdfIds.isEmpty) {
-      playlistOpenDebugLogFailure(
-        '_loadPlaylist',
-        'playlist sem pdfIds',
-      );
-      _showError(l10n.playlistEmptyPdfList);
-      return false;
-    }
-
-    if (!await _confirmReplaceIfNeeded(l10n) || !mounted) {
-      playlistOpenDebugLog('_loadPlaylist: cancelado pelo usuário');
-      return false;
-    }
-
-    final loaded = await ref
-        .read(playlistsProvider.notifier)
-        .loadIntoCarousel(playlist.playlistId);
-    if (!mounted) return false;
-
-    if (!loaded) {
-      playlistOpenDebugLogFailure(
-        '_loadPlaylist',
-        'loadIntoCarousel retornou false',
-      );
-      if (mounted) showPlaylistOpenErrorSnackbar(context, l10n);
-      return false;
-    }
-
-    playlistOpenDebugLog('_loadPlaylist: ok');
-    return true;
-  }
-
+  /// Porteira única de storage das ações do menu.
+  ///
+  /// Carregar, renomear, publicar e excluir acabam todos numa escrita; sem
+  /// Isar elas lançam [StorageUnavailableException] de dentro do callback do
+  /// menu, onde viraria erro solto e nenhum aviso. Um `catch` só no topo, com
+  /// a mesma mensagem que a tela de listas já usa.
   Future<void> _handleAction(BuildContext context, String action) async {
     final l10n = AppLocalizations.of(context)!;
-    final playlist = widget.item.playlist;
-
-    switch (action) {
-      case 'load':
-        if (_loading) return;
-        setState(() => _loading = true);
-        try {
-          final loaded = await _loadPlaylist(l10n);
-          if (loaded && context.mounted) {
-            showAppSnackbar(context, l10n.playlistLoaded);
-          }
-        } finally {
-          if (mounted) setState(() => _loading = false);
-        }
-      case 'openReader':
-        await _openPdfInReader(playlist.pdfIds.first);
-      case 'share':
-        if (playlist.pdfIds.isEmpty) {
-          _showError(l10n.playlistEmptyPdfList);
-          return;
-        }
-        if (_loading) return;
-        final shareOrigin = sharePositionOriginFromContextOrFallback(context);
-        final option = await showPlaylistShareSheet(context);
-        if (option == null || !context.mounted) return;
-
-        setState(() => _loading = true);
-        try {
-          playlistShareDebugLog(
-            'PlaylistListTile.share: id=${playlist.playlistId} '
-            'option=$option pdfIds (${playlist.pdfIds.length})',
-          );
-          final shared =
-              await ref.read(playlistShareActionsProvider.notifier).share(
-                    context,
-                    PlaylistShareContext(
-                      playlistId: playlist.playlistId,
-                      nome: playlist.nome,
-                      pdfIds: playlist.pdfIds,
-                    ),
-                    option,
-                    sharePositionOrigin: shareOrigin,
-                  );
-          if (!shared && context.mounted) {
-            showPlaylistShareErrorSnackbar(context, l10n);
-          }
-        } finally {
-          if (mounted) setState(() => _loading = false);
-        }
-      case 'rename':
-        final nome = await showSavePlaylistDialog(
-          context,
-          initialName: playlist.nome,
-          title: l10n.playlistRenameTitle,
-          confirmLabel: l10n.playlistRenameConfirm,
-        );
-        if (nome == null || !context.mounted) return;
-        await ref.read(playlistsProvider.notifier).rename(
-              playlistId: playlist.playlistId,
-              nome: nome,
-            );
-      case 'delete':
-        final confirmed = await showConfirmDialog(
-          context: context,
-          title: l10n.playlistDeleteConfirmTitle,
-          message: l10n.playlistDeleteConfirmMessage,
-        );
-        if (confirmed != true || !context.mounted) return;
-        await ref.read(playlistsProvider.notifier).delete(playlist.playlistId);
+    try {
+      await _actions(context, l10n).run(action);
+    } on StorageUnavailableException catch (e) {
+      debugPrint('[playlists] ação "$action" sem storage: $e');
+      if (context.mounted) {
+        showAppSnackbar(context, l10n.offlineStorageUnavailable);
+      }
     }
   }
 
@@ -364,263 +234,5 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
     final m = dateTime.minute.toString().padLeft(2, '0');
     final s = dateTime.second.toString().padLeft(2, '0');
     return '$h:$m:$s';
-  }
-}
-
-class _PlaylistHeader extends StatelessWidget {
-  const _PlaylistHeader({
-    required this.nome,
-    required this.hora,
-    required this.countLabel,
-    required this.tab,
-    required this.saveTooltip,
-    required this.favoriteOffTooltip,
-    required this.favoriteOnTooltip,
-    required this.expanded,
-    required this.loading,
-    required this.onPrimaryAction,
-    required this.onMenuSelected,
-    required this.menuItems,
-    required this.onTap,
-  });
-
-  final String nome;
-  final String hora;
-  final String countLabel;
-  final PlaylistTab tab;
-  final String saveTooltip;
-  final String favoriteOffTooltip;
-  final String favoriteOnTooltip;
-  final bool expanded;
-  final bool loading;
-  final VoidCallback onPrimaryAction;
-  final ValueChanged<String> onMenuSelected;
-  final List<PopupMenuEntry<String>> menuItems;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 10, 4, 10),
-          child: Column(
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  IconButton(
-                    tooltip: switch (tab) {
-                      PlaylistTab.unsaved => saveTooltip,
-                      PlaylistTab.saved => favoriteOnTooltip,
-                      PlaylistTab.favorites => favoriteOffTooltip,
-                    },
-                    onPressed: loading ? null : onPrimaryAction,
-                    icon: Icon(
-                      switch (tab) {
-                        PlaylistTab.unsaved => Icons.save_outlined,
-                        PlaylistTab.saved => Icons.star_outline_rounded,
-                        PlaylistTab.favorites => Icons.star_rounded,
-                      },
-                      color: tab == PlaylistTab.favorites
-                          ? AppColors.gold
-                          : AppColors.title.withValues(alpha: 0.45),
-                      size: 26,
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Text(
-                          nome,
-                          style: AppTypography.headline.copyWith(
-                            fontSize: 17,
-                            color: AppColors.title,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          hora,
-                          style: AppTypography.body.copyWith(
-                            fontSize: 13,
-                            color: AppColors.title.withValues(alpha: 0.65),
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          countLabel,
-                          style: AppTypography.label.copyWith(
-                            fontSize: 12,
-                            color: AppColors.title.withValues(alpha: 0.8),
-                            letterSpacing: 0.2,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: loading
-                        ? const Center(
-                            child: SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.gold,
-                              ),
-                            ),
-                          )
-                        : PopupMenuButton<String>(
-                            onSelected: onMenuSelected,
-                            icon: Icon(
-                              Icons.more_horiz_rounded,
-                              color: AppColors.title.withValues(alpha: 0.75),
-                            ),
-                            color: AppColors.card,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              side: const BorderSide(
-                                color: AppColors.gold,
-                                width: 1.5,
-                              ),
-                            ),
-                            itemBuilder: (context) => menuItems,
-                          ),
-                  ),
-                ],
-              ),
-              AnimatedRotation(
-                turns: expanded ? 0.5 : 0,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                child: Icon(
-                  Icons.expand_more_rounded,
-                  size: 20,
-                  color: AppColors.title.withValues(alpha: 0.4),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PlaylistDetailChips extends ConsumerWidget {
-  const _PlaylistDetailChips({
-    required this.item,
-    required this.loading,
-    required this.onPdfTap,
-  });
-
-  final PlaylistViewItem item;
-  final bool loading;
-  final Future<void> Function(String pdfId) onPdfTap;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var i = 0; i < item.playlist.pdfIds.length; i++) ...[
-            if (i > 0) const SizedBox(height: 8),
-            CarouselLouvorChip(
-              item: _carouselItemFor(
-                pdfId: item.playlist.pdfIds[i],
-                label: item.pdfLabels[i],
-                index: i,
-                findLouvor: (pdfId) => _findLouvorFromManifest(ref, pdfId),
-              ),
-              onTap: loading ? null : () => onPdfTap(item.playlist.pdfIds[i]),
-              onRemove: loading
-                  ? null
-                  : () async {
-                      if (item.playlist.pdfIds.length == 1) {
-                        final confirmed = await showConfirmDialog(
-                          context: context,
-                          title: l10n.playlistDeleteLastPdfTitle,
-                          message: l10n.playlistDeleteLastPdfMessage,
-                        );
-                        if (confirmed != true || !context.mounted) return;
-                      }
-
-                      await ref.read(playlistsProvider.notifier).removePdf(
-                            playlistId: item.playlist.playlistId,
-                            pdfId: item.playlist.pdfIds[i],
-                          );
-                    },
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  static Louvor? _findLouvorFromManifest(WidgetRef ref, String pdfId) {
-    try {
-      final catalog = ref.read(louvoresManifestProvider).asData?.value.louvores;
-      if (catalog == null) return null;
-      for (final louvor in catalog) {
-        if (louvor.pdfId == pdfId) return louvor;
-      }
-    } on Object {
-      return null;
-    }
-    return null;
-  }
-
-  static CarouselItem _carouselItemFor({
-    required String pdfId,
-    required String label,
-    required int index,
-    required Louvor? Function(String pdfId) findLouvor,
-  }) {
-    final louvor = findLouvor(pdfId);
-    if (louvor != null) {
-      return CarouselItem(
-        pdfId: pdfId,
-        sortOrder: index,
-        numero: louvor.numero,
-        nome: louvor.nome,
-        categoria: louvor.categoria,
-        classificacao: louvor.classificacao,
-      );
-    }
-
-    final dashIndex = label.indexOf(' — ');
-    if (dashIndex > 0) {
-      return CarouselItem(
-        pdfId: pdfId,
-        sortOrder: index,
-        numero: label.substring(0, dashIndex).trim(),
-        nome: label.substring(dashIndex + 3).trim(),
-        categoria: '',
-        classificacao: '',
-      );
-    }
-
-    return CarouselItem(
-      pdfId: pdfId,
-      sortOrder: index,
-      numero: '',
-      nome: label,
-      categoria: '',
-      classificacao: '',
-    );
   }
 }

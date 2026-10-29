@@ -7,6 +7,7 @@ class PlaylistsUiState {
   const PlaylistsUiState({
     this.tab = PlaylistTab.unsaved,
     this.scrollToPlaylistId,
+    this.expandPlaylistId,
   });
 
   /// Aba visível na [PlaylistsScreen].
@@ -15,16 +16,24 @@ class PlaylistsUiState {
   /// Após salvar/favoritar, scroll até este [SavedPlaylist.playlistId].
   final String? scrollToPlaylistId;
 
+  /// Expande o tile desta playlist ao navegar da barra do carousel.
+  final String? expandPlaylistId;
+
   PlaylistsUiState copyWith({
     PlaylistTab? tab,
     String? scrollToPlaylistId,
+    String? expandPlaylistId,
     bool clearScrollTarget = false,
+    bool clearExpandTarget = false,
   }) {
     return PlaylistsUiState(
       tab: tab ?? this.tab,
       scrollToPlaylistId: clearScrollTarget
           ? null
           : (scrollToPlaylistId ?? this.scrollToPlaylistId),
+      expandPlaylistId: clearExpandTarget
+          ? null
+          : (expandPlaylistId ?? this.expandPlaylistId),
     );
   }
 }
@@ -36,18 +45,24 @@ class PlaylistsUiNotifier extends Notifier<PlaylistsUiState> {
 
   /// Troca aba e opcionalmente agenda scroll até [scrollToPlaylistId].
   void selectTab(PlaylistTab tab, {String? scrollToPlaylistId}) {
+    state = PlaylistsUiState(tab: tab, scrollToPlaylistId: scrollToPlaylistId);
+  }
+
+  /// Aba correta, scroll e expansão da playlist ativa (barra do carousel).
+  void focusPlaylist(PlaylistTab tab, String playlistId) {
     state = PlaylistsUiState(
       tab: tab,
-      scrollToPlaylistId: scrollToPlaylistId,
+      scrollToPlaylistId: playlistId,
+      expandPlaylistId: playlistId,
     );
   }
 
   void clearScrollTarget() {
-    state = state.copyWith(clearScrollTarget: true);
+    state = state.copyWith(clearScrollTarget: true, clearExpandTarget: true);
   }
 }
 
 final playlistsUiProvider =
     NotifierProvider<PlaylistsUiNotifier, PlaylistsUiState>(
-  PlaylistsUiNotifier.new,
-);
+      PlaylistsUiNotifier.new,
+    );

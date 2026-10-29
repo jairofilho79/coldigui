@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:coldigui/core/database/collections/louvor_cache.dart';
+import 'offline_test_helpers.dart';
+
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
@@ -53,6 +54,7 @@ class _FakeFetchAndStorePdf extends FetchAndStorePdf {
     String? category,
     ProgressCallback? onProgress,
     bool persistentDownload = false,
+    CancelToken? cancelToken,
   }) {
     lastPersistentDownload = persistentDownload;
     return _onCall(
@@ -71,6 +73,7 @@ class _UnusedPdfBytesDatasource extends PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) {
     throw StateError('_FakeFetchAndStorePdf não deve chamar fetchBytes');
   }
@@ -103,9 +106,12 @@ class _UnusedRepository implements OfflinePdfRepository {
   Future<void> remove(String pdfId) => throw UnimplementedError();
 
   @override
-  Future<void> remapPdfId({
-    required String fromPdfId,
-    required String toPdfId,
+  Future<void> removeMany(Set<String> pdfIds) => throw UnimplementedError();
+
+  @override
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
   }) => throw UnimplementedError();
 
   @override
@@ -118,10 +124,6 @@ class _UnusedRepository implements OfflinePdfRepository {
     required String category,
     bool isPersistent = false,
   }) => throw UnimplementedError();
-
-  @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) =>
-      throw UnimplementedError();
 
   @override
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items) =>
@@ -156,6 +158,7 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) async => _bytes;
 }
 
@@ -180,16 +183,13 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = Isar.open(schemas: [
-      LouvorCacheSchema,
-      OfflinePdfIndexSchema,
-    ], directory: tempDir.path);
+    isar = Isar.open(schemas: [OfflinePdfIndexSchema], directory: tempDir.path);
 
     store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
     repository = OfflinePdfRepositoryImpl(
-      store: store,
+      store: pdfStoragePortFor(store),
       local: OfflinePdfLocalDatasource(isar),
     );
   });
@@ -417,112 +417,24 @@ void main() {
     );
   });
 
-  test(
-    'miss com isFullOfflineMode false passa persistentDownload false',
-    () async {
-      const fetchedPath = '/docs/plpcg_pdfs/ColAdultos/001.pdf';
-      final fake = _FakeFetchAndStorePdf(({
-        required String pdfId,
-        required String remotePath,
-        String? category,
-        ProgressCallback? onProgress,
-      }) async {
-        return LocalPdfSource(
-          pdfId: pdfId,
-          absolutePath: fetchedPath,
-          fromCache: false,
-        );
-      });
-      final resolver = ResolvePdfForReader(repository, fake);
-
-      await resolver(pdfId: pdfId, remotePath: remotePath);
-
-      expect(fake.lastPersistentDownload, isFalse);
-    },
-  );
-
-  test('miss com isFullOfflineMode true e offline falha sem fetch', () async {
+  test('miss delega fetch sem persistentDownload', () async {
+    const fetchedPath = '/docs/plpcg_pdfs/ColAdultos/001.pdf';
     final fake = _FakeFetchAndStorePdf(({
       required String pdfId,
       required String remotePath,
       String? category,
       ProgressCallback? onProgress,
     }) async {
-      throw StateError('fetch não deveria ser chamado');
-    });
-    final resolver = ResolvePdfForReader(
-      repository,
-      fake,
-      isFullOfflineMode: () => true,
-      hasNetworkConnection: () async => false,
-    );
-
-    expect(
-      () => resolver(pdfId: pdfId, remotePath: remotePath),
-      throwsA(isA<PdfOfflineUnavailableException>()),
-    );
-  });
-
-  test(
-    'miss com isFullOfflineMode true e online delega fetch persistente',
-    () async {
-      const fetchedPath = '/docs/plpcg_pdfs/ColAdultos/001.pdf';
-      final fake = _FakeFetchAndStorePdf(({
-        required String pdfId,
-        required String remotePath,
-        String? category,
-        ProgressCallback? onProgress,
-      }) async {
-        return LocalPdfSource(
-          pdfId: pdfId,
-          absolutePath: fetchedPath,
-          fromCache: false,
-        );
-      });
-      final resolver = ResolvePdfForReader(
-        repository,
-        fake,
-        isFullOfflineMode: () => true,
-        hasNetworkConnection: () async => true,
-      );
-
-      final source = await resolver(pdfId: pdfId, remotePath: remotePath);
-
-      expect(source.absolutePath, fetchedPath);
-      expect(fake.lastPersistentDownload, isTrue);
-    },
-  );
-
-  test(
-    'fullOfflineMode com índice órfão e offline lança PdfExternallyDeletedException',
-    () async {
-      final bytes = Uint8List.fromList([1]);
-      final entry = await repository.upsert(
+      return LocalPdfSource(
         pdfId: pdfId,
-        bytes: bytes,
-        category: category,
+        absolutePath: fetchedPath,
+        fromCache: false,
       );
-      await File(entry.absolutePath).delete();
+    });
+    final resolver = ResolvePdfForReader(repository, fake);
 
-      final fake = _FakeFetchAndStorePdf(({
-        required String pdfId,
-        required String remotePath,
-        String? category,
-        ProgressCallback? onProgress,
-      }) async {
-        throw StateError('fetch não deveria ser chamado');
-      });
-      final resolver = ResolvePdfForReader(
-        repository,
-        fake,
-        isFullOfflineMode: () => true,
-        hasNetworkConnection: () async => false,
-      );
+    await resolver(pdfId: pdfId, remotePath: remotePath);
 
-      expect(
-        () => resolver(pdfId: pdfId, remotePath: remotePath),
-        throwsA(isA<PdfExternallyDeletedException>()),
-      );
-    },
-  );
+    expect(fake.lastPersistentDownload, isFalse);
+  });
 }

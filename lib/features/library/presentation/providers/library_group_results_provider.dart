@@ -1,125 +1,68 @@
-import 'dart:async';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 
+import '../../../catalog/domain/entities/catalog_list_entry.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
-import '../../../catalog/domain/entities/louvores_manifest.dart';
+import '../../../catalog/domain/usecases/cluster_catalog_list.dart';
+import '../../../catalog/domain/usecases/matches_catalog_filters.dart';
+import '../../../catalog/domain/utils/material_kind_selection.dart';
 import '../../../catalog/presentation/providers/catalog_filters_provider.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../data/providers/library_providers.dart';
-import '../../domain/entities/paginated_louvor_groups.dart';
-import 'library_group_worker.dart';
-import 'library_special_arrangement_provider.dart';
+import '../../domain/entities/paginated_catalog_entries.dart';
 import 'library_view_settings_provider.dart';
 
-/// Grupos ordenados após Browse → Group → Sort — atualizado pelo pipeline assíncrono.
-final libraryGroupSortedResultsDataProvider = StateProvider<List<LouvorGroup>>(
-  (ref) => const [],
-);
-
-/// Executa o pipeline fora do main thread. Sobrescrever em testes se necessário.
-final libraryGroupPipelineExecutorProvider =
-    Provider<LibraryGroupPipelineExecutor>((ref) {
-      return (input) => compute(runLibraryGroupPipeline, input);
-    });
-
-/// Dispara Browse → Group → Sort fora do main thread.
-final libraryGroupPipelineDriverProvider =
-    NotifierProvider<LibraryGroupPipelineDriver, int>(
-      LibraryGroupPipelineDriver.new,
-    );
-
-/// Pipeline UC-03 agrupado: manifest → Browse → Group → Sort (off-thread) → Paginate.
+/// Grupos da /biblioteca já filtrados e ordenados: índice local do catálogo →
+/// `matchesCatalogFilters` → ordenar (`numero`/`nome`, a regra de
+/// [SortLouvorGroups]) — spec fim-fonte §2.3.
 ///
-/// Paginação permanece síncrona sobre [libraryGroupSortedResultsDataProvider]
-/// para evitar reprocessar ~4600 louvores ao mudar apenas a página.
-final libraryGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
-  ref.watch(libraryGroupPipelineDriverProvider);
-  final sortedGroups = ref.watch(libraryGroupSortedResultsDataProvider);
-  final viewSettings = ref.watch(libraryViewSettingsProvider);
-  final manifestAsync = ref.watch(louvoresManifestProvider);
-  final paginate = ref.watch(paginateLouvorGroupsProvider);
-
-  if (manifestAsync.hasError) {
-    return PaginatedLouvorGroups.empty;
-  }
-
-  return paginate(
-    sortedGroups,
-    page: viewSettings.page,
-    itemsPerPage: viewSettings.itemsPerPage,
+/// Síncrono, sem `compute`: são ~2063 grupos já montados na hidratação e
+/// ordená-los custa poucos milissegundos; na web o `compute` corre na mesma
+/// thread e, no nativo, copiar os grupos para o isolate custaria mais do que
+/// o trabalho (plano, Desvio 1). Separado da paginação: trocar de página não
+/// reordena.
+final libraryFilteredGroupsProvider = Provider<List<LouvorGroup>>((ref) {
+  final groups = ref.watch(coldigomSearchIndexProvider).groups;
+  final filters = ref.watch(libraryCatalogFiltersProvider);
+  final kindTaxonomy = ref.watch(coldigomKindTaxonomyProvider);
+  final sortBy = ref.watch(
+    libraryViewSettingsProvider.select((view) => view.sortBy),
   );
+  if (filters.isEmpty) {
+    return ref.watch(sortLouvorGroupsProvider)(groups, sortBy: sortBy);
+  }
+  final effectiveKindIds = effectiveMaterialKindIds(
+    filters.materialKindIds,
+    kindTaxonomy,
+  );
+  final filtered = [
+    for (final group in groups)
+      if (matchesCatalogFilters(
+        group,
+        filters,
+        effectiveKindIds: effectiveKindIds,
+      ))
+        group,
+  ];
+  return ref.watch(sortLouvorGroupsProvider)(filtered, sortBy: sortBy);
 });
 
-/// Executa o pipeline da Biblioteca fora do main thread; descarta resultados obsoletos.
-class LibraryGroupPipelineDriver extends Notifier<int> {
-  int _generation = 0;
+/// Entradas da /biblioteca: [libraryFilteredGroupsProvider] com os grupos
+/// do coldigom juntados em amendoins — grupo inteiro, com quem não casou
+/// com os filtros esmaecido (spec louvores-agrupados §4.2–4.3).
+final libraryEntriesProvider = Provider<List<CatalogListEntry>>((ref) {
+  final groups = ref.watch(libraryFilteredGroupsProvider);
+  final index = ref.watch(coldigomSearchIndexProvider);
+  return clusterCatalogList(groups, membersOf: index.membersOf);
+});
 
-  @override
-  int build() {
-    ref.listen<CatalogFilterState>(
-      catalogFiltersProvider,
-      (_, _) => _schedulePipeline(),
-    );
-    ref.listen<LibrarySpecialArrangementState>(
-      librarySpecialArrangementProvider,
-      (_, _) => _schedulePipeline(),
-    );
-    ref.listen<LibraryViewSettings>(libraryViewSettingsProvider, (
-      previous,
-      next,
-    ) {
-      if (previous?.sortBy != next.sortBy) {
-        _schedulePipeline();
-      }
-    });
-    ref.listen<AsyncValue<LouvoresManifest>>(
-      louvoresManifestProvider,
-      (_, _) => _schedulePipeline(),
-      fireImmediately: true,
-    );
-
-    return 0;
-  }
-
-  void _schedulePipeline() {
-    Future.microtask(() => unawaited(_runPipeline()));
-  }
-
-  Future<void> _runPipeline() async {
-    final manifestAsync = ref.read(louvoresManifestProvider);
-
-    if (manifestAsync.hasError) {
-      _generation++;
-      ref.read(libraryGroupSortedResultsDataProvider.notifier).state = const [];
-      return;
-    }
-
-    final catalog = manifestAsync.value?.louvores;
-    if (catalog == null) {
-      return;
-    }
-
-    final filters = ref.read(catalogFiltersProvider);
-    final special = ref.read(librarySpecialArrangementProvider);
-    final sortBy = ref.read(libraryViewSettingsProvider).sortBy;
-    final generation = ++_generation;
-
-    final input = LibraryGroupPipelineInput(
-      catalog: List.of(catalog),
-      selectedMaterials: filters.selectedMaterials,
-      selectedArranjos: filters.selectedArranjos,
-      selectedSpecialArrangements: special.selectedSpecialArrangements,
-      sortBy: sortBy,
-    );
-
-    final execute = ref.read(libraryGroupPipelineExecutorProvider);
-    final groups = await execute(input);
-
-    if (generation != _generation) return;
-
-    ref.read(libraryGroupSortedResultsDataProvider.notifier).state = groups;
-  }
-}
+/// Página corrente da /biblioteca — [libraryEntriesProvider] paginado em
+/// cartões.
+final libraryGroupResultsProvider = Provider<PaginatedCatalogEntries>((ref) {
+  final entries = ref.watch(libraryEntriesProvider);
+  final view = ref.watch(libraryViewSettingsProvider);
+  return ref.watch(paginateCatalogEntriesProvider)(
+    entries,
+    page: view.page,
+    itemsPerPage: view.itemsPerPage,
+  );
+});

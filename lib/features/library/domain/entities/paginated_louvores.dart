@@ -25,7 +25,7 @@ class PaginatedLouvores {
   /// Total de páginas (mínimo 1).
   final int totalPages;
 
-  /// Estado vazio para loading/erro do manifest.
+  /// Estado vazio para loading/erro do catálogo coldigom.
   static const empty = PaginatedLouvores(
     items: [],
     page: 1,

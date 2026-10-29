@@ -1,10 +1,14 @@
 /// Caminho PDF rejeitado pela validação UC-11 (Fase 2.2).
 class InvalidPdfPathException implements Exception {
-  const InvalidPdfPathException(this.message);
+  const InvalidPdfPathException(this.reason);
 
-  /// Descrição exibida na UI via [pdfReaderErrorMessage].
-  final String message;
+  /// Motivo técnico da rejeição — só para logs/diagnóstico via [toString].
+  ///
+  /// Sem `message` em PT (E8 fix round 1): o texto do usuário sai do
+  /// fallback genérico de `pdfReaderErrorMessage` — nunca houve chave l10n
+  /// própria para esta exceção.
+  final String reason;
 
   @override
-  String toString() => 'InvalidPdfPathException: $message';
+  String toString() => 'InvalidPdfPathException: $reason';
 }

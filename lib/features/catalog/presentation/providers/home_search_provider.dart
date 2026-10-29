@@ -1,140 +1,208 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 
+import '../../../../core/network/connectivity_stream_provider.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
+import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
-import '../../domain/entities/louvores_manifest.dart';
+import '../../domain/usecases/cluster_catalog_list.dart';
+import '../../domain/usecases/matches_catalog_filters.dart';
+import '../../domain/utils/material_kind_selection.dart';
 import 'catalog_filters_provider.dart';
-import 'home_search_worker.dart';
-import 'louvores_manifest_provider.dart';
+import 'home_remote_search_provider.dart';
+import 'home_search_state.dart';
+import 'known_praise_ids_provider.dart';
 
-/// Estado da busca e filtros na Home (UC-01 + UC-02).
+/// Estado da busca e filtros na Home (UC-01 + UC-02 + pesquisa híbrida §6).
 ///
-/// Pipeline: [homeSearchRawQueryProvider] → debounce 300ms
-/// ([homeSearchDebouncedQueryProvider]) → busca + filtros + agrupamento
-/// off-main-thread ([homeSearchPipelineDriverProvider]) →
-/// [homeSearchGroupResultsDataProvider] → [homeSearchGroupResultsProvider]
-/// → [LouvorGroupCard].
+/// Pipeline declarativo (C.2):
+/// ```
+/// homeSearchQueryProvider (texto cru)
+///   → homeSearchDebouncedQueryProvider (300 ms)
+///       ├→ homeLocalSearchProvider   (índice do catálogo + filtros)
+///       └→ homeRemoteSearchProvider((query, 1))  (valida e traz «novos»; só com rede)
+///             → homeSearchStateProvider → HomeSearchResultsSliver
+/// ```
 /// Sync URL: [homeSearchUrlSyncQueryProvider] + [catalogFiltersProvider]
-/// consumidos por [HomeScreen] → [buildHomeLocation].
+/// consumidos por `HomeScreen` → `buildHomeLocation`.
 ///
-/// Texto imediato digitado na [SearchBar] (sem debounce).
-final homeSearchRawQueryProvider = StateProvider<String>((ref) => '');
+/// Texto imediato digitado na `SearchBar` (sem debounce).
+final homeSearchQueryProvider = NotifierProvider<HomeSearchQuery, String>(
+  HomeSearchQuery.new,
+);
 
-/// Query debounced 300ms — dispara filtragem UC-01.
+/// Query debounced 300 ms — dispara a busca local e a chave remota.
 final homeSearchDebouncedQueryProvider =
     NotifierProvider<HomeSearchDebouncer, String>(HomeSearchDebouncer.new);
 
-/// Cache dos grupos exibidos — atualizado pelo pipeline assíncrono.
-final homeSearchGroupResultsDataProvider = StateProvider<List<LouvorGroup>>(
-  (ref) => const [],
-);
-
-/// Grupos agrupados por `groupId` para [LouvorGroupCard] na Home.
+/// Resultados locais da query + filtros correntes — **síncronos**, do índice
+/// do catálogo (`ColdigomSearchIndex.search`: número exato → título exato →
+/// parcial) filtrados por `matchesCatalogFilters` (spec fim-fonte §2.4).
 ///
-/// Interface síncrona (como antes) — apenas [HomeSearchResultsSliver] observa
-/// este provider; a [SearchBar] não é reconstruída quando os resultados mudam.
-final homeSearchGroupResultsProvider = Provider<List<LouvorGroup>>((ref) {
-  ref.watch(homeSearchPipelineDriverProvider);
-  return ref.watch(homeSearchGroupResultsDataProvider);
+/// Observa o índice hidratado, a query e os filtros: um sync do catálogo ou
+/// um chip re-derivam só esta lista, sem tocar a rede.
+final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
+  final query = ref.watch(homeSearchDebouncedQueryProvider);
+  final filters = ref.watch(catalogFiltersProvider);
+  final kindTaxonomy = ref.watch(coldigomKindTaxonomyProvider);
+  final results = ref.watch(coldigomSearchIndexProvider).search(query);
+  if (filters.isEmpty) return results;
+  final effectiveKindIds = effectiveMaterialKindIds(
+    filters.materialKindIds,
+    kindTaxonomy,
+  );
+  return [
+    for (final group in results)
+      if (matchesCatalogFilters(
+        group,
+        filters,
+        effectiveKindIds: effectiveKindIds,
+      ))
+        group,
+  ];
 });
 
-/// Executa o pipeline fora do main thread. Sobrescrever em testes se necessário.
-final homeSearchPipelineExecutorProvider = Provider<HomeSearchPipelineExecutor>(
-  (ref) {
-    return (input) => compute(runHomeSearchPipeline, input);
-  },
-);
+/// Estado único da busca da Home — o que os widgets observam.
+///
+/// A lista é a local (índice do catálogo); o remoto só valida (O15):
+/// sem rede nem é instanciado (`offline`), com rede o que ele trouxer a mais
+/// entra em `newGroups`, na ordem remota. `groups` (lista plana, que diz se
+/// há resultado) põe esses extras no fim; `entries` (o que a tela desenha)
+/// junta os grupos do coldigom em amendoins, e um extra membro de um grupo
+/// já na tela vai para o amendoim dele.
+final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
+  final query = ref.watch(homeSearchDebouncedQueryProvider);
+  final localGroups = ref.watch(homeLocalSearchProvider);
+  final index = ref.watch(coldigomSearchIndexProvider);
+  final filters = ref.watch(catalogFiltersProvider);
+  final kindTaxonomy = ref.watch(coldigomKindTaxonomyProvider);
+  // Observado incondicionalmente (mesmo com query vazia): assim o provider
+  // já está de pé — e resolvido — quando a primeira query chega, em vez de
+  // nascer `AsyncLoading` bem na hora em que a Home mais precisa saber se
+  // há rede. `AsyncLoading` inicial conta como online, como no resto da
+  // Home; só um `false` explícito segura o remoto. `select` porque só o
+  // booleano importa — um `AsyncValue` novo com o mesmo `.value` não deve
+  // reconstruir este provider.
+  final online = ref.watch(
+    connectivityStreamProvider.select((c) => c.value ?? true),
+  );
 
-/// Dispara busca UC-01 + filtros UC-02 + agrupamento fora do main thread.
-final homeSearchPipelineDriverProvider =
-    NotifierProvider<HomeSearchPipelineDriver, int>(
-      HomeSearchPipelineDriver.new,
+  if (query.trim().isEmpty) {
+    // Sem query não há página remota: nada de `loading` e nada de rede — a
+    // família nem chega a ser instanciada.
+    return HomeSearchState(
+      query: query,
+      localGroups: localGroups,
+      remote: const AsyncData(CatalogSearchPage.empty),
+      entries: clusterCatalogList(localGroups, membersOf: index.membersOf),
     );
+  }
 
-/// Debounce de 300ms entre [homeSearchRawQueryProvider] e filtragem.
+  if (!online) {
+    return HomeSearchState(
+      query: query,
+      localGroups: localGroups,
+      remote: const AsyncLoading(),
+      offline: true,
+      entries: clusterCatalogList(localGroups, membersOf: index.membersOf),
+    );
+  }
+
+  final remote = ref.watch(
+    homeRemoteSearchProvider(HomeRemoteSearchKey(query: query, page: 1)),
+  );
+  final localIds = {for (final g in localGroups) g.groupId};
+  // Os «novos» passam pelo mesmo predicado da lista local (spec §2.4), no
+  // cliente — os nomes de tag não viram ids do servidor.
+  final effectiveKindIds = effectiveMaterialKindIds(
+    filters.materialKindIds,
+    kindTaxonomy,
+  );
+  final newGroups = [
+    for (final g in remote.value?.groups ?? const <LouvorGroup>[])
+      if (!localIds.contains(g.groupId) &&
+          matchesCatalogFilters(g, filters, effectiveKindIds: effectiveKindIds))
+        g,
+  ];
+
+  // Enquanto a hidratação ainda não devolveu valor, `coldigomSearchIndexProvider`
+  // é `empty` (não "ainda não sei") — tratar isso como "nada é conhecido"
+  // acenderia «N novos» de forma transitória a cada boot, mesmo para praises
+  // que o Isar já tinha. Sem valor ainda, todo extra passa por conhecido:
+  // sem chip, sem contar, até o índice real chegar.
+  final hydration = ref.watch(coldigomCatalogHydrationProvider);
+  final knownIds = hydration.hasValue
+      ? ref.watch(knownPraiseIdsProvider)
+      : {for (final g in newGroups) g.groupId};
+
+  return HomeSearchState(
+    query: query,
+    localGroups: localGroups,
+    remote: remote,
+    newGroups: newGroups,
+    // O índice pode conhecer um grupo que a busca textual local não achou
+    // (tokens diferentes) — ele entra em `groups` do mesmo jeito (o remoto
+    // achou), mas não é «novo» pro catálogo: só o chip some (§6.3).
+    knownIds: knownIds,
+    // Um extra do remoto que é membro de um grupo já na tela entra no
+    // amendoim dele, não no fim. Vai também em `extraMembers` porque
+    // `membersOf` só sabe do índice: parte dos extras o índice nem conhece
+    // (os «novos»); os que ele conhece mas a busca local não achou já saem
+    // de `membersOf` e o praiseId não se repete.
+    entries: clusterCatalogList(
+      [...localGroups, ...newGroups],
+      membersOf: index.membersOf,
+      extraMembers: newGroups,
+    ),
+  );
+});
+
+/// Re-dispara a validação remota da query corrente (linha de estado e
+/// reconexão). Invalida só a chave `(query, 1)` que está na tela.
+void retryRemoteSearch(WidgetRef ref) {
+  final query = ref.read(homeSearchDebouncedQueryProvider);
+  if (query.trim().isEmpty) return;
+  ref.invalidate(
+    homeRemoteSearchProvider(HomeRemoteSearchKey(query: query, page: 1)),
+  );
+}
+
+/// Texto cru da `SearchBar`, sem debounce.
+class HomeSearchQuery extends Notifier<String> {
+  @override
+  String build() => '';
+
+  /// Registra a tecla recém-digitada.
+  void setQuery(String query) {
+    state = query;
+  }
+}
+
+/// Debounce de 300 ms entre [homeSearchQueryProvider] e a busca.
 class HomeSearchDebouncer extends Notifier<String> {
   Timer? _debounceTimer;
 
   @override
   String build() {
-    ref.listen<String>(homeSearchRawQueryProvider, (_, _) {
+    ref.listen<String>(homeSearchQueryProvider, (_, _) {
       _debounceTimer?.cancel();
       _debounceTimer = Timer(const Duration(milliseconds: 300), () {
         // Lê o valor atual no fim do debounce — evita aplicar `next` obsoleto
         // se outro evento cancelou e reagendou o timer antes do disparo.
-        state = ref.read(homeSearchRawQueryProvider);
+        state = ref.read(homeSearchQueryProvider);
       });
-    }, fireImmediately: true);
+    });
 
     ref.onDispose(() => _debounceTimer?.cancel());
-    return ref.read(homeSearchRawQueryProvider);
+    return ref.read(homeSearchQueryProvider);
   }
 
   /// Hidrata busca a partir da URL sem esperar debounce.
   void setImmediate(String query) {
-    ref.read(homeSearchRawQueryProvider.notifier).state = query;
+    ref.read(homeSearchQueryProvider.notifier).setQuery(query);
     _debounceTimer?.cancel();
     state = query;
-  }
-}
-
-/// Executa o pipeline da Home fora do main thread; descarta resultados obsoletos.
-class HomeSearchPipelineDriver extends Notifier<int> {
-  int _generation = 0;
-
-  @override
-  int build() {
-    ref.listen<String>(
-      homeSearchDebouncedQueryProvider,
-      (_, _) => _scheduleSearch(),
-      fireImmediately: true,
-    );
-    ref.listen<CatalogFilterState>(
-      catalogFiltersProvider,
-      (_, _) => _scheduleSearch(),
-    );
-    ref.listen<AsyncValue<LouvoresManifest>>(
-      louvoresManifestProvider,
-      (_, _) => _scheduleSearch(),
-      fireImmediately: true,
-    );
-
-    return 0;
-  }
-
-  void _scheduleSearch() {
-    Future.microtask(() => unawaited(_runSearch()));
-  }
-
-  Future<void> _runSearch() async {
-    final query = ref.read(homeSearchDebouncedQueryProvider);
-    final filters = ref.read(catalogFiltersProvider);
-    final catalog = ref.read(louvoresManifestProvider).value?.louvores;
-
-    if (catalog == null || query.trim().isEmpty) {
-      _generation++;
-      ref.read(homeSearchGroupResultsDataProvider.notifier).state = const [];
-      return;
-    }
-
-    final generation = ++_generation;
-
-    final input = HomeSearchPipelineInput(
-      catalog: List.of(catalog),
-      query: query,
-      selectedMaterials: filters.selectedMaterials,
-      selectedArranjos: filters.selectedArranjos,
-    );
-
-    final execute = ref.read(homeSearchPipelineExecutorProvider);
-    final groups = await execute(input);
-
-    if (generation != _generation) return;
-
-    ref.read(homeSearchGroupResultsDataProvider.notifier).state = groups;
   }
 }
 

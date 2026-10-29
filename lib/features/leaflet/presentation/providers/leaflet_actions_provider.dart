@@ -1,19 +1,16 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart' as path_provider;
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/utils/share_position_origin.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../carousel/domain/entities/carousel_item.dart';
-import '../../../catalog/domain/entities/louvor.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
-import '../../../playlists/domain/exceptions/empty_carousel_exception.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import '../../../playlists/domain/entities/playlist_entry.dart';
+import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../data/providers/leaflet_providers.dart';
 import '../../domain/entities/leaflet_document.dart';
+import '../../domain/exceptions/empty_leaflet_exception.dart';
 import '../utils/leaflet_capture.dart';
 import '../utils/leaflet_debug_log.dart';
 import '../widgets/leaflet_content_labels.dart';
@@ -34,27 +31,27 @@ class LeafletActionsNotifier extends Notifier<void> {
 
   /// Gera PNG da seleção atual e abre share sheet nativo.
   ///
-  /// Retorna `false` se seleção vazia ([EmptyCarouselException] → snackbar
+  /// Retorna `false` se seleção vazia ([EmptyLeafletException] → snackbar
   /// `playlistEmptyCarousel`) ou falha na captura/share (`leafletGenerateFailed`).
   Future<bool> generateAndShare(
     BuildContext context, {
     ShareXFilesFn? shareXFiles,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
     CaptureWidgetToPngFn? capture,
   }) async {
     final l10n = AppLocalizations.of(context)!;
     final shareOrigin = sharePositionOriginFromContextOrFallback(context);
     final shareFn = shareXFiles ?? _defaultShareXFiles;
-    final tempDirFn =
-        getTemporaryDirectory ?? path_provider.getTemporaryDirectory;
 
     try {
       leafletDebugLog('generateAndShare: início');
-      final metadata = buildLouvorMetadataMap(
-        ref.read(louvoresManifestProvider).value?.louvores,
-      );
-      final document = await ref.read(generateLeafletFromSelectionProvider)(
-        pdfIdToMetadata: metadata,
+      final entries = ref
+          .read(activeEntriesProvider)
+          .map((activeEntry) => activeEntry.entry)
+          .toList(growable: false);
+      final document = await resolveLeafletDocument(
+        ref,
+        entries: entries,
+        fromCarousel: true,
       );
       final labels = LeafletContentLabels.fromL10n(l10n, document.generatedAt);
 
@@ -66,18 +63,14 @@ class LeafletActionsNotifier extends Notifier<void> {
         labels,
         capture: capture,
       );
-      final file = await writeLeafletPngToTempFile(
-        pngBytes,
-        getTemporaryDirectory: tempDirFn,
-      );
 
       await shareFn(
-        [leafletXFileFromFile(file)],
+        [leafletXFileFromBytes(pngBytes)],
         subject: l10n.leafletShareSubject,
         sharePositionOrigin: shareOrigin,
       );
       return true;
-    } on EmptyCarouselException catch (error, stackTrace) {
+    } on EmptyLeafletException catch (error, stackTrace) {
       leafletDebugLogError('seleção vazia', error, stackTrace);
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -121,47 +114,45 @@ Future<void> _defaultShareXFiles(
   );
 }
 
-/// Mapa pdfId → metadados a partir do manifest (folheto UC-08).
-Map<String, CarouselItemMetadata> buildLouvorMetadataMap(
-  List<Louvor>? catalog,
-) {
-  if (catalog == null) return const {};
-  return {
-    for (final louvor in catalog)
-      louvor.pdfId: CarouselItemMetadata(
-        numero: louvor.numero,
-        nome: louvor.nome,
-        categoria: louvor.categoria,
-        classificacao: louvor.classificacao,
-      ),
+/// Rótulos do folheto pelo [lookup] — cifra antes de PDF, áudio por último,
+/// como nos chips.
+///
+/// O folheto (domain) não conhece o lookup (presentation); esta é a ponte.
+LeafletLabelOf leafletLabelOf(CatalogMaterialLookup lookup) {
+  return (materialId) {
+    final chord = lookup.chord(materialId);
+    if (chord != null) return (numero: chord.numero, nome: chord.nome);
+    final louvor = lookup.louvor(materialId);
+    if (louvor != null) return (numero: louvor.numero, nome: louvor.nome);
+    final audioTrack = lookup.audioTrack(materialId);
+    if (audioTrack != null) {
+      return (numero: audioTrack.numero, nome: audioTrack.nome);
+    }
+    return null;
   };
 }
 
-/// Resolve [LeafletDocument] para carousel ou playlist salva.
+/// Resolve [LeafletDocument] para [entries] — playlist salva ou seleção ativa
+/// ([fromCarousel]), já unificadas por quem chama (D8: inclui áudio).
 Future<LeafletDocument> resolveLeafletDocument(
   Ref ref, {
-  required List<String> pdfIds,
+  required List<PlaylistEntry> entries,
   required bool fromCarousel,
-  required Map<String, CarouselItemMetadata> metadata,
+  String? shareUrl,
 }) async {
-  if (fromCarousel) {
-    return ref.read(generateLeafletFromSelectionProvider)(
-      pdfIdToMetadata: metadata,
-    );
-  }
-  return ref.read(generateLeafletFromPdfIdsProvider)(
-    pdfIds: pdfIds,
-    pdfIdToMetadata: metadata,
+  return ref.read(generateLeafletFromEntriesProvider)(
+    entries: entries,
+    now: DateTime.now(),
+    shareUrl: shareUrl,
   );
 }
 
-/// Captura folheto em arquivo temporário PNG.
-Future<File> captureLeafletToTempFile(
+/// Captura folheto como [XFile] PNG (D4 OA).
+Future<XFile> captureLeafletXFile(
   BuildContext context,
   LeafletDocument document,
   LeafletContentLabels labels, {
   CaptureWidgetToPngFn? capture,
-  GetTemporaryDirectoryFn? getTemporaryDirectory,
 }) async {
   final overlay = Overlay.of(context);
   final pngBytes = await captureLeafletPngBytes(
@@ -170,11 +161,7 @@ Future<File> captureLeafletToTempFile(
     labels,
     capture: capture,
   );
-  return writeLeafletPngToTempFile(
-    pngBytes,
-    getTemporaryDirectory:
-        getTemporaryDirectory ?? path_provider.getTemporaryDirectory,
-  );
+  return leafletXFileFromBytes(pngBytes);
 }
 
 /// Estado de ações do folheto — legado [generateAndShare] para testes diretos.

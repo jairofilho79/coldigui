@@ -1,6 +1,6 @@
 # Feature Index — PLPCG Flutter
 
-**Última atualização:** junho de 2026 (**fix offline UC-04/10 jun/2026** — quota LRU desligada quando `OFFLINE_AVAILABLE=TRUE`: [ResolvePdfForReader] `isFullOfflineMode` → `persistentDownload`; UC-10 [DownloadMissingPdfs] idem; **agrupamento UI jun/2026** — [LouvorGroupCard] subtítulo `X entradas com Y arranjos` ([CarouselLouvorChip.metadataSummary]); [LouvorGroup.totalArrangements]; [showLouvorMaterialSheet] botão fechar; l10n [louvorGroupMetadataSummary]; **iOS homolog jun/2026** — [Runner-Homolog.entitlements] Debug/Profile; [ios_resolve_device.py] valida pareamento; [ios_homolog_install.sh] `xcodebuild -allowProvisioningUpdates` (UDID iPad/iPhone); **catálogo D1 jun/2026** — Worker `plpcg-catalog` + D1; `/api/catalog/*`; [LouvorCache.groupId]; [LouvorNumeroNormalizer] pad 3; spec [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md))
+**Última atualização:** setembro de 2026 (**fim da fonte PLPCG** — o app lê só o catálogo coldigom; ids legados normalizados pelo crosswalk; `/offline` de uma secção; link de lista por praise `?p=`; ao vivo sem regra «só Coldigom») · junho de 2026 (**fix offline UC-04/10 jun/2026** — quota LRU desligada quando `OFFLINE_AVAILABLE=TRUE`: [ResolvePdfForReader] `isFullOfflineMode` → `persistentDownload`; UC-10 [DownloadMissingPdfs] idem; **agrupamento UI jun/2026** — [LouvorGroupCard] subtítulo `X entradas com Y arranjos` ([CarouselLouvorChip.metadataSummary]); [LouvorGroup.totalArrangements]; [showLouvorMaterialSheet] botão fechar; l10n [louvorGroupMetadataSummary]; **iOS homolog jun/2026** — [Runner-Homolog.entitlements] Debug/Profile; [ios_resolve_device.py] valida pareamento; [ios_homolog_install.sh] `xcodebuild -allowProvisioningUpdates` (UDID iPad/iPhone); **catálogo D1 jun/2026** — Worker `plpcg-catalog` + D1; `/api/catalog/*`; [LouvorCache.groupId]; [LouvorNumeroNormalizer] pad 3; spec [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md); **offline Coldigom parte 1 set/2026** — catálogo Coldigom em Isar + busca local + letra)
 **Fase atual:** Fase 4 — **4.1 ✅ carousel**, **4.2 ✅ playlists CRUD**, **4.3 ✅ load playlist**, **4.4 ✅ share URL**, **4.5 ✅ deep links**, **4.6 ✅ folheto**, **4.7 ✅ carousel no leitor**, **4.8 ✅ listas sempre ativas + abas**; **polish UI Home** ✅ (+ botão limpar busca); **polish UI Biblioteca** ✅; **polish UI Playlists** ✅ (tile + [PlaylistsScreen] FAB/empty); **polish UI Offline** ✅; **polish chip lista UC-01/03** ✅; **polish UC-14 bottom bar** ✅; **polish barra carousel ícones UC-05** ✅; **polish header app shell** ✅ (sem badge offline; sem selo DEBUG); **polish UC-14 Sobre** ✅ ([AboutScreen] + [AboutInfoCard])
 
 **Próxima fase:** Fase 5 (`PollManifestChecksum`) ou backlog Fase 2 (2.6/2.7)
@@ -10,17 +10,23 @@
 | Feature | UCs | Prioridade | Status | Use cases |
 |---------|-----|------------|--------|-----------|
 | `core` | transversal | Alta | **Concluído** (Fase 0 + share anchor jun/2026; isar_plus jun/2026) | `PdfPathNormalizer`, `LouvorSearchTokens`, `sharePositionOriginFromContext*`, schemas Isar Plus + codegen, `isarProvider`, `AppConfig` |
-| `catalog` | UC-01, UC-02, UC-12 | Alta | **Concluído** (Fase 1.5 + agrupamento + **D1 jun/2026**) | Worker `plpcg-catalog` + D1; `/api/catalog/*`; [LouvorCache.groupId]; [LouvorGroupCard]; ver [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md) |
-| `library` | UC-03 | Alta | **Concluído** (Fase 1.4 + 1.5 + refatoração Visualização + **lista agrupada jun/2026**) | [libraryGroupResultsProvider] — Browse → Group → Sort → Paginate grupos; [LouvorGroupCard]; layout `maxWidth: 896`; [LibraryViewControls]; sync URL |
+| `catalog` | UC-01, UC-02, UC-12 | Alta | **Concluído** (Fase 1.5 + agrupamento + **fim da fonte PLPCG 23/09/2026**) | **Estado atual (23/09/2026):** o catálogo é o dump `GET /api/plpcg/catalog` do coldigom no Isar ([SyncColdigomCatalog], ETag/304) ou em memória sem Isar, hidratado no [ColdigomSearchIndex] (um [LouvorGroup] por praise); `catalogSourceProvider` = [ColdigomCatalogSource]; filtros únicos ([CatalogFilterState] + [matchesCatalogFilters]); ids legados do manifesto trocados uma vez pelo crosswalk ([NormalizeLegacyMaterialIds], [ColdigomRemoteDatasource.resolveLegacyPdfIds]); o manifesto, o [CompositeCatalogSource] e o `LouvorDataSource` foram apagados; o `LouvorCache` não tem mais leitores mas fica registado no schema Isar até a remoção ser medida na web (§12). Spec [fim da fonte PLPCG](../superpowers/specs/2026-09-23-fim-fonte-plpcg-design.md). **Histórico:** manifest servido pelo coldigom (18/09, spec [catálogo coldigom modo único](../superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md)); D1 `plpcg-catalog` (jun/2026). |
+| `library` | UC-03 | Alta | **Concluído** (Fase 1.4 + 1.5 + refatoração Visualização + **lista agrupada jun/2026**) | [libraryGroupResultsProvider] — Browse → Group → Sort → Paginate grupos; [LouvorGroupCard]; layout `maxWidth: 896`; [LibraryViewControls]; sync URL. **set/2026:** sem seletor de fonte — pipeline único local (índice → [matchesCatalogFilters] → ordenar → paginar); filtros tom/ritmo/categoria/tags/tipo de material. |
 | `pdf_opening` | UC-04 | Alta | **Concluído** (Fase 2.1 ✅ + 2.5 ✅ + 3.4 ✅ + 4.7 ✅ + **share card ⋮ jun/2026**) | `OpenPdfInReader` com `pdfId` na rota; `SharePdf`, `SavePdf` (fast path local), `ValidatePdfAvailability`, `isLocalPdfPath`, `LouvorPdfPath`; consumido por [LouvorGroupCard] / [LouvorCard], [openLouvorInReader], [PdfReaderScreen], [openCarouselPdfInReader] e [PlaylistListTile] |
 | `pdf_reader` | UC-11 | Alta | **Em progresso** (Fase 2.3 ✅ + **2.4 ✅ fullscreen** + 3.4 ✅ + 4.7 ✅ + lifecycle ✅ + UI 3 barras ✅ + carousel nav fix v3 ✅ + **long-press indicador página ✅** + **swipe horizontal ✅** + **indicador estável animateToPage ✅**) | [_ReaderScaffold]: barra 3 + [PdfReaderPageIndicator]; swipe → [PdfReaderDisplayedPageNotifier]; scroll vertical fixo; sessão `autoDispose`; [readerFullscreenProvider] |
-| `offline` | UC-09, UC-10 | Alta | **Concluído** (Fase 3.7 + manutenção jun/2026 + **fix quota UC-04/10 jun/2026**) | 3.1–3.7 ✅ local-first + bulk + manutenção + UI; gate `OFFLINE_AVAILABLE` na tela offline (UC-09 vs UC-10); refresh stats; chips por material; download faltantes pré-filtrado; **fix** LRU 500 MB só sem flag `TRUE` ([isFullOfflineMode] / [persistentDownload]) |
+| `chords` | UC-11 (variante) | Média | **Concluído** (leitor ChordPro ago/2026) | Seção Cifras em [showLouvorMaterialSheet]; rota `/cifra` ([ChordReaderScreen]); [parseChordPro] + [ChordProView] com barras de sílaba; claro/escuro local ([ChordReaderMode]); id no espaço do `pdfId` ([materialIdKindOf]); spec [leitor de cifras](../superpowers/specs/2026-08-29-leitor-cifras-chordpro-design.md) |
+| `gestures` | UC-17 | Média | **Concluído** (leitor de gestos set/2026) | Rota `/gestos` ([GestureReaderScreen]); documento JSON `coldigom.gestures/1` ([parseGestureDocument]) + dicionário com ETag ([gestureDictionaryProvider]); cache Isar ([GestureDocumentCache], [GestureDictionaryCache]) + figuras em store próprio ([GestureFigureStorePort]); blocos por `Stack` ([BracedChildren]); modo foco ([GestureFocusView]); [GestureMaterialRef] no catálogo; spec [leitor de gestos](../superpowers/specs/2026-09-11-leitor-gestos-design.md); **v2 (set/2026)** — tema claro/escuro local ([GestureReaderMode]), leitura linear default ([linearizeGestureDocument], [SectionLabel]), autoscroll com retomada após rolagem manual ([gestureAutoscrollProvider]), zebra + figura em quadro; spec [leitor de gestos v2](../superpowers/specs/2026-09-15-leitor-gestos-v2-design.md) |
+| `lyrics` | UC-01 (variante) | Média | **Concluído** (letra Coldigom set/2026) | Rota `/letra` ([LyricsReaderScreen]); [LyricsMaterial] (`MaterialKind.lyrics`, id `lyrics:<praiseId>`, sem download/favoritos — O6); texto do Isar; aba «Letra» no [MaterialSheet] |
+| `offline` | UC-09, UC-10 | Alta | **Concluído** (Fase 3.7 + manutenção jun/2026 + **fix quota UC-04/10 jun/2026**) | Local-first ([ResolvePdfForReader], LRU on-demand); **uma secção** «Baixar para usar offline» ([ColdigomOfflineSection]): estado do catálogo e do disco, um «Atualizar» (sync + reconcile), tipos de material (todos sem login; favoritos no topo com login), baixar/parar ([DownloadColdigomMaterials]) e «Remover todos os baixados» ([RemoveColdigomDownloads]); índice offline normalizado de ids legados sob o [offlineMaintenanceLockProvider]. Saíram (23/09/2026) o bulk por categoria PLPCG, `OFFLINE_AVAILABLE` e o gate UC-09/UC-10. |
 | `carousel` | UC-05, UC-07 | Média | **Concluído** (Fase 4.1 + 4.7 ✅ + polish chip + abrir leitor + barra compartilhada + nav leitor fix v3 ✅ + overflow smartphone ✅ + **share lista barra ✅** + metadados chip modo médio ✅ + trailing add/lista + **share card ⋮ UC-04 ✅** + **ícones barra vinho ✅** + **fix drag modal seleção ✅** + **fix flicker reorder ✅**) | [carouselBarIconButtonStyle]; [CarouselBarTrailingActions]; [CarouselNavigatorBar]; [carouselLouvoresDisplayProvider] na barra; reorder otimista + debounce persist; [carouselSelectionReorderProxyDecorator] no modal |
-| `playlists` | UC-06, UC-07 | Média | **Concluído** (Fase 4.2–4.5 ✅ + 4.8 ✅ + polish UI tile + screen ✅ + **fix share jun/2026** + **debug abrir lista jun/2026**) | UC-06 ✅: CRUD + rascunhos; abas [PlaylistsScreen]; lista ativa [activePlaylistIdProvider]; [resolveActivePlaylistFromCarousel]; debug abrir [playlistOpenDebugLog*]; UC-07 ✅: share/import + deep link + debug [playlistShareDebugLog*]; share em [CarouselBarTrailingActions] e [PlaylistListTile] com `sharePositionOrigin` |
+| `playlists` | UC-06, UC-07 | Média | **Concluído** (Fase 4.2–4.5 ✅ + 4.8 ✅ + polish UI tile + screen ✅ + **fix share jun/2026** + **debug abrir lista jun/2026**) | UC-06 ✅: CRUD + rascunhos; abas [PlaylistsScreen]; lista ativa [activePlaylistIdProvider]; [resolveActivePlaylistFromCarousel]; debug abrir [playlistOpenDebugLog*]; UC-07 ✅: share/import + deep link + debug [playlistShareDebugLog*]; share em [CarouselBarTrailingActions] e [PlaylistListTile] com `sharePositionOrigin`; **link por praise** `?p=<shortIds>&n=…` (origem `v2.plpcg.com`; import pelo índice local com o material favorito); links `?s=`/longos antigos → mensagem de link antigo; folheto sempre com QR |
 | `leaflet` | UC-08 | Média | **Concluído** (Fase 4.6 + redesign PWA jun/2026 + fix render jun/2026) | [LeafletContent] PLPCG (`Material` off-screen); `LeafletEntry` `{numero,nome}`; [LeafletContentLabels]; captura PNG + share |
 | `app_shell` | UC-14 | Transversal | **Concluído** (Fase 4.7 + UI polish + header compartilhado + bottom bar jun/2026 + fullscreen 2.4 + header sem badge jun/2026 + **Sobre jun/2026**) | [ShellScaffold] + [PlpcgPrimaryAppBar] + [CarouselChips] + [PlpcgBottomNavBar] + [AboutScreen]; header sem [OfflineIndicator] (removido); oculta barras 1–2 em fullscreen via [readerFullscreenProvider]; **4.5 ✅** deep links; Sobre via [AboutInfoCard] |
 | `l10n` | transversal | Alta | **Em progresso** | `AppLocalizations` wired; UC-04, UC-03, UC-12, UC-09/10 offline, **UC-05 (4.1 + overflow barra)**, **UC-06/07 (4.2–4.8 abas listas + [carouselSharePlaylist])**, **UC-08 (4.6)**, **UC-11 carousel leitor (4.7)**, **design system Home + Biblioteca** |
+| `auth` | transversal | Alta | **Concluído (2026-09-13)** | Sessão persistente via Worker; `POST /api/auth/session` → `sessionToken` (`sess_…`, 60 d deslizantes); `AuthSessionStore` em `localStorage`/`SharedPreferences`; boot sem rede; `AuthUnauthorizedInterceptor` desloga no 401; `DELETE /api/auth/session` no logout |
+| `live` | Lista ao Vivo (Fase 1) | Média | **Em progresso (set/2026)** | DO `LiveRoom` + WS (`/api/live/:code/ws`); [LiveSessionController] (`keepAlive`, reconexão com backoff, prova de vida); consumidor vê a lista do gestor como projeção ([liveProjectionProvider] → [activeEntriesProvider]); foco só sinaliza (D3); [LiveSessionBanner]; `/ao-vivo/:code` ([LiveRoomScreen]); «Guardar cópia» ([SaveLiveCopy]); spec [lista ao vivo](../superpowers/specs/2026-09-12-lista-ao-vivo-design.md); **23/09/2026:** sem a regra «só Coldigom» (qualquer lista vai ao ar). |
 | `admin` | UC-13 | Fora do MVP | Stub desabilitado | `UploadLouvorAdmin` (`FeatureFlags.enableAdminUpload=false`) |
+| `contributions` | — | Média | **Concluído (set/2026)** | Rotas `/contribuir` ([ContributeScreen], raiz), `/contribuicoes` e `/contribuicoes/:id` ([MyContributionsScreen], [ContributionDetailScreen], no branch Perfil); entradas em Perfil, [MaterialSheet], leitor de PDF e player de áudio; providers [contributeFormProvider], [myContributionsProvider], [contributionDetailProvider], [deviceSnapshotPortProvider]; datasource [ContributionsRemoteDatasource] → `coldigom-api` (multipart, Bearer `sess_…`); Worker `plpcg-catalog` `GET /api/auth/introspect` para identidade da sessão; deps `file_picker`, `device_info_plus`, `package_info_plus`; spec [contribuições da comunidade](../superpowers/specs/2026-09-17-contribuicoes-comunidade-design.md) |
 
 ### Legenda de status
 
@@ -52,32 +58,37 @@ core → catalog → library → pdf_opening → pdf_reader → offline → caro
 
 **Nota:** offline **não** bloqueia o leitor PDF online. Fase 3.4 integra `ResolvePdfForReader` no fluxo card → leitor (local-first + fetch on miss). Bulk UC-09 (3.5) é complementar, não gate de abertura.
 
+## Débitos técnicos
+
+| Débito | Onde | Quando pagar |
+|---|---|---|
+| ~~Gate Coldigom no share de listas~~ — **pago em 2026-09-23** (link por praise, sem gate nem diálogo; spec [fim da fonte PLPCG](../superpowers/specs/2026-09-23-fim-fonte-plpcg-design.md) §4). | — | — |
+
 ## APIs públicas — Core
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
 | `PdfPathNormalizer` | `lib/core/utils/pdf_path_normalizer.dart` | **Implementado + testes** | `getPdfRelPath` (§10.3 UTF-8 Base64) + `normalizePdfUrl` |
 | `LouvorSearchTokens` | `lib/core/utils/louvor_search_tokens.dart` | **Implementado + testes + busca flexível jun/2026** | Stop words PT; `normalize`, `compact`, `hasWordSeparators`, `tokenize`, `matchesText` — base da busca UC-01 |
-| `UrlSyncParams` | `lib/core/utils/url_sync_params.dart` | **Implementado 4.7** | Query params sincronizados: Home, Biblioteca, leitor (`file`, `pdfId`, `titulo`, `subtitulo`), share playlist (`sharepdfs`, `sharename`) |
-| `buildHomeLocation` | `lib/core/utils/home_url_builder.dart` | **Implementado + testes** | Monta `/` com `pesquisa`, `materiais`, `arranjo`; omite defaults |
+| `UrlSyncParams` | `lib/core/utils/url_sync_params.dart` | **Implementado 4.7; reescrito 23/09/2026** | Query params sincronizados: Home/Biblioteca (`pesquisa` só Home; filtros únicos `tonality`/`rhythm`/`category`/`tags`/`materialKinds`), leitor (`file`, `pdfId`, `titulo`, `subtitulo`), share de lista por praise (`p`, `n` = `praiseItems`/`shortName`); `sharepdfs`/`sharename`/`s`/`shareitems`/`shareaudios` ficam só para detectar link antigo (§4.4) |
+| `buildHomeLocation` | `lib/core/utils/home_url_builder.dart` | **Implementado + testes; reescrito 23/09/2026** | Monta `/` com `pesquisa`, `tonality`, `rhythm`, `category`, `tags`, `materialKinds`; omite defaults. `materiais`/`arranjo` saíram — spec fim-fonte-plpcg §2.5 |
 | `buildHomeLocationFromUri` | `lib/core/utils/home_url_builder.dart` | **Implementado + testes** | Normaliza `Uri` da Home para comparação no sync GoRouter |
-| `PlaylistShareParams` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 4.4** | Par `{sharePdfs, shareName}` extraído de URL |
-| `buildPlaylistShareLocation` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 4.4 + testes** | `/?sharepdfs=...&sharename=...` — compatível PWA |
-| `buildPlaylistShareUrl` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 4.4 + testes** | URL absoluta com [AppConfig.apiBaseUrl] |
-| `parsePlaylistShareParams` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 4.4 + testes** | Extrai params de [Uri] |
-| `parsePdfIdsFromSharePdfs` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 4.4 + testes** | CSV → lista ordenada dedupe |
-| `extractShareParamsFromUserInput` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 4.4 + testes** | URL completa ou query colada |
-| `stripPlaylistShareParams` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 4.5 + testes** | Remove `sharepdfs`/`sharename` de [Uri] após import deep link |
+| `PlaylistShareParams` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 23/09/2026** | `{shareName, praiseShortIds, isLegacy}` — link por praise `?p=&n=`; `PlaylistShareParams.legacy()` para `?s=`/longo antigo |
+| `buildPraiseShareLocation` / `buildPraiseShareUrl` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 23/09/2026 + testes** | `/?p=<shortIds separados por ->&n=<nome>`; substitui `buildPlaylistShareLocation`/`buildPlaylistShareUrl` (formato `sharepdfs`/`sharename`) — spec fim-fonte-plpcg §4.1 |
+| `decodePraiseShareIds` / `isPraiseShortId` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 23/09/2026 + testes** | Lê `p`: `trim`, maiúsculas → minúsculas, token fora de `[0-9a-f]{3,8}` é ignorado |
+| `parsePlaylistShareParams` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 23/09/2026 + testes** | `p` presente → link por praise (mesmo inválido); `/l/`, `s`+`n` ou `shareitems`/`sharepdfs`/`shareaudios` sozinhos → `.legacy()`; senão `null` |
+| `extractShareParamsFromUserInput` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 4.4 + testes** | URL completa ou query colada → [parsePlaylistShareParams] |
+| `stripPlaylistShareParams` | `lib/core/utils/playlist_share_url_builder.dart` | **Implementado 4.5 + testes; reescrito 23/09/2026** | Remove `p`/`n` e os params legados (`legacyPlaylistShareParams`) de [Uri] após import deep link |
 | `sharePositionOriginFromContext` | `lib/core/utils/share_position_origin.dart` | **Implementado 3.4 + fix jun/2026** | `RenderBox` global → `Rect?`; rejeita largura/altura ≤ 0 |
 | `sharePositionOriginFromContextOrFallback` | `lib/core/utils/share_position_origin.dart` | **Implementado jun/2026** | Igual ao anterior; fallback 48×48 centro-inferior — iOS exige retângulo não nulo em [Share.share] e [Share.shareXFiles] |
 | `DeepLinkConfig` | `lib/core/constants/deep_link_config.dart` | **Implementado 4.5** | `customScheme`, `universalLinkHost`, `associatedDomain` derivados de [AppConfig.apiBaseUrl] |
-| `buildLibraryLocation` | `lib/core/utils/library_url_builder.dart` | **Implementado + testes** | Monta `/biblioteca` com `materiais`, `arranjo`, `arranjoEspecial`, `ordenar`, `itensPorPagina`, `pagina`; omite defaults (UC-03 Fase 1.4) |
+| `buildLibraryLocation` | `lib/core/utils/library_url_builder.dart` | **Implementado + testes; reescrito 23/09/2026** | Monta `/biblioteca` com `tonality`, `rhythm`, `category`, `tags`, `materialKinds`, `ordenar`, `itensPorPagina`, `pagina`; omite defaults. `materiais`/`arranjo`/`arranjoEspecial` saíram — spec fim-fonte-plpcg §2.5 |
 | `buildLibraryLocationFromUri` | `lib/core/utils/library_url_builder.dart` | **Implementado + testes** | Normaliza `Uri` da Biblioteca para comparação no sync GoRouter |
 | `buildReaderLocation` | `lib/core/utils/reader_url_builder.dart` | **Implementado 4.7 + testes** | Monta `/leitor` com `file`, `pdfId?`, `titulo?`, `subtitulo?`; encode via `Uri.encodeComponent` (UC-04 / UC-11) |
-| `ApiEndpoints` | `lib/core/constants/api_endpoints.dart` | **Implementado + D1 jun/2026** | `louvoresManifest` → `/api/catalog/louvores`; `louvoresManifestChecksum` → `/api/catalog/checksum` (Worker + D1); demais endpoints inalterados |
+| `ApiEndpoints` | `lib/core/constants/api_endpoints.dart` | **Implementado + catálogo pelo coldigom set/2026** | só rotas do Worker `plpcg-catalog`; catálogo e assets em `ColdigomEndpoints` (`plpcgCatalog`, `plpcgPraises`, `plpcgCrosswalk`) |
 | `AppConfig` | `lib/core/constants/app_config.dart` | **Implementado + D1 dev jun/2026** | `apiBaseUrl` compile-time; `isApiBaseUrlMissing`; ver [dart_defines/plpcg.json], [dart_defines/plpcg.dev.json] + [PlpcgDartDefines.xcconfig] |
 | `StorageKeys` | `lib/core/constants/storage_keys.dart` | Constantes | Chaves SharedPreferences; inclui `pdfViewerMode` (UC-04 Fase 2.5) |
-| `OfflineConfig` | `lib/core/constants/offline_config.dart` | Constantes | `maxRetryAttempts`, `retryBackoffBase`, batch e TTLs; **`defaultPdfCacheQuotaBytes` = 500 MB** — quota LRU só para cache on-demand (UC-04); **não** aplica a UC-10 com `persistentDownload`; revisar constantes legadas PWA (`sw*`, `pdfCacheName`) |
+| `OfflineConfig` | `lib/core/constants/offline_config.dart` | Constantes | `maxRetryAttempts`, `retryBackoffBase`, batch e TTLs; **`defaultPdfCacheQuotaBytes` = 500 MB** — quota LRU só para cache on-demand (UC-04); revisar constantes legadas PWA (`sw*`, `pdfCacheName`) |
 | `FeatureFlags` | `lib/core/constants/feature_flags.dart` | Constantes | Flags de feature (UC-13 off) |
 | `AppColors` | `lib/core/theme/color_extensions.dart` | **Implementado + polish** | Tokens de cor Coletânea Digital; inclui `shadowMd`, `shadowLg`, `goldGlow` (§6.2) |
 | `AppTypography` | `lib/core/theme/app_typography.dart` | **Implementado** | EB Garamond + Open Sans bundled; `displayPlcpg`, `headline`, `body`, `label`, `tagLabel`, `hint()`, `textTheme()` (§6.3) |
@@ -204,7 +215,7 @@ core → catalog → library → pdf_opening → pdf_reader → offline → caro
 
 | `PlpcgPrimaryAppBar` | `lib/core/widgets/plpcg_primary_app_bar.dart` | **Implementado UI 3 barras + polish jun/2026** | `PreferredSizeWidget` — [PlpcgAppBarTitle] + divisor gold 4px; sem `actions`; [ShellScaffold.appBar] e leitor (barra 1 em `SizedBox` no [_ReaderScaffold]) |
 | `RoutePaths` | `lib/core/routing/route_paths.dart` | **Implementado + doc jun/2026** | 6 paths shell + leitor; ver subseção [RoutePaths](#routepaths--api-pública-uc-14--routing) |
-| `appRouterProvider` | `lib/core/routing/app_router.dart` | **Implementado** | GoRouter + [rootNavigatorKey]; `ShellRoute` (5 destinos) + `/leitor` com `parentNavigatorKey` (fullscreen fora do shell); Home lê `pesquisa=`, `materiais=`, `arranjo=`; Biblioteca lê `materiais=`, `arranjo=`, `arranjoEspecial=`, `ordenar=`, `itensPorPagina=`, `pagina=` |
+| `appRouterProvider` | `lib/core/routing/app_router.dart` | **Implementado; reescrito 23/09/2026** | GoRouter + [rootNavigatorKey]; `ShellRoute` (5 destinos) + `/leitor` com `parentNavigatorKey` (fullscreen fora do shell); Home e Biblioteca leem `pesquisa=` (só Home) e os filtros únicos `tonality=`, `rhythm=`, `category=`, `tags=`, `materialKinds=`; `materiais=`/`arranjo=`/`arranjoEspecial=` saíram — spec fim-fonte-plpcg §2.5 |
 | `dioProvider` | `lib/core/providers/dio_provider.dart` | **Implementado** | Cliente HTTP Dio com `baseUrl` de [AppConfig] |
 | `sharedPreferencesProvider` | `lib/core/providers/shared_prefs_provider.dart` | **Implementado** | Override em `main()` via `SharedPreferences.getInstance()` |
 | `isarProvider` | `lib/core/database/isar_provider.dart` | **Implementado** | `Provider<Isar>` (isar_plus); override em `main()` com `name: plpcg_plus` |
@@ -213,10 +224,9 @@ core → catalog → library → pdf_opening → pdf_reader → offline → caro
 
 | Membro | Tipo | Default | Descrição |
 |--------|------|---------|-----------|
-| `initiallyExpanded` | `bool` (parâmetro) | `false` | Expande ao montar quando a URL traz filtros (`materiais=`, `arranjo=` ou `arranjoEspecial=` na biblioteca) |
-| `additionalExpandedSections` | `List<Widget>` (parâmetro) | `const []` | Widgets renderizados após [ClassificationFilters] quando expandido; biblioteca passa [SpecialArrangementFilters] |
+| `initiallyExpanded` | `bool` (parâmetro) | `false` | Expande ao montar quando a URL traz algum filtro único (tom/ritmo/categoria/tags/tipo de material) |
 
-**Consumidores:** [HomeScreen] (apenas material + arranjo); [LibraryScreen] (`additionalExpandedSections: [SpecialArrangementFilters]`).
+**Consumidores:** [HomeScreen] e [LibraryScreen] — mesmo painel de filtros nas duas rotas desde 23/09/2026 (spec fim-fonte-plpcg §2.2); `additionalExpandedSections`/`SpecialArrangementFilters`/`ClassificationFilters` saíram.
 
 ### Configuração de build — `PLPCG_API_BASE_URL`
 
@@ -258,12 +268,13 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `LouvorCache` | `lib/core/database/collections/louvor_cache.dart` | **Implementado + groupId jun/2026** | Cache local do catálogo; `@Index(unique: true)` em `pdfId`; campo `groupId` persistido |
 | `CarouselEntry` | `lib/core/database/collections/carousel_entry.dart` | **Implementado 4.1** | `@Index(unique: true)` em `pdfId`; `@Index()` em `sortOrder` |
 | `Playlist` | `lib/core/database/collections/playlist.dart` | **Implementado 4.2 + 4.8** | UC-06; `@Index(unique: true)` em `playlistId`; `nome`, `pdfIds`, `createdAt`, `salva` (default `true` — migra existentes), `savedAt`, `favoritedAt`, `favorita` |
 | `OfflinePdfIndex` | `lib/core/database/collections/offline_pdf_index.dart` | **Implementado 3.1** | Índice O(1) `pdfId` → `storagePath` (absoluto), `category`, `fileSize`, `downloadedAt`; `@Index(unique: true)` em `pdfId` |
 
 ### `LouvorCache` — campos (jun/2026)
+
+> **Histórico (23/09/2026):** o app já não lê o manifesto; ver spec fim-fonte-plpcg. O `LouvorCache` não tem mais leitores — a coleção fica registada no schema Isar (dados limpos no passo 5 da migração) até a remoção ser medida na web (follow-up §12).
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
@@ -281,8 +292,11 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `Louvor` | `lib/features/catalog/domain/entities/louvor.dart` | **Implementado + groupId + pad numero jun/2026** | Entidade + `fromManifest()` — [LouvorNumeroNormalizer] em `numero`; `groupId` opcional; `effectiveGroupId`; tokens UC-01 |
-| `LouvorGroup` | `lib/features/catalog/domain/entities/louvor_group.dart` | **Implementado jun/2026 + testes** | Louvor lógico — `groupId`, `numero`, `nome`, `sections`; `fromLouvores()`; `totalMaterials`, `totalArrangements`, `primaryLouvor` |
+| `Louvor` | `lib/features/catalog/domain/entities/louvor.dart` | **Implementado + praiseId/materialId set/2026** | Entidade + `fromManifest()` — [LouvorNumeroNormalizer] em `numero`; `groupId` opcional; `praiseId`, `materialId`; `effectiveGroupId` = praiseId → groupId → calculado; tokens UC-01 |
+| `LouvorGroup` | `lib/features/catalog/domain/entities/louvor_group.dart` | **Implementado jun/2026 + testes** | Louvor lógico — `groupId`, `numero`, `nome`, `sections`; `fromLouvores()`; `totalMaterials`, `totalArrangements`, `primaryLouvor`; `groupId` vem de `Louvor.effectiveGroupId` = praiseId → groupId → calculado |
+| `NormalizeLegacyMaterialIds` | `lib/features/catalog/domain/usecases/normalize_legacy_material_ids.dart` | **Implementado 23/09/2026 + testes** | Uma rodada: recolhe ids legados das [LegacyIdStore] (playlists, índice offline, `recentlyOpened`, `pdfLastPages`, foco da lista), pergunta ao crosswalk uma vez, reescreve; sem legados = sem rede; crosswalk fora = pendente. Gatilhos: `hydratePlaylistSession` e pull de playlists ([legacyMaterialIdsNormalizerProvider]). Sai quando não houver mais ids legados (spec §12). |
+| `isLegacyPdfId` / `coldigomPdfIdFromAssetUrl` | `lib/core/utils/pdf_id_codec.dart` | **Implementado 23/09/2026 + testes** | Id legado = PDF fora de `assets/praises/`; id coldigom = `encodePdfId(r2Key da URL)` |
+| `ColdigomRemoteDatasource.resolveLegacyPdfIds` | `lib/features/coldigom/data/datasources/coldigom_remote_datasource.dart` | **Implementado 23/09/2026 + testes** | `POST /api/plpcg/crosswalk` em lotes de 500 → legado → id coldigom |
 | `LouvorMaterialSection` | idem | **Implementado jun/2026** | Sublista por `classificacao` + `displayLabel` + `materials` |
 | `LouvorMaterialEntry` | idem | **Implementado jun/2026** | Folha: `categoria`, `pdfId`, `Louvor` |
 | `LouvorNumeroNormalizer` | `lib/features/catalog/domain/utils/louvor_numero_normalizer.dart` | **Implementado jun/2026 + testes** | `catalogPadWidth=3`; `normalize(numero)` — pad-left em dígitos puros; espelha `normalize_numero()` |
@@ -290,18 +304,9 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 | `LouvorCategoryOrder` | `lib/features/catalog/domain/constants/louvor_category_order.dart` | **Implementado jun/2026** | Ordem Partitura → Cifra I/II → Cifra → Gestos; `compare()` |
 | `GroupLouvoresByMaterial` | `lib/features/catalog/domain/usecases/group_louvores_by_material.dart` | **Implementado jun/2026 + testes** | `List<Louvor>` → `List<LouvorGroup>` via [LouvorGroup.fromLouvores] |
 | `groupLouvoresByMaterialProvider` | `lib/features/catalog/data/providers/catalog_providers.dart` | **Implementado jun/2026** | DI [GroupLouvoresByMaterial] |
-| `CatalogRepository` | `lib/features/catalog/domain/repositories/catalog_repository.dart` | Contrato | `loadManifest`, `forceRefreshManifest`, `cacheManifest`, `fetchManifestChecksum` |
-| `LoadLouvoresManifest` | `lib/features/catalog/domain/usecases/load_louvores_manifest.dart` | **Implementado + testes** | UC-12 boot — `call()` → `List<Louvor>` via rede ou cache Isar |
-| `SearchLouvorByNumberOrText` | `lib/features/catalog/domain/usecases/search_louvor_by_number_or_text.dart` | **Implementado + testes + pad numero jun/2026** | UC-01 — número exato via [LouvorNumeroNormalizer] (`3` ≡ `003`); texto via [LouvorSearchTokens.matchesText] |
-| `FilterByMaterialAndArranjo` | `lib/features/catalog/domain/usecases/filter_by_material_and_arranjo.dart` | **Implementado + testes** | UC-02 — `call(louvores, selectedMaterials, selectedArranjos)`; Cifra expande I/II |
-| `FilterBySpecialArrangement` | `lib/features/catalog/domain/usecases/filter_by_special_arrangement.dart` | **Implementado + testes** | UC-03 — `call(louvores, selectedSpecialArrangements)`; vazio → sem filtro; match via `LouvorClassification.specialArrangement` |
 | `CatalogMaterials` | `lib/features/catalog/domain/constants/catalog_materials.dart` | **Implementado + testes** | Materiais UI, expansão Cifra, parse/serialize URL |
 | `LouvorClassification` | `lib/features/catalog/domain/utils/louvor_classification.dart` | **Implementado + testes + groupId jun/2026** | `baseClassification()`, `displayLabel()`, `materialSectionLabel()`, `specialArrangement()`; parse/serialize URL |
 | `LouvorMaterialIcons` | `lib/features/catalog/domain/utils/louvor_material_icons.dart` | **Implementado + polish chip** | `forCategory(categoria)` → `IconData` (Partitura/Cifra/Gestos) — [LouvorCard], [CarouselLouvorChip] |
-| `findLouvorByPdfId` | `lib/features/catalog/domain/utils/find_louvor_by_pdf_id.dart` | **Implementado 4.7** | `findLouvorByPdfId(catalog, pdfId)` → `Louvor?`; lookup O(n) no manifest — usado por [ReaderCarouselActionsNotifier] e [PlaylistsNotifier] |
-| `ForceRefreshCatalog` | `lib/features/catalog/domain/usecases/force_refresh_catalog.dart` | **Implementado + testes** | UC-12 — `call()` → `forceRefreshManifest()`; fetch remoto obrigatório, sem fallback |
-| `PollManifestChecksum` | `lib/features/catalog/domain/usecases/poll_manifest_checksum.dart` | Esqueleto | UC-12 — Fase 5 (poll automático SHA-256) |
-| `LouvorDto` | `lib/features/catalog/data/models/louvor_dto.dart` | **Implementado + groupId jun/2026** | `fromJson` + `toEntity`; campo opcional `groupId` |
 | `OpenPdfDocument` | `lib/features/pdf_reader/domain/usecases/open_pdf_document.dart` | **Implementado + testes** | UC-11 — `validateFilePath()`; sanitiza `file` antes do adapter |
 | `InvalidPdfPathException` | `lib/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart` | **Implementado** | Erro de validação UC-11 antes da abertura PDFx |
 | `SavedPlaylist` | `lib/features/playlists/domain/entities/saved_playlist.dart` | **Implementado 4.2 + 4.8** | Entidade UC-06 — ver seção [playlists (Fase 4.2–4.8)](#apis-públicas--playlists-fase-42–48-uc-0607) |
@@ -353,6 +358,8 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 
 ### `findLouvorByPdfId` — API pública (UC-04/05/06/07)
 
+> **Histórico (23/09/2026):** o app já não lê o manifesto; ver spec fim-fonte-plpcg. O `LouvorCache` não tem mais leitores — a coleção fica registada no schema Isar (dados limpos no passo 5 da migração) até a remoção ser medida na web (follow-up §12).
+
 | Assinatura | Retorno | Descrição |
 |------------|---------|-----------|
 | `findLouvorByPdfId(catalog, pdfId)` | `Louvor?` | Lookup O(n) no manifest; `null` se [catalog] nulo ou id órfão |
@@ -362,6 +369,8 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 **Nota:** [PlaylistsNotifier.findLouvorByPdfId] é método de instância distinto — delega lookup + [playlistOpenDebugLog*].
 
 ## Agrupamento manifest (`groupId`) — implementado (jun/2026)
+
+> **Histórico (23/09/2026):** o app já não lê o manifesto; ver spec fim-fonte-plpcg. O `LouvorCache` não tem mais leitores — a coleção fica registada no schema Isar (dados limpos no passo 5 da migração) até a remoção ser medida na web (follow-up §12).
 
 **Status:** **implementado no app** — D1 entrega `groupId`; [LouvorCache] persiste offline; fallback [LouvorGroupId.compute] se JSON legado omitir campo.  
 **Especificação:** [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md)
@@ -385,6 +394,8 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 **Artefato local (jun/2026):** `tmp/louvores-manifest-grouped.json` — 4627 entradas, **2153** `groupId` únicos, **1142** grupos com 2+ PDFs; `tmp/grouping-report.json`; `tmp/grouping-revisao.csv` (**229** linhas).
 
 ### Contrato ingest — catálogo D1 (jun/2026)
+
+> **Histórico (23/09/2026):** o app já não lê o manifesto; ver spec fim-fonte-plpcg. O `LouvorCache` não tem mais leitores — a coleção fica registada no schema Isar (dados limpos no passo 5 da migração) até a remoção ser medida na web (follow-up §12).
 
 | Etapa | Comportamento |
 |-------|---------------|
@@ -433,36 +444,36 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 
 **Consumidores:** [Louvor.fromManifest], [LouvorGroupId.compute], [SearchLouvorByNumberOrText._matchesNumero], `assign_louvor_group_ids.py` (`normalize_numero`).
 
-### `plpcg-catalog` Worker — API HTTP (jun/2026)
+### Catálogo pelo coldigom — API HTTP (set/2026)
+
+> **Histórico (23/09/2026):** o app já não lê o manifesto; ver spec fim-fonte-plpcg. O `LouvorCache` não tem mais leitores — a coleção fica registada no schema Isar (dados limpos no passo 5 da migração) até a remoção ser medida na web (follow-up §12). Esta subseção e as duas seguintes (`ColdigomEndpoints` — catálogo, `CatalogRemoteDatasource`) descrevem rotas e classes apagadas; o catálogo atual é `GET /api/plpcg/catalog` (ver linha `catalog` acima).
 
 | Rota | Método | Resposta | Descrição |
 |------|--------|----------|-----------|
-| `/api/catalog/louvores` | `GET` | `200` JSON array | Louvores ordenados por `numero`, `nome`; campos `{ nome, numero, classificacao, categoria, pdf, pdfId, groupId }` |
-| `/api/catalog/checksum` | `GET` | `200` text/plain hex ou `204` | SHA-256 do manifest canônico; header `ETag`; `If-None-Match` → `204` |
+| `/api/plpcg/manifest` | `GET` | `200` JSON array ou `304` | Manifest no shape legado (`pdfId`/`groupId`/`shortId`) + `praiseId`/`materialId`; `pdf` absoluto; `ETag`/`If-None-Match` |
+| `/api/plpcg/manifest/checksum` | `GET` | `200` text/plain hex ou `204`/`304` | Hex SHA-256 do manifest; `If-None-Match` → `204` |
 
-**Schema D1:** tabela `louvores` (PK `pdf_id`) + `catalog_meta` (`checksum`, `row_count`).
+Worker `plpcg-catalog` + `/api/catalog/*` (D1) ficam desligados do app; congelamento/remoção é follow-up (spec §11).
 
-**Scripts:** `scripts/seed_d1_louvores.py` → `workers/plpcg-catalog/seed/001_louvores.sql`.
+**Consumidores Flutter:** [CatalogRemoteDatasource] (Dio coldigom via `coldigomDioProvider`), [ColdigomEndpoints.plpcgManifest], [ColdigomEndpoints.plpcgManifestChecksum].
 
-**Consumidores Flutter:** [CatalogRemoteDatasource], [ApiEndpoints.louvoresManifest], [ApiEndpoints.louvoresManifestChecksum].
-
-### `ApiEndpoints` — catálogo D1 (jun/2026)
+### `ColdigomEndpoints` — catálogo (set/2026)
 
 | Constante | Valor | Consumidor |
 |-----------|-------|------------|
-| `louvoresManifest` | `/api/catalog/louvores` | [CatalogRemoteDatasource.fetchManifest] |
-| `louvoresManifestChecksum` | `/api/catalog/checksum` | [CatalogRemoteDatasource.fetchChecksum] |
+| `plpcgManifest` | `/api/plpcg/manifest` | [CatalogRemoteDatasource.fetchManifest] / [CatalogRemoteDatasource.fetchManifestConditional] |
+| `plpcgManifestChecksum` | `/api/plpcg/manifest/checksum` | [CatalogRemoteDatasource.fetchChecksum] / [CatalogRemoteDatasource.fetchChecksumConditional] |
 
-**Base URL:** [AppConfig.apiBaseUrl] — produção `https://plpcg.com`; dev local `http://127.0.0.1:8787` via [dart_defines/plpcg.dev.json].
+**Base URL:** [ColdigomApiConfig.baseUrl] (`COLDIGOM_API_BASE_URL`), obrigatório — sem `defaultValue`.
 
-### `CatalogRemoteDatasource` — API pública (jun/2026)
+### `CatalogRemoteDatasource` — API pública (set/2026)
 
 | Método | Endpoint | Retorno | Descrição |
 |--------|----------|---------|-----------|
-| `fetchManifest()` | [ApiEndpoints.louvoresManifest] | `Future<List<Louvor>>` | Parse via [LouvorDto.fromJson]; ignora entradas sem `pdfId` |
-| `fetchChecksum()` | [ApiEndpoints.louvoresManifestChecksum] | `Future<String?>` | Hex SHA-256; `null` se `204` (inalterado) ou erro de rede |
-
-**Gate:** lança `StateError` se [AppConfig.apiBaseUrl] vazio.
+| `fetchManifest()` | [ColdigomEndpoints.plpcgManifest] | `Future<List<Louvor>>` | Parse via [LouvorDto.fromJson]; ignora entradas sem `pdfId` |
+| `fetchManifestConditional({ifNoneMatch})` | [ColdigomEndpoints.plpcgManifest] | `Future<ManifestFetchResult>` | `304` → `ManifestFetchResult.notModified()`; senão manifest + `etag` do header |
+| `fetchChecksum()` | [ColdigomEndpoints.plpcgManifestChecksum] | `Future<String?>` | Hex SHA-256; `null` se `204`/`304` (inalterado) ou erro de rede |
+| `fetchChecksumConditional({ifNoneMatch})` | [ColdigomEndpoints.plpcgManifestChecksum] | `Future<ManifestChecksumResult>` | Distingue `unchanged` (`204`/`304`/igual ao enviado) de `changed` e `unavailable` (erro/vazio) |
 
 **Consumidores:** [CatalogRepositoryImpl.loadManifest], [ForceRefreshCatalog], Fase 5 `PollManifestChecksum` (pendente).
 
@@ -539,6 +550,8 @@ wrangler d1 execute plpcg-catalog --remote --file workers/plpcg-catalog/seed/001
 **Consumidores:** [LouvorGroupCard], [showLouvorMaterialSheet].
 
 ## APIs públicas — Domínio (library, Fase 1.4)
+
+> **Histórico (23/09/2026):** esta seção (até o fim do «Fluxo Fase 1.4») descreve o pipeline de filtros por material/arranjo/arranjo especial que saiu com o fim da fonte PLPCG — `BrowseLibrary`, `FilterByMaterialAndArranjo`, `FilterBySpecialArrangement`, `arranjoEspecial`/`arranjo`/`materiais` na URL e os providers `browseLibraryProvider`/`librarySpecialArrangementProvider` foram apagados. O pipeline atual é local: índice → [matchesCatalogFilters] → ordenar → paginar; ver spec [fim da fonte PLPCG](../superpowers/specs/2026-09-23-fim-fonte-plpcg-design.md) §2.
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
@@ -624,6 +637,8 @@ appRouter /biblioteca?…
 **Pendente (Fase 5):** `PollManifestChecksum` (poll automático SHA-256); integração/Gherkin UC-03.
 
 ### Contrato implementado — refresh manual (UC-12, Fase 1.5)
+
+> **Histórico (23/09/2026):** o app já não lê o manifesto; ver spec fim-fonte-plpcg. `CatalogRepository`/`CatalogRepositoryImpl`, `ForceRefreshCatalog`/`forceRefreshCatalogProvider` e `CatalogRefreshNotifier`/`catalogRefreshProvider` foram apagados (zero chamadores em `lib/`); o catálogo atual sincroniza por `coldigomCatalogSyncProvider.sync()` — ver a linha `catalog` no topo deste documento.
 
 | Assinatura | Comportamento |
 |------------|---------------|
@@ -827,6 +842,8 @@ CatalogRefreshBanner → catalogRefreshProvider.refresh()
 
 ## APIs públicas — offline (Fase 3 — local-first)
 
+> **Histórico (23/09/2026):** esta seção (Data layer 3.1, bulk/manutenção 3.5–3.6, contratos 3.1–3.7 e os fluxos ASCII até o fim da seção) descreve o `/offline` de duas telas (UC-09 bulk vs UC-10 manutenção) que saiu com o fim da fonte PLPCG — `StorageKeys.offlineAvailable`/`isFullOfflineMode`, `offlineModeProvider`, `GetOfflineStatsByCategory`, `DownloadMissingPdfs` e o bulk ZIP por categoria foram todos apagados (`grep -rl` em `lib/` confirma zero chamadores). O `/offline` atual é **uma seção só**, sempre visível (`OfflineSettingsScreen` → `ColdigomOfflineSection`, sem login incluído); ver a linha `offline` no topo deste documento e spec [fim da fonte PLPCG](../superpowers/specs/2026-09-23-fim-fonte-plpcg-design.md) §3.1. O que continua vivo (Local-first do leitor, [ResolvePdfForReader], LRU on-demand) está documentado ali.
+
 Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store nativo no filesystem + índice Isar; leitor resolve **local-first** e faz cache on-demand. A flag PWA [StorageKeys.offlineAvailable] (`TRUE`/`FALSE`) gateia a UI de [OfflineSettingsScreen] (UC-09 bulk vs UC-10 manutenção) **e** define modo acervo completo em [resolvePdfForReaderProvider] (`isFullOfflineMode` → `persistentDownload` sem LRU). **Não** bloqueia abertura de PDF ([offlineCacheStatusProvider] / [ResolvePdfForReader] local-first).
 
 ### Data layer (3.1 ✅)
@@ -834,7 +851,6 @@ Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store n
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
 | `GetApplicationDocumentsDirectoryFn` | `lib/features/offline/data/datasources/pdf_local_store.dart` | **Implementado 3.1** | Typedef injetável para testes — simula `ApplicationDocumentsDirectory` |
-| `OfflineAvailableStore` | `lib/features/offline/data/datasources/offline_available_store.dart` | **Implementado jun/2026 + testes** | UC-09/10 — persiste [StorageKeys.offlineAvailable]: `TRUE` (bulk concluído), `FALSE` (cache limpo); `isConfigured`, `isExplicitlyDisabled` |
 | `PdfLocalStore` | `lib/features/offline/data/datasources/pdf_local_store.dart` | **Implementado 3.1 + testes** | Root `documents/plpcg_pdfs/`; `writeAtomic`, `exists`, `delete`, `deleteTree`, `listOrphans` |
 | `OfflinePdfLocalDatasource` | `lib/features/offline/data/datasources/offline_pdf_local_datasource.dart` | **Implementado 3.1** | `findByPdfId`, `put`, `deleteByPdfId`, `countByCategory`, `findAll` — txn Isar |
 | `OfflinePdfRepository` | `lib/features/offline/domain/repositories/offline_pdf_repository.dart` | **Implementado 3.1** | Contrato domínio — ver § contrato 3.1 |
@@ -857,12 +873,9 @@ Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store n
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `DownloadOfflinePackages` | `lib/features/offline/domain/usecases/download_offline_packages.dart` | **Implementado 3.5 + testes** | UC-09 — fila por categoria; checkpoint SharedPreferences; cancel Dio; ENOSPC → `InsufficientDiskSpaceException` |
-| `ExtractAndStorePdfs` | `lib/features/offline/domain/usecases/extract_and_store_pdfs.dart` | **Implementado 3.5 + testes** | UC-09 — `compute(extractZipPdfs)`; chunks 75 Isar; skip cache hit; remove ZIP após extração |
+| `DownloadOfflinePackages` / `ExtractAndStorePdfs` | — | **Removidos set/2026** | Pipeline ZIP bulk por categoria (fila + extração `compute(extractZipPdfs)`) apagado; primeira configuração agora é PDF a PDF via [DownloadMissingPdfs] com `CancelToken`; ver spec [catálogo coldigom modo único](../superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md) §6 |
 | `ReconcileOfflineIndex` | `lib/features/offline/domain/usecases/reconcile_offline_index.dart` | **Implementado 3.6 + testes + benchmark** | Global isolate/chunked `< 20s/5000`; escopo pós-bulk preservado |
 | `OfflineMaterialResolver` | `lib/features/offline/domain/utils/offline_material_resolver.dart` | **Implementado jun/2026** | UC-10 — `toUiMaterial(categoria)` → chip UI (`Partitura`, `Cifra`, `Gestos em Gravura`); expande Cifra nível I/II |
-| `GetOfflineStatsByCategory` | `lib/features/offline/domain/usecases/get_offline_stats_by_category.dart` | **Implementado 3.6 + jun/2026** | UC-10 — baixados por material (índice + [CatalogLocalDatasource]); faltantes via manifest remoto → [OfflineStats] |
-| `DownloadMissingPdfs` | `lib/features/offline/domain/usecases/download_missing_pdfs.dart` | **Implementado 3.6 + jun/2026 + fix quota jun/2026** | UC-10 — pré-filtra faltantes (índice + arquivo válido); fetch **somente** misses via [FetchAndStorePdf] com **`persistentDownload: true`**; progresso `done/total` = faltantes |
 | `ClearOfflineCache` | `lib/features/offline/domain/usecases/clear_offline_cache.dart` | **Implementado 3.6 + jun/2026 + testes** | UC-10 — clear Isar + deleteTree + checkpoint + `OFFLINE_AVAILABLE=FALSE` |
 | `MigrateOfflineStorage` | `lib/features/offline/domain/usecases/migrate_offline_storage.dart` | **Implementado 3.6 + testes** | UC-10 — v1 no-op; versão em [StorageKeys.offlineStorageVersion] |
 | `OfflineStats` | `lib/features/offline/domain/entities/offline_stats.dart` | **Implementado 3.6 + jun/2026** | `{byCategory, missingByCategory}` + `totalCount` / `totalMissing` — chaves = material UI |
@@ -883,19 +896,10 @@ Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store n
 | `fetchAndStorePdfProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.3** | DI [FetchAndStorePdf] + [PdfBytesDatasource] + [offlinePdfRepositoryProvider] |
 | `validatePdfAvailabilityProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.4** | DI [ValidatePdfAvailability] — provider em offline para evitar ciclo DI |
 | `offlineCacheStatusProvider` | `lib/features/offline/presentation/providers/offline_cache_status_provider.dart` | **Implementado 3.7 + jun/2026** | [OfflineCacheStatus]; `refresh` / `refreshAll`; stats por material + faltantes; UI disco: apenas bytes usados |
-| `offlineMissingDownloadProvider` | `lib/features/offline/presentation/providers/offline_missing_download_provider.dart` | **Implementado 3.7 + jun/2026** | Notifier [DownloadMissingPdfs]; progresso sobre faltantes |
-| `offlineManifestRemoteDatasourceProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI manifest `/offline-manifest.json` |
-| `zipPackageDownloaderProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI ZIP transitório `_bulk_zips/` |
-| `offlineBulkCheckpointStoreProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI checkpoint JSON [StorageKeys.offlineBulkCheckpoint] |
-| `offlineAvailableStoreProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado jun/2026** | DI [OfflineAvailableStore] via [sharedPreferencesProvider] |
-| `extractAndStorePdfsProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI [ExtractAndStorePdfs] |
+| `offlineManifestRemoteDatasourceProvider` / `zipPackageDownloaderProvider` / `offlineBulkCheckpointStoreProvider` / `extractAndStorePdfsProvider` / `downloadOfflinePackagesProvider` | — | **Removidos set/2026** | DI do pipeline ZIP bulk (manifest `/offline-manifest.json`, download ZIP, checkpoint, extração, orquestrador) — apagados junto com o pipeline; ver [DownloadMissingPdfs] e spec [catálogo coldigom modo único](../superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md) §6 |
 | `reconcileOfflineIndexProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5 + 3.6** | DI [ReconcileOfflineIndex] — escopo pós-bulk ou global (isolate/chunked) |
-| `downloadOfflinePackagesProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI orquestrador bulk UC-09 |
-| `offlineBulkDownloadProvider` | `lib/features/offline/presentation/providers/offline_bulk_download_provider.dart` | **Implementado 3.5 + 3.7 + jun/2026** | Notifier progresso/cancel/resume; ao concluir → [offlineModeProvider.markConfigured] + refresh [offlineCacheStatusProvider] |
 | `offlineModeProvider` | `lib/features/offline/presentation/providers/offline_mode_provider.dart` | **Implementado jun/2026** | `bool` — gate UI UC-09 vs UC-10; migração automática se `validCount ≥ 200` e flag ausente; bloqueia re-inferência quando `FALSE` |
 | `offlineReconcileProvider` | `lib/features/offline/presentation/providers/offline_reconcile_provider.dart` | **Implementado 3.6** | [MigrateOfflineStorage] → [ReconcileOfflineIndex]; debounce foreground; [OfflineSettingsScreen] init |
-| `getOfflineStatsByCategoryProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.6 + jun/2026** | DI [GetOfflineStatsByCategory] + [catalogLocalDatasourceProvider] + manifest |
-| `downloadMissingPdfsProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.6** | DI [DownloadMissingPdfs] |
 | `clearOfflineCacheProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.6** | DI [ClearOfflineCache] |
 | `migrateOfflineStorageProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.6** | DI [MigrateOfflineStorage] |
 
@@ -905,7 +909,7 @@ Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store n
 |-----|---------|-----|--------|-----------|
 | `OfflineCacheStatus` | `offline/presentation/providers/offline_cache_status_provider.dart` | UC-10 | **Implementado 3.7 + jun/2026** | `{stats, removedCount, isRefreshing}`; `isReady`, `showRemovedWarning`; stats por material + faltantes |
 | `OfflineMissingDownloadState` | `offline/presentation/providers/offline_missing_download_provider.dart` | UC-10 | **Implementado 3.7 + jun/2026** | `{status, done, total, lastResult}` — `total` = **faltantes** (não manifest completo) |
-| `OfflineSettingsScreen` | `offline/presentation/pages/offline_settings_screen.dart` | UC-09/10 | **Completa 3.7 + jun/2026** | **Um card por vez** via [offlineModeProvider]: UC-09 (categorias + bulk) ou UC-10 (stats + faltantes + limpar cache); bulk em execução força card UC-09 |
+| `OfflineSettingsScreen` | `offline/presentation/pages/offline_settings_screen.dart` | UC-09/10 | **Reescrita 23/09/2026** | **Uma seção só**, sempre visível: `GoldenTaggedContainer` + [ColdigomOfflineSection]; reconcile ([offlineReconcileProvider]) no `initState` e ao voltar ao foreground; banner «N removidos» com «Dispensar» quando [offlineCacheStatusProvider] sinaliza; estado de ocupado único via [offlineMaintenanceLockProvider]. Sem `offlineModeProvider` nem cards UC-09/UC-10 separados. |
 | `OfflineLifecycleListener` | `offline/presentation/widgets/offline_lifecycle_listener.dart` | UC-10 | **Implementado 3.6** | Wrapper no shell; reconcile debounced ao foreground |
 | `OfflineReconcileState` | `offline/presentation/providers/offline_reconcile_provider.dart` | UC-10 | **Implementado 3.6** | `{lastResult, lastRunAt, isRunning}` |
 
@@ -986,8 +990,7 @@ ResolvePdfForReader (3.2) ✅
 
 | Assinatura | Comportamento |
 |------------|---------------|
-| `DownloadOfflinePackages.call({categories, onProgress, cancelToken})` | Fila por categoria; checkpoint [StorageKeys.offlineBulkCheckpoint]; cancel via Dio; ENOSPC → `InsufficientDiskSpaceException` |
-| `ExtractAndStorePdfs.call({zipPath, materialCategory, resumeCheckpoint?, onProgress})` | `compute(extractZipPdfs)`; chunks [OfflineConfig.bulkIsarChunkSize] Isar; skip cache hit; remove ZIP após extração |
+| ~~`DownloadOfflinePackages.call(...)` / `ExtractAndStorePdfs.call(...)`~~ | **Removidos set/2026** — pipeline ZIP bulk por categoria (fila + extração) apagado; primeira configuração agora é PDF a PDF via [DownloadMissingPdfs] com `CancelToken`; ver spec [catálogo coldigom modo único](../superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md) §6 |
 | `ReconcileOfflineIndex.call({materialPackage?, materialCategory?})` | Escopo pós-categoria quando params presentes; global quando omitidos |
 | `offlineBulkDownloadProvider` | Notifier: start/cancel/resume; progresso [OfflineDownloadProgress]; ao concluir → [offlineModeProvider.markConfigured] (`OFFLINE_AVAILABLE=TRUE`); snackbars via [OfflineSettingsScreen] |
 
@@ -996,9 +999,7 @@ ResolvePdfForReader (3.2) ✅
 | Assinatura | Comportamento |
 |------------|---------------|
 | `ReconcileOfflineIndex.call()` (global) | Idempotente; validação disco em isolate via [compute]; chunks [OfflineConfig.bulkIsarChunkSize]; **< 20s / 5000 entradas**; remove órfãos índice + opcional orphan files |
-| `GetOfflineStatsByCategory.call({includeMissing = true})` | Índice Isar + [CatalogLocalDatasource.loadPdfIdToCategoriaMap] → [OfflineMaterialResolver.toUiMaterial] → `byCategory`; manifest remoto → `missingByCategory`; falha rede em faltantes → mapa vazio |
 | `OfflineMaterialResolver.toUiMaterial(categoria)` | `Partitura` / `Gestos em Gravura` direto; `Cifra` + níveis I/II → chip `Cifra`; classificação (`ColAdultos`) → `null` |
-| `DownloadMissingPdfs.call({materialCategories?, onProgress})` | Uma passagem no índice → set de PDFs válidos (arquivo existe, magic `%PDF`); loop **somente** faltantes; cada fetch via [FetchAndStorePdf] com **`persistentDownload: true`**; `onProgress(done, total)` com `total = missing`; `skippedCount = manifest − missing` |
 | `ClearOfflineCache.call()` | [OfflinePdfRepository.clearAll] + [PdfLocalStore.deleteTree] + checkpoint clear + [OfflineAvailableStore.clear] (`OFFLINE_AVAILABLE=FALSE`) |
 | `MigrateOfflineStorage.call()` | v1 no-op; persiste [StorageKeys.offlineStorageVersion] |
 | `offlineReconcileProvider.requestReconcile()` | [MigrateOfflineStorage] → [ReconcileOfflineIndex] global; deduplica se `isRunning` |
@@ -1065,12 +1066,14 @@ Share/Save (cache hit):
 
 **Checkpoint mínimo (3.4):** 1º tap baixa e persiste; 2º tap `openFile`; share WhatsApp sem reler bytes; cold start sem scan PDF.
 
-### Fluxo implementado Fase 3.5 — prefetch bulk (UC-09)
+### Fluxo Fase 3.5 — prefetch bulk ZIP (UC-09) — **removido set/2026**
+
+**Removido set/2026** — todo este pipeline ZIP (`DownloadOfflinePackages`, `offline-manifest.json`, `ExtractAndStorePdfs`) foi apagado; a primeira configuração offline (UC-09) passou a ser PDF a PDF via [DownloadMissingPdfs] com `CancelToken`, sem ZIP/checkpoint (ver spec [catálogo coldigom modo único](../superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md) §6). Diagrama abaixo preservado como registro histórico do fluxo antigo:
 
 ```text
-OfflineSettingsScreen → DownloadOfflinePackages(categories)
-  → offline-manifest.json → ZIP por categoria (fila background / isolate)
-  → ExtractAndStorePdfs(zipPath, resumeCheckpoint?)
+OfflineSettingsScreen → DownloadOfflinePackages(categories)  [removido]
+  → offline-manifest.json → ZIP por categoria (fila background / isolate)  [removido]
+  → ExtractAndStorePdfs(zipPath, resumeCheckpoint?)  [removido]
       → descompacta → PdfLocalStore.writeAtomic (chunks 50–100)
       → OfflinePdfRepository.upsert (txn Isar por chunk)
   → ReconcileOfflineIndex() — fim de cada categoria
@@ -1237,7 +1240,7 @@ Seleção temporária de louvores persistida em Isar ([CarouselEntry]). Substitu
 |-----|---------|-----|--------|-----------|
 | `CarouselLouvorChipVariant` | `lib/features/carousel/presentation/widgets/carousel_louvor_chip.dart` | UC-05 | **Implementado polish chip** | `modal` (pill, `#num — nome` no título) \| `topBar` (retangular 8px, número na linha de metadados) |
 | `CarouselLouvorChip` | idem | UC-05/01/03/04/06 | **Implementado polish chip + abrir leitor + metadados médios + trailing catálogo + share ⋮ + metadataSummary agrupamento jun/2026** | Chip temático PLPCG; metadados responsivos ou [metadataSummary]; `onTap`; `onRemove` (playlists/modal); `onAdd`/`isAdded`/`loading`/`onShare`/`shareLoading` ([LouvorCard]); menu ⋮ UC-04; drag opcional |
-| `carouselChipBarHeight` / `carouselChipTopBarHeight` | idem | UC-05 | **Implementado polish chip** | `58` (modal/leitor) \| `52` (barra shell) — altura na [CarouselNavigatorBar] |
+| `carouselChipTopBarHeight` | idem | UC-05 | **Implementado polish chip** | `52` (barra shell) — altura na [CarouselNavigatorBar] |
 | `carouselChipMaxWidth` | idem | UC-05 | **Implementado polish chip** | `168` — referência de largura compacta na barra |
 | `carouselChipMetadataCompactWidth` | idem | UC-05 | **Implementado metadados médios** | `180` — abaixo: metadados só ícones + [Tooltip] |
 | `carouselChipMetadataMediumWidth` | idem | UC-05 | **Implementado metadados médios** | `280` — entre compact e medium: ícone + texto truncável para classificação **e** categoria; acima: classificação só texto, categoria ícone + texto |
@@ -1245,7 +1248,7 @@ Seleção temporária de louvores persistida em Isar ([CarouselEntry]). Substitu
 | `carouselBarShellHeight` | idem | UC-05/11 | **Implementado UI 3 barras** | `60.0` — altura aproximada de referência (padding + chip) |
 | `carouselBarIconButtonStyle` | idem | UC-05/11 | **Implementado polish ícones barra** | `ButtonStyle` compartilhado — `foregroundColor: AppColors.title`; `disabledForegroundColor` com opacidade 0.38 (setas durante `loading` permanecem vinho, não preto/cinza) |
 | `kCarouselBarExpandedBreakpoint` | `lib/features/carousel/presentation/widgets/carousel_bar_trailing_actions.dart` | UC-05 | **Implementado overflow smartphone** | `600.0` — `MediaQuery.sizeOf.width` ≥ valor → ícones individuais; < valor → menu ⋮ |
-| `CarouselBarTrailingActions` | `lib/features/carousel/presentation/widgets/carousel_bar_trailing_actions.dart` | UC-05/06/07/08 | **Implementado UI 3 barras + overflow smartphone + share sheet ✅** | Salvar, **compartilhar** (bottom sheet 4 modos UC-07/08), limpar — shell e leitor; compacto: [PopupMenuButton]; expandido: três [IconButton] com [carouselBarIconButtonStyle] |
+| `CarouselBarTrailingActions` | `lib/features/carousel/presentation/widgets/carousel_bar_trailing_actions.dart` | UC-05/06/07/08 | **Implementado UI 3 barras + overflow smartphone + share sheet ✅** | Salvar, **compartilhar** (bottom sheet 2 modos — Folheto (imagem + link por praise + QR) / Só o link — UC-07/08, spec fim-fonte-plpcg §4), limpar — shell e leitor; compacto: [PopupMenuButton]; expandido: três [IconButton] com [carouselBarIconButtonStyle] |
 | `CarouselNavigatorBar` | `lib/features/carousel/presentation/widgets/carousel_navigator_bar.dart` | UC-05/11 | **Implementado 4.7 + fix v2 + polish ícones** | Chip + setas + lista + `trailingActions`; ícones via [carouselBarIconButtonStyle]; `loading` desabilita setas/chip; botão lista **sempre** habilitado |
 | `carouselSelectionReorderProxyDecorator` | `lib/features/carousel/presentation/widgets/carousel_selection_sheet.dart` | UC-05 | **Implementado fix drag modal jun/2026** | `ReorderableListView.proxyDecorator` transparente — evita `Material` com elevação retangular atrás de chips pill durante reorder |
 | `showCarouselSelectionSheet` | `lib/features/carousel/presentation/widgets/carousel_selection_sheet.dart` | UC-05 | **Implementado polish chip + abrir leitor + fix drag modal** | Modal reordenável; `onItemTap` fecha dialog e abre louvor no leitor; reorder com [carouselSelectionReorderProxyDecorator] |
@@ -1326,6 +1329,12 @@ ShellScaffold
       → IconButton clear_all → showConfirmDialog → clear
 ```
 
+> Nota (2026-09-12): fluxo histórico da Fase 4.1. A barra atual não tem mais
+> `view_list`/`clear_all` soltos — virou grupos de botão com legenda: «Abrir»/
+> «Material» (louvor focado) e «Lista»/«Compartilhar»/«Limpar» (lista ativa),
+> sobre uma lista única sem faces (PDF, cifra, gesto e áudio juntos). Ver
+> `docs/superpowers/specs/2026-09-12-barra-lista-ativa-design.md`.
+
 **Fix drag modal seleção (jun/2026):** [showCarouselSelectionSheet] usa [carouselSelectionReorderProxyDecorator] no `proxyDecorator` do [ReorderableListView] — substitui o `Material` padrão (elevação + sombra retangular) por proxy transparente, eliminando borda visível ao arrastar chips pill no modal "Seleção temporária".
 
 **Fix flicker reorder (jun/2026):** Reordenação no modal disparava múltiplos `_reload()` concorrentes e rebuild duplo do índice focado — dados "piscavam" na barra e no modal. Correções: (1) [CarouselLouvoresNotifier.reorder] — update otimista em memória, persist Isar + sync playlist após [carouselReorderPersistDebounce] (`100ms`), sem `_reload` intermediário; `_reloadGeneration` em `_reload()` ignora corridas; (2) [carouselLouvoresDisplayProvider] — barra [CarouselChips] observa lista debounced ([carouselLouvoresDisplayDebounce]); add/remove/clear imediatos; só reorder coalesce render; modal continua em [carouselLouvoresProvider] para resposta instantânea ao soltar item; (3) [carouselFocusedIndexProvider] — removido `ref.listen` redundante (um rebuild por mudança). Teste: `carousel_louvores_display_provider_test.dart`.
@@ -1370,8 +1379,13 @@ Prioridade do trailing: `loading` → `onRemove` → `isAdded` → `onAdd`; depo
 **Modal carousel — fix v3 (jun/2026):** Corrige bug em que o 2º toque no chip do modal só atualizava a barra sem abrir/trocar o PDF. Causas: (1) `_openingReader` permanecia `true` enquanto `context.push` aguardava `pop`; (2) `focusPdfId` antes da navegação mascarava falhas; (3) `currentPdfId` capturado ao abrir o modal ficava defasado vs URL após `replace`. Correções: priorizar query params do GoRouter sobre [readerRouteParamsProvider]; resolver `pdfId` ativo no toque; `focusPdfId` só após `openCarouselPdfInReader` com sucesso; `_carouselNavLoading` verificado antes de qualquer efeito. Testes: `segundo toque no chip do modal no leitor/shell` em `carousel_chips_test.dart`.
 
 **Overflow barra smartphone (jun/2026):** Em largura < [kCarouselBarExpandedBreakpoint] (600px), [CarouselBarTrailingActions] colapsa salvar/compartilhar/folheto/limpar em menu `more_vert` com itens somente texto ([carouselSavePlaylist], [carouselSharePlaylist], [carouselGenerateLeaflet], [carouselClear]). [CarouselNavigatorBar] mantém setas de troca de PDF e botão lista (`view_list`) sempre visíveis — mais espaço horizontal para o chip. Tablet e maiores preservam os quatro ícones (`save_outlined`, `share_outlined`, `description_outlined`, `clear_all`). Testes: `em smartphone usa menu overflow`, `menu overflow em smartphone dispara compartilhar lista` e `menu overflow em smartphone dispara gerar folheto` em `carousel_chips_test.dart`.
+>
+> Nota (2026-09-12): o menu overflow e os ícones `clear_all`/`view_list`
+> acima foram substituídos pelos grupos «Abrir»/«Material» e «Lista»/
+> «Compartilhar»/«Limpar», com legenda em barra larga (spec
+> `docs/superpowers/specs/2026-09-12-barra-lista-ativa-design.md`, §7).
 
-**Share lista na barra carousel (jun/2026 — UC-07):** Entrada [carouselSharePlaylist] no menu overflow e botão `share_outlined` no layout expandido. Compartilha a seleção do carousel sem exigir visita a `/listas` — paridade PWA `/?sharepdfs=…&sharename=…`. Fluxo: [resolveActivePlaylistFromCarousel] (sincroniza/recupera playlist; corrige falso “lista vazia” após restart) → [GeneratePlaylistShareUrl] → `Share.share` com [sharePositionOriginFromContextOrFallback] (fix iOS). Diagnóstico: [playlistShareDebugLog*]; falha → [showPlaylistShareErrorSnackbar]. Testes: `carousel_chips_test.dart`, `resolve_active_playlist_from_carousel_test.dart`.
+**Share lista na barra carousel (jun/2026 — UC-07):** Entrada [carouselSharePlaylist] no menu overflow e botão `share_outlined` no layout expandido. Compartilha a seleção do carousel sem exigir visita a `/listas` — link por praise `/?p=…&n=…` desde 23/09/2026 (histórico: `/?sharepdfs=…&sharename=…`). Fluxo: [resolveActivePlaylistFromCarousel] (sincroniza/recupera playlist; corrige falso “lista vazia” após restart) → [GeneratePlaylistShareUrl] → `Share.share` com [sharePositionOriginFromContextOrFallback] (fix iOS). Diagnóstico: [playlistShareDebugLog*]; falha → [showPlaylistShareErrorSnackbar]. Testes: `carousel_chips_test.dart`, `resolve_active_playlist_from_carousel_test.dart`.
 
 **Fix share iOS (jun/2026 — UC-07):** `PlatformException: sharePositionOrigin: argument must be set` ao chamar [Share.share] sem âncora. Correção: capturar `sharePositionOrigin` do contexto do botão/menu **antes** de awaits; repassar em [PlaylistsNotifier.sharePlaylist]. Fallback [sharePositionOriginFromContextOrFallback] quando [RenderBox] ainda sem layout (menu overflow).
 
@@ -1557,9 +1571,9 @@ Playlists em Isar ([Playlist]). Substitui `localStorage.savedPlaylists` da PWA. 
 
 | Regra | Comportamento |
 |-------|---------------|
-| Formato URL | `https://plpcg.com/?sharepdfs=id1,id2&sharename=Nome` — chaves [UrlSyncParams.sharePdfs] / [UrlSyncParams.shareName] |
-| Origin share | [AppConfig.apiBaseUrl] — compatível com PWA |
-| CSV pdfIds | Vírgula; trim; dedupe preservando ordem; [pdfId] Base64 URL-safe sem vírgulas |
+| Formato URL (23/09/2026) | `https://v2.plpcg.com/?p=1a2-0c3-fff&n=Nome` — `shortId`s de praise separados por `-`; chaves [UrlSyncParams.praiseItems] (`p`) / [UrlSyncParams.shortName] (`n`). **Histórico:** `?sharepdfs=id1,id2&sharename=Nome` (só material) |
+| Origin share | `ShareConfig.appOrigin` (`https://v2.plpcg.com`) — deixou de ser [AppConfig.apiBaseUrl] |
+| Link antigo | `?s=`, `shareitems`/`sharepdfs`/`shareaudios`/`sharename` sozinhos → `playlistShareLegacyLinkUnsupported` (§4.4 fim-fonte-plpcg); não abrem mais |
 | Share lista vazia | Snackbar [playlistEmptyPdfList]; não gera URL |
 | Import | Sempre **nova** playlist (não merge por nome); carousel substituído via [LoadPlaylistIntoCarousel] |
 | PDF órfão no import | Permitido — labels fallback na UI (mesma regra 4.3) |
@@ -1748,7 +1762,7 @@ PlaylistsScreen FAB → Importar lista
 
 ```text
 OS / app_links → DeepLinkListener
-  → dedupe fingerprint sharepdfs|sharename
+  → dedupe fingerprint p|n (histórico: sharepdfs|sharename)
   → SyncDeepLinkState(uri)
       → parsePlaylistShareParams → null? skipped (no-op)
       → ImportSharedPlaylistFromUrl → playlistId
@@ -1757,7 +1771,7 @@ OS / app_links → DeepLinkListener
   → snackbar playlistImported | playlistImportInvalidUrl
 ```
 
-**Checkpoint 4.5:** link `https://plpcg.com/?sharepdfs=...&sharename=...` importa sem diálogo; restart persiste; import manual 4.4 inalterado. Ver [deep-links-setup.md](../deep-links-setup.md) para AASA/assetlinks.
+**Checkpoint 4.5:** link `https://v2.plpcg.com/?p=...&n=...` importa sem diálogo; restart persiste; import manual 4.4 inalterado. Histórico: `?sharepdfs=...&sharename=...` (só material, até 23/09/2026). Ver [deep-links-setup.md](../deep-links-setup.md) para AASA/assetlinks.
 
 ## APIs públicas — Domínio (`app_shell`, Fase 4.5)
 
@@ -1961,9 +1975,11 @@ Modal — tap outro louvor (leitor)
 
 ## APIs públicas — Data layer (catalog)
 
+> **Histórico (23/09/2026):** o app já não lê o manifesto; ver spec fim-fonte-plpcg. `CatalogRemoteDatasource`, `CatalogLocalDatasource`, `CatalogRepositoryImpl` e o mapper `LouvorToCache`/`LouvorCacheToEntity` foram apagados (zero chamadores em `lib/`); o catálogo atual sincroniza via `ColdigomRemoteDatasource`/`SyncColdigomCatalog` — ver a linha `catalog` no topo deste documento.
+
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `CatalogRemoteDatasource` | `lib/features/catalog/data/datasources/catalog_remote_datasource.dart` | **Implementado + D1 jun/2026** | `fetchManifest()` — `GET /api/catalog/louvores`; `fetchChecksum()` — `GET /api/catalog/checksum` (200/204) |
+| `CatalogRemoteDatasource` | `lib/features/catalog/data/datasources/catalog_remote_datasource.dart` | **Implementado + catálogo pelo coldigom set/2026** | `fetchManifest()` / `fetchManifestConditional()` — `GET /api/plpcg/manifest` (coldigom, ETag/304); `fetchChecksum()` / `fetchChecksumConditional()` — `GET /api/plpcg/manifest/checksum` (200/204/304) |
 | `CatalogLocalDatasource` | `lib/features/catalog/data/datasources/catalog_local_datasource.dart` | **Implementado + testes** | `saveLouvores` / `loadLouvores`; `loadPdfIdToCategoriaMap` — UC-10 stats offline |
 | `LouvorToCache` / `LouvorCacheToEntity` | `lib/features/catalog/data/mappers/louvor_cache_mapper.dart` | **Implementado + groupId jun/2026** | Mapper `Louvor` ↔ `LouvorCache` inclui `groupId`; [LouvorCacheToEntity] → `fromManifest` |
 | `CatalogRepositoryImpl` | `lib/features/catalog/data/repositories/catalog_repository_impl.dart` | **Implementado + testes** | `loadManifest` remoto → Isar com fallback; `forceRefreshManifest` remoto obrigatório sem fallback |
@@ -1990,6 +2006,8 @@ Modal — tap outro louvor (leitor)
 
 ## APIs públicas — Data layer (offline, Fase 3.1–3.7)
 
+> **Histórico (23/09/2026):** `offlineModeProvider` e `offlineMissingDownloadProvider` (linhas abaixo) foram apagados — zero chamador/arquivo em `lib/`; a UI atual usa `offlineColdigomDownloadProvider` / `offlineColdigomKindSelectionProvider` (`offline/presentation/providers/offline_coldigom_download_provider.dart` e `offline_coldigom_kind_selection_provider.dart`), com `offlineCacheStatusProvider` mantido. Os fluxos «Fase 1.1 (LoadLouvoresManifest)», «Fase 1.2 (SearchLouvorByNumberOrText / UC-01)» e «Fase 1.3 (FilterByMaterialAndArranjo / UC-02)» descritos mais abaixo pertencem à pilha do manifesto PLPCG, também apagada: `louvoresManifestProvider`, `LoadLouvoresManifest`, `CatalogRepositoryImpl`, `CatalogRemoteDatasource`, `CatalogLocalDatasource`, `SearchLouvorByNumberOrText` e `FilterByMaterialAndArranjo` — zero chamador em `lib/`. A busca e o filtro atuais rodam sobre `ColdigomSearchIndex`/`matchesCatalogFilters` — ver `lib/features/catalog/presentation/providers/home_search_provider.dart`.
+
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
 | `GetApplicationDocumentsDirectoryFn` | `offline/data/datasources/pdf_local_store.dart` | **Implementado 3.1** | Typedef para injeção de diretório em testes |
@@ -1997,12 +2015,9 @@ Modal — tap outro louvor (leitor)
 | `OfflinePdfLocalDatasource` | `offline/data/datasources/offline_pdf_local_datasource.dart` | **Implementado 3.1** | `findByPdfId`, `put`, `deleteByPdfId`, `countByCategory`, `findAll` |
 | `OfflinePdfRepositoryImpl` | `offline/data/repositories/offline_pdf_repository_impl.dart` | **Implementado + testes** | Implementação de [OfflinePdfRepository]; `clearAll`, `removeIndexEntries`, `listAll` |
 | `FetchAndStorePdf` | `offline/domain/usecases/fetch_and_store_pdf.dart` | **Implementado 3.3 + testes** | `call({pdfId, remotePath, category?})` — fetch + upsert; retry [OfflineConfig.maxRetryAttempts] |
-| `DownloadOfflinePackages` | `offline/domain/usecases/download_offline_packages.dart` | **Implementado 3.5 + testes** | Orquestrador bulk UC-09 |
+| `DownloadOfflinePackages` | `offline/domain/usecases/download_offline_packages.dart` | **Removido set/2026** | Orquestrador bulk ZIP UC-09 — substituído por [DownloadMissingPdfs] PDF a PDF |
 | `ReconcileOfflineIndex` | `offline/domain/usecases/reconcile_offline_index.dart` | **Implementado 3.5 + 3.6 + benchmark** | Reconcile escopado ou global |
-| `GetOfflineStatsByCategory` | `offline/domain/usecases/get_offline_stats_by_category.dart` | **Implementado 3.6 + jun/2026** | Stats material UI + faltantes manifest |
-| `DownloadMissingPdfs` | `offline/domain/usecases/download_missing_pdfs.dart` | **Implementado 3.6 + jun/2026** | Pré-filtra faltantes; fetch só misses |
 | `OfflineMaterialResolver` | `offline/domain/utils/offline_material_resolver.dart` | **Implementado jun/2026** | `toUiMaterial(categoria)` |
-| `OfflineAvailableStore` | `offline/data/datasources/offline_available_store.dart` | **Implementado jun/2026 + testes** | `TRUE`/`FALSE` em [StorageKeys.offlineAvailable] |
 | `ClearOfflineCache` | `offline/domain/usecases/clear_offline_cache.dart` | **Implementado 3.6 + jun/2026 + testes** | Reset índice + tree + checkpoint + `OFFLINE_AVAILABLE=FALSE` |
 | `MigrateOfflineStorage` | `offline/domain/usecases/migrate_offline_storage.dart` | **Implementado 3.6 + testes** | Migração versão prefs |
 | `ReconcilePathEntry` | `offline/data/utils/reconcile_path_validator.dart` | **Implementado 3.6** | Payload isolate |
@@ -2014,14 +2029,10 @@ Modal — tap outro louvor (leitor)
 | `resolvePdfForReaderProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.2 + 3.4** | `Provider<ResolvePdfForReader>` — consumido por [LouvorCard] |
 | `validatePdfAvailabilityProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.4** | `Provider<ValidatePdfAvailability>` — DI em offline (evita ciclo com pdf_opening) |
 | `reconcileOfflineIndexProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.5 + 3.6** | DI [ReconcileOfflineIndex] |
-| `downloadOfflinePackagesProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI bulk UC-09 |
-| `getOfflineStatsByCategoryProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.6 + jun/2026** | DI + catalog + manifest |
-| `downloadMissingPdfsProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.6** | DI [DownloadMissingPdfs] |
-| `offlineAvailableStoreProvider` | `offline/data/providers/offline_providers.dart` | **Implementado jun/2026** | DI [OfflineAvailableStore] |
+| `downloadOfflinePackagesProvider` | `offline/data/providers/offline_providers.dart` | **Removido set/2026** | DI do orquestrador bulk ZIP — apagado com o pipeline |
 | `clearOfflineCacheProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.6** | DI [ClearOfflineCache] |
 | `migrateOfflineStorageProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.6** | DI [MigrateOfflineStorage] |
 | `offlineReconcileProvider` | `offline/presentation/providers/offline_reconcile_provider.dart` | **Implementado 3.6** | Notifier reconcile global UC-10 |
-| `offlineBulkDownloadProvider` | `offline/presentation/providers/offline_bulk_download_provider.dart` | **Implementado 3.5 + 3.7 + jun/2026** | Notifier bulk UC-09; `markConfigured` ao concluir |
 | `offlineModeProvider` | `offline/presentation/providers/offline_mode_provider.dart` | **Implementado jun/2026** | Gate UI UC-09 vs UC-10 |
 | `offlineCacheStatusProvider` | `offline/presentation/providers/offline_cache_status_provider.dart` | **Implementado 3.7 + jun/2026** | `refresh` / `refreshAll`; stats material + faltantes |
 | `offlineMissingDownloadProvider` | `offline/presentation/providers/offline_missing_download_provider.dart` | **Implementado 3.7 + jun/2026** | Progresso sobre faltantes |
@@ -2145,22 +2156,9 @@ Regra Cifra: chip UI `"Cifra"` expande para categorias `"Cifra"`, `"Cifra nível
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `catalogRemoteDatasourceProvider` | `lib/features/catalog/data/providers/catalog_providers.dart` | **Implementado** | Injeta [Dio] remoto |
-| `catalogLocalDatasourceProvider` | `lib/features/catalog/data/providers/catalog_providers.dart` | **Implementado** | Injeta [Isar] local |
-| `catalogRepositoryProvider` | `lib/features/catalog/data/providers/catalog_providers.dart` | **Implementado** | [CatalogRepositoryImpl] |
-| `loadLouvoresManifestProvider` | `lib/features/catalog/data/providers/catalog_providers.dart` | **Implementado** | DI use case UC-12 boot |
-| `forceRefreshCatalogProvider` | `lib/features/catalog/data/providers/catalog_providers.dart` | **Implementado** | DI [ForceRefreshCatalog] UC-12 manual |
-| `searchLouvorByNumberOrTextProvider` | `lib/features/catalog/data/providers/catalog_providers.dart` | **Implementado** | DI use case UC-01 |
-| `filterByMaterialAndArranjoProvider` | `lib/features/catalog/data/providers/catalog_providers.dart` | **Implementado** | DI use case UC-02 |
 | `CatalogFilterState` | `lib/features/catalog/presentation/providers/catalog_filters_provider.dart` | **Implementado** | Estado imutável; `defaults()`, getters URL |
 | `CatalogFiltersNotifier` | `lib/features/catalog/presentation/providers/catalog_filters_provider.dart` | **Implementado** | `hydrateFromUrl()`, `toggleMaterial()`, `toggleArranjo()` |
 | `catalogFiltersProvider` | `lib/features/catalog/presentation/providers/catalog_filters_provider.dart` | **Implementado** | `NotifierProvider` UC-02 |
-| `catalogAvailableArranjosProvider` | `lib/features/catalog/presentation/providers/catalog_filters_provider.dart` | **Implementado** | Classificações base do manifest (chips dinâmicos) |
-| `louvoresManifestProvider` | `lib/features/catalog/presentation/providers/louvores_manifest_provider.dart` | **Implementado** | `FutureProvider<List<Louvor>>`; boot via `ref.listen` em [ColdiguiApp]; invalidado após refresh manual |
-| `CatalogRefreshStatus` | `lib/features/catalog/presentation/providers/catalog_refresh_provider.dart` | **Implementado** | Enum: `idle`, `loading`, `error` |
-| `CatalogRefreshState` | `lib/features/catalog/presentation/providers/catalog_refresh_provider.dart` | **Implementado** | `idle()` / `loading()` / `error(message)`; getters `isLoading`, `isIdle`, `hasError` |
-| `CatalogRefreshNotifier` | `lib/features/catalog/presentation/providers/catalog_refresh_provider.dart` | **Implementado** | `refresh()` → [ForceRefreshCatalog] + `invalidate(louvoresManifestProvider)` |
-| `catalogRefreshProvider` | `lib/features/catalog/presentation/providers/catalog_refresh_provider.dart` | **Implementado** | `NotifierProvider` UC-12 refresh manual |
 | `homeSearchRawQueryProvider` | `lib/features/catalog/presentation/providers/home_search_provider.dart` | **Implementado** | Texto imediato da [SearchBar] (`onChanged` e botão limpar) |
 | `homeSearchDebouncedQueryProvider` | `lib/features/catalog/presentation/providers/home_search_provider.dart` | **Implementado** | Debounce 300ms; `setImmediate()` para URL |
 | `homeSearchResultsProvider` | `lib/features/catalog/presentation/providers/home_search_provider.dart` | **Implementado** | UC-01 + UC-02 → `List<Louvor>` filtrado; legado — preferir [homeSearchGroupResultsProvider] |
@@ -2174,17 +2172,9 @@ Regra Cifra: chip UI `"Cifra"` expande para categorias `"Cifra"`, `"Cifra nível
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `browseLibraryProvider` | `lib/features/library/data/providers/library_providers.dart` | **Implementado** | DI [BrowseLibrary] UC-03 |
-| `sortLouvoresProvider` | `lib/features/library/data/providers/library_providers.dart` | **Implementado** | DI [SortLouvores] |
-| `paginateLouvoresProvider` | `lib/features/library/data/providers/library_providers.dart` | **Implementado** | DI [PaginateLouvores] |
-| `filterBySpecialArrangementProvider` | `lib/features/catalog/data/providers/catalog_providers.dart` | **Implementado** | DI [FilterBySpecialArrangement] UC-03 |
 | `LibraryViewSettings` | `lib/features/library/presentation/providers/library_view_settings_provider.dart` | **Implementado** | `sortBy`, `itemsPerPage`, `page`; getters URL |
 | `LibraryViewSettingsNotifier` | `lib/features/library/presentation/providers/library_view_settings_provider.dart` | **Implementado** | `hydrateFromUrl()`, `setSortBy()`, `setItemsPerPage()` (reseta page), `setPage()`, `goToNextPage()`, `goToPreviousPage()` |
 | `libraryViewSettingsProvider` | `lib/features/library/presentation/providers/library_view_settings_provider.dart` | **Implementado** | `NotifierProvider` ordenação/paginação exclusiva biblioteca |
-| `LibrarySpecialArrangementState` | `lib/features/library/presentation/providers/library_special_arrangement_provider.dart` | **Implementado** | `selectedSpecialArrangements`; `arranjoEspecialUrlValue` |
-| `LibrarySpecialArrangementNotifier` | `lib/features/library/presentation/providers/library_special_arrangement_provider.dart` | **Implementado** | `hydrateFromUrl()`, `toggleSpecialArrangement()` |
-| `librarySpecialArrangementProvider` | `lib/features/library/presentation/providers/library_special_arrangement_provider.dart` | **Implementado** | Filtro arranjo especial UC-03 |
-| `libraryAvailableSpecialArrangementsProvider` | `lib/features/library/presentation/providers/library_special_arrangement_provider.dart` | **Implementado** | Chips únicos do manifest (inclui `specialArrangementPadrao`) |
 | `libraryResultsProvider` | `lib/features/library/presentation/providers/library_results_provider.dart` | **Implementado** | Pipeline manifest → Browse → Sort → Paginate → [PaginatedLouvores]; legado — preferir [libraryGroupResultsProvider] |
 | `sortLouvorGroupsProvider` | `lib/features/library/data/providers/library_providers.dart` | **Implementado jun/2026** | DI [SortLouvorGroups] |
 | `paginateLouvorGroupsProvider` | `lib/features/library/data/providers/library_providers.dart` | **Implementado jun/2026** | DI [PaginateLouvorGroups] |
@@ -2360,7 +2350,7 @@ LouvorGroupCard menu ⋮ → Compartilhar (shareLoading — só 1 material)
 | `PdfReaderScreen` | `pdf_reader/presentation/pages/pdf_reader_screen.dart` | UC-11/04 | **Implementado** (Fase 2.3 + 2.4 + 2.5 + 3.4 + lifecycle + UI 3 barras) | [_ReaderScaffold]: [PdfReaderPageIndicator] + PDF; `navigateToPage` no [PdfReaderPdfView]; fullscreen 2.4; sessão `autoDispose` |
 | `PdfReaderPageIndicator` | `pdf_reader/presentation/widgets/pdf_reader_page_indicator.dart` | UC-11 | **Implementado 2.3** | Indicador `page/total`; `ValueListenableBuilder(loadingState)`; long-press → página 1 |
 | `PdfReaderPdfView` | `pdf_reader/presentation/widgets/pdf_reader_pdf_view.dart` | UC-11 | **Implementado** (Fase 2.3 + lifecycle + swipe + indicador) | `PdfViewer (pdfrx)`; swipe via [PdfPageSwipePolicy]; [PdfReaderNavigateToPage] obrigatório; pinch nativo |
-| `OfflineSettingsScreen` | `offline/presentation/pages/offline_settings_screen.dart` | UC-09/10 | **Completa 3.7 + jun/2026** | Stats + refresh; chips material/faltantes; manutenção; bulk UC-09 |
+| `OfflineSettingsScreen` | `offline/presentation/pages/offline_settings_screen.dart` | UC-09/10 | **Reescrita 23/09/2026** | Uma seção só ([ColdigomOfflineSection]); reconcile automático + banner «N removidos»; sem cards UC-09/UC-10 separados |
 | `PlaylistsScreen` | `playlists/presentation/pages/playlists_screen.dart` | UC-06/07 | **Implementado 4.2 + 4.4 + 4.8 + polish screen jun/2026** | Abas; FAB stack apagar (unsaved) + importar; empty state branco |
 | `PlaylistListTile` | `playlists/presentation/widgets/playlist_list_tile.dart` | UC-06/07 | **Implementado 4.2–4.4 + polish UI + debug abrir jun/2026** | Card temático; [CarouselLouvorChip] modal (`onTap`/`onRemove`); menu share/load/open/renomear/excluir; falha abrir → [showPlaylistOpenErrorSnackbar] |
 | `showImportPlaylistDialog` | `playlists/presentation/widgets/import_playlist_dialog.dart` | UC-07 | **Implementado 4.4** | Import manual URL/clipboard |
@@ -2638,7 +2628,7 @@ LouvorGroupCard menu ⋮ → Compartilhar (shareLoading — só 1 material)
 | `integration_test/gherkin/uc01_search_home.feature` | Cenários Gherkin UC-01 |
 | `integration_test/gherkin/uc02_filter_material_arranjo.feature` | Cenários Gherkin UC-02 |
 | `test/unit/features/catalog/filter_by_special_arrangement_test.dart` | UC-03: arranjo especial vazio, Padrão, parênteses, múltiplos |
-| `test/unit/features/catalog/louvor_classification_special_test.dart` | `specialArrangement`, parse/serialize `arranjoEspecial` URL |
+| `test/unit/features/catalog/louvor_classification_special_test.dart` | `specialArrangement`, `displayLabel` (parse/serialize `arranjoEspecial` URL saiu com o fim da fonte PLPCG) |
 
 ## Testes — library (Fase 1.4 / UC-03)
 
@@ -2717,9 +2707,7 @@ LouvorGroupCard menu ⋮ → Compartilhar (shareLoading — só 1 material)
 | `test/unit/features/offline/download_missing_pdfs_test.dart` | Skip cached; fetch missing | **Implementado 3.6** |
 | `test/unit/features/offline/clear_offline_cache_test.dart` | Índice + tree + checkpoint | **Implementado 3.6** |
 | `test/unit/features/offline/migrate_offline_storage_test.dart` | v0→v1 | **Implementado 3.6** |
-| `test/unit/features/offline/extract_and_store_pdfs_test.dart` | ZIP fixture; skip cache hit | **Implementado 3.5** |
-| `test/unit/features/offline/download_offline_packages_test.dart` | Espaço insuficiente; sucesso; resume; cancel | **Implementado 3.5** |
-| `test/unit/features/offline/offline_bulk_checkpoint_store_test.dart` | Round-trip JSON checkpoint | **Implementado 3.5** |
+| ~~`test/unit/features/offline/extract_and_store_pdfs_test.dart`~~ / ~~`download_offline_packages_test.dart`~~ / ~~`offline_bulk_checkpoint_store_test.dart`~~ | Cobriam o pipeline ZIP bulk (fixture ZIP, espaço insuficiente, resume/cancel, checkpoint JSON) | **Removidos set/2026** — apagados com o pipeline ZIP; ver `test/unit/features/offline/download_missing_pdfs_test.dart` (`CancelToken`) |
 | `test/unit/features/offline/download_missing_pdfs_test.dart` | Skip hit; progresso total=faltantes; sem refetch | **Implementado 3.6 + jun/2026** |
 | `test/unit/features/offline/get_offline_stats_by_category_test.dart` | Agregação material UI + missing manifest | **Implementado jun/2026** |
 | `test/unit/features/offline/offline_material_resolver_test.dart` | toUiMaterial cifra/partitura | **Implementado jun/2026** |
@@ -2735,7 +2723,7 @@ LouvorGroupCard menu ⋮ → Compartilhar (shareLoading — só 1 material)
 |---------|-----------|--------|
 | `test/unit/features/carousel/carousel_repository_test.dart` | add/duplicata; remove+compact; reorder; replaceAll; clear; metadata; [AddLouvorToCarousel] | **Implementado 4.1 + polish chip** |
 | `test/unit/features/carousel/carousel_louvores_display_provider_test.dart` | Add imediato no display; reorder debounced `100ms` | **Implementado fix flicker reorder jun/2026** |
-| `test/unit/features/catalog/louvor_classification_special_test.dart` | `displayLabel`; arranjo especial; parse/serialize URL | **Implementado + polish chip** |
+| `test/unit/features/catalog/louvor_classification_special_test.dart` | `displayLabel`; arranjo especial (parse/serialize URL saiu com o fim da fonte PLPCG) | **Implementado + polish chip** |
 | `test/widget/features/carousel/carousel_louvor_chip_test.dart` | Variantes `modal`/`topBar`; tiers responsivos (compacto ícones; médio classificação+categoria texto); `onTap`; drag/remove; menu ⋮ quando `onShare` | **Implementado polish chip + abrir leitor + metadados médios + share ⋮** |
 | `test/widget/features/carousel/carousel_navigator_bar_test.dart` | Chip + setas condicionais + botão lista; loading desabilita setas mas mantém lista | **Implementado 4.7 fix v2** |
 | `test/widget/features/carousel/carousel_selection_sheet_test.dart` | Remove; reorder; metadados; `onItemTap` fecha modal; modal usa [carouselSelectionReorderProxyDecorator] | **Implementado polish chip + abrir leitor + fix drag modal** |
@@ -2804,7 +2792,7 @@ Ver guia detalhado: **[MVP Roadmap.md](../MVP%20Roadmap.md)** (fases 0–5, depe
 | Item | Valor |
 |------|-------|
 | Target iOS | `ios/` (Flutter 3.38+, Xcode 26) |
-| Bundle ID | `com.example.coldigui` |
+| Bundle ID | `com.plpcg.app` |
 | Display name | Coldigui |
 | Backend homologação | `https://plpcg.com` via [dart_defines/plpcg.json] |
 | Dispositivos físicos | iPhone **ou** iPad (USB; pareamento Xcode obrigatório) |
@@ -2818,7 +2806,7 @@ Conta Apple **pessoal/gratuita** não suporta Associated Domains — builds Debu
 | `ios/Runner/Runner-Homolog.entitlements` | Debug + Profile | **Não** | Homologação ~7 dias; [ios_homolog_install.sh], [ios_dev_run.sh] |
 | `ios/Runner/Runner.entitlements` | Release | `applinks:plpcg.com` | App Store / conta Developer paga — UC-07 deep links |
 
-**Limitação homologação:** universal links (`https://plpcg.com/?sharepdfs=…`) **não** abrem o app em Debug/Profile; demais funcionalidades inalteradas.
+**Limitação homologação:** universal links (`https://v2.plpcg.com/?p=…`; histórico `https://plpcg.com/?sharepdfs=…`) **não** abrem o app em Debug/Profile — o entitlement só tem `applinks:plpcg.com` (follow-up §12 do spec fim-fonte-plpcg); demais funcionalidades inalteradas.
 
 ### Scripts de homologação e tooling
 
@@ -2829,7 +2817,7 @@ Conta Apple **pessoal/gratuita** não suporta Associated Domains — builds Debu
 | `scripts/ios_dev_run.sh` | Dispositivo físico USB — hot reload | `flutter build ios --debug` + `flutter run`; [Runner-Homolog.entitlements] |
 | `scripts/ios_homolog_install.sh` | Dispositivo físico — teste como usuário final | `flutter build ios --profile` → `xcodebuild -allowProvisioningUpdates` (inclui UDID do dispositivo) → install (~7 dias) |
 
-Scripts iOS usam [dart_defines/plpcg.json], desinstalam versão anterior (`com.example.coldigui`) e resolvem dispositivo via [ios_resolve_device.py] (só prossegue se o dispositivo aparecer em `flutter devices`).
+Scripts iOS usam [dart_defines/plpcg.json], desinstalam versão anterior (`com.plpcg.app`) e resolvem dispositivo via [ios_resolve_device.py] (só prossegue se o dispositivo aparecer em `flutter devices`).
 
 ### `ios_resolve_device.py` — CLI (jun/2026)
 
@@ -2848,7 +2836,7 @@ Scripts iOS usam [dart_defines/plpcg.json], desinstalam versão anterior (`com.e
 | Etapa | Comando / artefato |
 |-------|-------------------|
 | 1. Resolver dispositivo | [ios_resolve_device.py] → UDID pareado |
-| 2. Desinstalar anterior | `devicectl device uninstall` (`com.example.coldigui`) |
+| 2. Desinstalar anterior | `devicectl device uninstall` (`com.plpcg.app`) |
 | 3. Build Dart/AOT | `flutter build ios --profile` |
 | 4. Provisioning | `xcodebuild -allowProvisioningUpdates -destination id=<UDID>` — inclui UDID no profile (evita `0xe8008012`) |
 | 5. Artefato | `build/ios/XcodeDerivedData/Build/Products/Profile-iphoneos/Runner.app` |

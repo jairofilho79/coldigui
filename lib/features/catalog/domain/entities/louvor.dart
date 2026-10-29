@@ -2,12 +2,10 @@ import '../../../../core/utils/louvor_search_tokens.dart';
 import '../utils/louvor_group_id.dart';
 import '../utils/louvor_numero_normalizer.dart';
 
-/// Entidade de domínio — louvor do manifest PLPCG.
-///
-/// Campos espelham o JSON de `louvores-manifest.json`.
-/// [searchTitleNorm], [searchContentTokens] e [searchCompactContent] são
-/// pré-computados na criação via [Louvor.fromManifest] para busca UC-01.
-/// [groupId] agrupa materiais do mesmo louvor (ver [LouvorGroup]).
+/// Entidade de domínio — um PDF do catálogo coldigom. [praiseId] agrupa
+/// materiais do mesmo louvor (ver [LouvorGroup]). [searchTitleNorm],
+/// [searchContentTokens] e [searchCompactContent] são pré-computados em
+/// [Louvor.fromManifest] para a busca UC-01.
 class Louvor {
   const Louvor({
     required this.nome,
@@ -20,6 +18,10 @@ class Louvor {
     required this.searchTitleNorm,
     required this.searchContentTokens,
     required this.searchCompactContent,
+    this.materialKindId,
+    this.praiseId,
+    this.materialId,
+    this.notes,
   });
 
   /// Título do louvor (manifest `nome`).
@@ -52,12 +54,24 @@ class Louvor {
   /// Título compacto (sem separadores) para match de queries como "buscarmeeis".
   final String searchCompactContent;
 
-  /// `groupId` efetivo (manifest ou calculado).
-  String get effectiveGroupId => LouvorGroupId.effective(
-        groupId: groupId,
-        numero: numero,
-        nome: nome,
-      );
+  /// Id do `material_kind` Coldigom; `null` quando o dump não traz o kind.
+  final String? materialKindId;
+
+  /// Id do praise no coldigom — identidade do louvor lógico.
+  final String? praiseId;
+
+  /// Id do material no coldigom (nome do ficheiro sem extensão em
+  /// `assets/praises/<praiseId>/<materialId>.pdf`). `null` como [praiseId].
+  final String? materialId;
+
+  /// Anotação rápida do arranjo/material (ex.: "I", "II", "Cifrado").
+  final String? notes;
+
+  /// Identidade do louvor lógico: [praiseId] quando existe (um card por
+  /// praise, spec D3); senão o `groupId` do manifest; senão calculado.
+  String get effectiveGroupId =>
+      praiseId ??
+      LouvorGroupId.effective(groupId: groupId, numero: numero, nome: nome);
 
   /// Cria [Louvor] a partir do manifest com campos de busca pré-computados.
   ///
@@ -70,6 +84,10 @@ class Louvor {
     required String pdf,
     required String pdfId,
     String groupId = '',
+    String? materialKindId,
+    String? praiseId,
+    String? materialId,
+    String? notes,
   }) {
     final normalizedNumero = LouvorNumeroNormalizer.normalize(numero);
     final searchTitleNorm = LouvorSearchTokens.normalize(nome);
@@ -92,6 +110,10 @@ class Louvor {
       searchTitleNorm: searchTitleNorm,
       searchContentTokens: tokens.toList(),
       searchCompactContent: searchCompactContent,
+      materialKindId: materialKindId,
+      praiseId: praiseId,
+      materialId: materialId,
+      notes: notes,
     );
   }
 }

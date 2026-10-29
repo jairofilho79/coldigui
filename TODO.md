@@ -6,9 +6,11 @@ Lista de trabalho futuro com breve descrição de cada item. Ordem sugerida: lan
 
 ## Lançamento e releases
 
-### 1. Preparar validações para lançar versão nas lojas (estado atual)
+### 1. Lançamento Web/PWA (prioridade) e lojas nativas (adiado)
 
-Checklist para publicar o MVP Flutter tal como está hoje (catálogo, biblioteca, leitor PDF, offline, playlists locais, shell com 5 abas). Inclui: `flutter analyze` e testes verdes; builds release iOS/Android com `--dart-define-from-file`; ícones, splash e metadados das lojas; política de privacidade e textos de listing; assinatura (certificados Apple, keystore Android); smoke test em dispositivos reais; revisão de permissões e deep links; validação do Worker/catálogo em produção.
+**Foco atual:** PWA de alta qualidade em produção (Cloudflare Pages) — catálogo, biblioteca, leitor PDF, offline, playlists locais, shell com 5 abas. Inclui: `flutter build web` release; `web/manifest.json` e instalabilidade; smoke tests web (`test/web/`); política de privacidade no domínio; validação Worker/catálogo em produção.
+
+**Lojas nativas (iOS/Android):** adiadas por questões jurídicas; checklist de stores permanece como referência futura (certificados, keystore, metadados, `--dart-define-from-file`).
 
 ### 2. Estudar versões beta e canais de teste
 
@@ -20,7 +22,7 @@ Definir estratégia para testar features futuras sem impactar usuários em produ
 
 ### 3. Gestos em Gravura — arquivos `.txt` + ferramenta visual
 
-Especificar e gerar arquivos `.txt` com a representação dos gestos (app separada em desenvolvimento). No Coldigui, criar ferramenta visual para **ler e desenhar** esses gestos — substituindo ou complementando PDFs estáticos, com editor/viewer integrado ao leitor e ao fluxo de busca por material.
+**Ferramenta visual concluída** → [UC-17 — Leitor de Gestos CIAs](docs/use-cases/UC-17-leitor-gestos.md) (set/2026). Especificar e gerar arquivos `.txt` com a representação dos gestos (app separada em desenvolvimento). No Coldigui, criar ferramenta visual para **ler e desenhar** esses gestos — substituindo ou complementando PDFs estáticos, com editor/viewer integrado ao leitor e ao fluxo de busca por material.
 
 ### 4. Cifras — arquivos `.txt` + viewer
 
@@ -44,7 +46,7 @@ Implementar camada de **adapters** que traduza entidades do Coldigom para o mode
 
 ### 7. Aba Perfil — Sobre, Listas, Offline e sync online
 
-Reorganizar o shell: nova aba **Perfil** aglutinando hoje **Sobre**, **Listas** e **Offline** (reduzindo abas na bottom bar). Incluir autenticação e **sincronização de listas na nuvem** (ver [docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md](docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md)) para acessar playlists de qualquer dispositivo, mantendo offline-first com Isar.
+Reorganizar o shell: aba **Perfil** aglutinando **Sobre**, **Listas** e **Offline**. **Login Google + `users` no D1** implementados (ver [docs/GOOGLE_OAUTH_SETUP.md](docs/GOOGLE_OAUTH_SETUP.md)); falta **sync de listas na nuvem** — ver [docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md](docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md). iOS/Android na fase 2.
 
 ### 8. Materiais favoritos no Perfil
 
@@ -72,7 +74,7 @@ Arquitetura de **plugins** (mini-módulos instalados/ativados sob demanda): Metr
 
 | Item | Depende de |
 |------|------------|
-| 1 Lojas | MVP estável (baseline jun/2026) |
+| 1 Web/PWA | MVP estável (baseline jul/2026) |
 | 2 Beta | 1 (processo de release definido) |
 | 3 Gestos `.txt` | Spec do formato + app Gestos em dev |
 | 4 Cifras `.txt` | Inventário do acervo + spec do formato |
@@ -86,4 +88,4 @@ Arquitetura de **plugins** (mini-módulos instalados/ativados sob demanda): Metr
 
 ---
 
-*Última atualização: junho de 2026*
+*Última atualização: julho de 2026*

@@ -9,10 +9,8 @@ import '../repositories/offline_pdf_repository.dart';
 import '../utils/download_retry.dart';
 import '../utils/offline_category_resolver.dart';
 
-/// Cache on-demand: baixa PDF remoto, persiste em disco e indexa no Isar (Fase 3.3).
-///
-/// Fluxo: [PdfBytesDatasource.fetchBytes] → [OfflinePdfRepository.upsert]
-/// (escrita atômica em `documents/plpcg_pdfs/`) → [LocalPdfSource] `fromCache: false`.
+/// Cache on-demand: baixa PDF remoto, persiste via [OfflinePdfRepository.upsert]
+/// ([PdfStoragePort.writeAtomic] — disco nativo ou OPFS na web) e indexa no Isar.
 ///
 /// Chamado por [ResolvePdfForReader] em miss com rede. Falhas transitórias de rede
 /// e HTTP ≥ 500 são retentadas até [OfflineConfig.maxRetryAttempts]; 4xx falham
@@ -43,15 +41,16 @@ class FetchAndStorePdf {
   /// (via [LouvorPdfPath.fromLouvor]).
   /// [category] — classificação Isar; se `null`, derivada do primeiro segmento de
   /// [PdfPathNormalizer.getPdfRelPath] (ex.: `ColAdultos`).
-  /// [persistentDownload] — quando `true`, omite a eviction LRU. Use em downloads
-  /// bulk (UC-10 "baixar faltantes") para evitar que PDFs recém-persistidos sejam
-  /// deletados para abrir espaço no cache.
+  /// [persistentDownload] — quando `true`, omite a eviction LRU. Use no
+  /// download por tipo do `/offline` para evitar que PDFs recém-persistidos
+  /// sejam deletados para abrir espaço no cache.
   Future<LocalPdfSource> call({
     required String pdfId,
     required String remotePath,
     String? category,
     ProgressCallback? onProgress,
     bool persistentDownload = false,
+    CancelToken? cancelToken,
   }) async {
     final protectedPdfIds = await _favoritePdfIdsResolver.resolve();
     final excludePdfIds = {...protectedPdfIds, pdfId};
@@ -65,6 +64,7 @@ class FetchAndStorePdf {
     final bytes = await _fetchBytesWithRetry(
       remotePath,
       onProgress: onProgress,
+      cancelToken: cancelToken,
     );
 
     if (!persistentDownload) {
@@ -124,6 +124,7 @@ class FetchAndStorePdf {
   Future<Uint8List> _fetchBytesWithRetry(
     String remotePath, {
     ProgressCallback? onProgress,
+    CancelToken? cancelToken,
   }) async {
     Object? lastError;
 
@@ -136,6 +137,7 @@ class FetchAndStorePdf {
         return await _bytesDatasource.fetchBytes(
           remotePath,
           onReceiveProgress: onProgress,
+          cancelToken: cancelToken,
         );
       } on DioException catch (e) {
         lastError = e;

@@ -1,6 +1,6 @@
 # Deep Links — PLPCG Flutter
 
-Configuração de Universal Links (iOS) e App Links (Android) para import automático de playlists ao abrir URLs `https://plpcg.com/?sharepdfs=...&sharename=...`.
+Configuração de Universal Links (iOS) e App Links (Android) para import automático de playlists ao abrir URLs `https://plpcg.com/?sharepdfs=...&sharename=...` (formato legado) ou `https://plpcg.com/?s=...&n=...` (formato curto por `shortId`, spec short-id-share).
 
 **App (Fase 4.5):** `SyncDeepLinkState` + `DeepLinkListener` + `app_links`  
 **Servidor:** arquivos abaixo devem ser publicados no domínio `plpcg.com`.
@@ -33,7 +33,7 @@ Exemplo (substituir `TEAM_ID` pelo Apple Team ID e confirmar bundle ID):
     "apps": [],
     "details": [
       {
-        "appID": "PX8Z8276X5.com.example.coldigui",
+        "appID": "PX8Z8276X5.com.plpcg.app",
         "paths": ["*"]
       }
     ]
@@ -44,16 +44,25 @@ Exemplo (substituir `TEAM_ID` pelo Apple Team ID e confirmar bundle ID):
 | Campo | Valor atual do projeto |
 |-------|------------------------|
 | Team ID | `PX8Z8276X5` (Xcode `DEVELOPMENT_TEAM`) |
-| Bundle ID | `com.example.coldigui` |
+| Bundle ID | `com.plpcg.app` |
 
 ### 3. Validação iOS
 
 ```bash
-# Simulador com app instalado
+# Formato atual por praise (?p=...&n=...)
+xcrun simctl openurl booted "https://plpcg.com/?p=0a1-fff&n=Demo"
+
+# Louvor individual (/louvor/:id)
+xcrun simctl openurl booted "https://plpcg.com/louvor/0a1"
+
+# Simulador com app instalado (formato legado)
 xcrun simctl openurl booted "https://plpcg.com/?sharepdfs=TEST&sharename=Demo"
 
+# Formato curto antigo (?s=...&n=...)
+xcrun simctl openurl booted "https://plpcg.com/?s=0000&n=Demo"
+
 # Scheme customizado (sem AASA)
-xcrun simctl openurl booted "plpcg:///?sharepdfs=TEST&sharename=Demo"
+xcrun simctl openurl booted "plpcg:///?p=0a1-fff&n=Demo"
 ```
 
 Settings → Developer → Universal Links (diagnóstico).
@@ -76,7 +85,7 @@ Exemplo:
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.example.coldigui",
+      "package_name": "com.plpcg.app",
       "sha256_cert_fingerprints": ["SHA256_DO_CERTIFICADO_DE_ASSINATURA"]
     }
   }
@@ -96,8 +105,10 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 ## Comportamento esperado no app
 
 1. OS entrega URI ao `app_links`
-2. `DeepLinkListener` detecta `sharepdfs` + `sharename`
-3. `SyncDeepLinkState` → `ImportSharedPlaylistFromUrl` (sem diálogo)
+2. `DeepLinkListener` detecta `sharepdfs` + `sharename` (legado) ou `s` + `n`
+   (formato curto por `shortId`)
+3. `SyncDeepLinkState` → `ImportSharedPlaylistFromUrl` (sem diálogo) — no
+   formato curto, aguarda o catálogo para resolver `shortId → pdfId`
 4. Carousel carregado + playlist persistida no Isar
 5. Navegação para `/` sem params de share + snackbar `playlistImported`
 

@@ -1,14 +1,19 @@
+import 'dart:io';
+
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import 'package:coldigui/features/pdf_reader/data/adapters/pdfrx_viewer_adapter.dart';
 import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';
 import 'package:coldigui/features/pdf_reader/data/utils/pdf_source_resolver.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/pdf_reader_preferences.dart';
+import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_open_failure.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdfrx/pdfrx.dart';
 
+import '../../../helpers/pdfium_test_init.dart';
 import 'pdf_reader_test_helpers.dart';
 
 class _FakeDio implements Dio {
@@ -153,6 +158,90 @@ void main() {
       logs.any((line) => line.contains('[PdfrxViewerAdapter.applyFitMode]')),
       isTrue,
     );
+  });
+
+  // UC-11 B3: o veredito do magic `%PDF` vem dos bytes que o adapter leu
+  // (datasource com import condicional), nunca de `dart:io` na presentation.
+  // Abre PDFs de verdade, então precisa do pdfium nativo no VM de teste —
+  // `ensurePdfiumTestModule` (test/helpers/pdfium_test_init.dart).
+  group('openDocument local — evidência de magic bytes (B3)', () {
+    late Directory tempDir;
+
+    setUpAll(ensurePdfiumTestModule);
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('pdfrx_adapter_b3_');
+      // pdfrx pede diretório temporário ao path_provider na inicialização.
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('plugins.flutter.io/path_provider'),
+            (call) async => tempDir.path,
+          );
+    });
+
+    tearDown(() async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('plugins.flutter.io/path_provider'),
+            null,
+          );
+      if (tempDir.existsSync()) await tempDir.delete(recursive: true);
+    });
+
+    Future<String> writeLocalPdf(String name, List<int> bytes) async {
+      final file = File('${tempDir.path}/$name');
+      await file.writeAsBytes(bytes);
+      return file.path;
+    }
+
+    test(
+      'bytes lidos sem %PDF -> PdfLocalOpenFailure(hasValidMagicBytes: false)',
+      () async {
+        final path = await writeLocalPdf(
+          'nao_e_pdf.pdf',
+          '<html>erro do servidor</html>'.codeUnits,
+        );
+
+        await expectLater(
+          _adapter().openDocument(path),
+          throwsA(
+            isA<PdfLocalOpenFailure>().having(
+              (e) => e.hasValidMagicBytes,
+              'hasValidMagicBytes',
+              isFalse,
+            ),
+          ),
+        );
+      },
+    );
+
+    test('bytes lidos com %PDF mas documento inválido -> '
+        'PdfLocalOpenFailure(hasValidMagicBytes: true)', () async {
+      final path = await writeLocalPdf('quebrado.pdf', [
+        ...'%PDF-1.7\n'.codeUnits,
+        ...List<int>.filled(64, 0x00),
+      ]);
+
+      await expectLater(
+        _adapter().openDocument(path),
+        throwsA(
+          isA<PdfLocalOpenFailure>().having(
+            (e) => e.hasValidMagicBytes,
+            'hasValidMagicBytes',
+            isTrue,
+          ),
+        ),
+      );
+    });
+
+    test('falha na LEITURA dos bytes não vira PdfLocalOpenFailure', () async {
+      final path = '${tempDir.path}/inexistente.pdf';
+
+      await expectLater(
+        _adapter().openDocument(path),
+        throwsA(isNot(isA<PdfLocalOpenFailure>())),
+      );
+    });
   });
 }
 

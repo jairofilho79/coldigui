@@ -1,0 +1,804 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
+
+import '../../../../core/layout/breakpoints.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/pdf_path_normalizer.dart';
+import '../../../../core/utils/url_sync_params.dart';
+import '../../../../core/widgets/app_snackbar.dart';
+import '../../../../l10n/app_localizations.dart';
+import '../../../app_shell/presentation/widgets/app_shortcuts.dart';
+import '../../../autoscroll/domain/entities/autoscroll_adjustment.dart';
+import '../../../autoscroll/presentation/providers/autoscroll_telemetry_providers.dart';
+import '../../../autoscroll/presentation/widgets/autoscroll_speed_slider_bar.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
+import '../../../contributions/domain/entities/contribution_kind.dart';
+import '../../../contributions/domain/entities/contribution_target.dart';
+import '../../../contributions/presentation/utils/open_contribute.dart';
+import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
+import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
+import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
+import '../../data/providers/chord_providers.dart';
+import '../../domain/entities/chord_reader_font_size.dart';
+import '../providers/chord_autoscroll_provider.dart';
+import '../providers/chord_reader_mode_provider.dart';
+import '../theme/chord_reader_theme.dart';
+import '../utils/transpose_label_memo.dart';
+import '../widgets/chord_header.dart';
+import '../widgets/chordpro_view.dart';
+
+const Key chordReaderAutoscrollKey = Key('chordReaderAutoscroll');
+const Key chordReaderSpeedKey = Key('chordReaderSpeed');
+const Key chordReaderFullscreenKey = Key('chordReaderFullscreen');
+
+/// Leitor de cifras ChordPro — rota `/cifra`, filha do [ShellScaffold].
+///
+/// Barras 1–2 (PLPCG + carousel) vêm do shell, como em `/leitor`. Esta tela
+/// renderiza o cabeçalho da música, o corpo e o toggle de tema.
+///
+/// Recebe [UrlSyncParams.pdfId] (id da cifra, mesmo espaço do PDF),
+/// [UrlSyncParams.titulo] e [UrlSyncParams.subtitulo]. Publica os params em
+/// [readerRouteParamsProvider] para [CarouselChips] sincronizar o chip focado.
+class ChordReaderScreen extends ConsumerStatefulWidget {
+  const ChordReaderScreen({required this.queryParams, super.key});
+
+  final Map<String, String> queryParams;
+
+  @override
+  ConsumerState<ChordReaderScreen> createState() => _ChordReaderScreenState();
+}
+
+class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
+    with SingleTickerProviderStateMixin {
+  late final FocusNode _keyboardFocusNode = FocusNode(
+    debugLabel: 'chordReaderKeys',
+  );
+  final ScrollController _scrollController = ScrollController();
+  final TransposeLabelMemo _transposeMemo = TransposeLabelMemo();
+  var _louvorNavigationInProgress = false;
+
+  Ticker? _autoscrollTicker;
+  Duration? _autoscrollLastTick;
+  var _showSpeedSlider = false;
+
+  String get _currentPraiseId {
+    final rawPdfId = widget.queryParams[UrlSyncParams.pdfId] ?? '';
+    final fromLookup =
+        ref.read(catalogMaterialLookupProvider).chord(rawPdfId)?.groupId;
+    if (fromLookup != null && fromLookup.isNotEmpty) return fromLookup;
+    final fromSource = ref
+        .read(coldigomCatalogSourceProvider)
+        .findGroupForMaterial(rawPdfId)
+        ?.groupId;
+    if (fromSource != null && fromSource.isNotEmpty) return fromSource;
+    return widget.queryParams[UrlSyncParams.praiseId] ?? '';
+  }
+
+  void _applySpeedRecommendation() {
+    final praiseId = _currentPraiseId;
+    if (praiseId.isEmpty) return;
+    final fontSize = ref.read(chordReaderFontSizeProvider);
+    final rec = ref
+        .read(autoscrollTelemetryDatasourceProvider)
+        .getRecommendedSpeed(
+          praiseId: praiseId,
+          currentFontSize: fontSize,
+          materialKind: 'chord',
+        );
+    if (rec != null) {
+      ref.read(chordAutoscrollProvider.notifier).setSpeed(rec);
+    }
+  }
+
+  void _onSpeedChanged(int speed) {
+    ref.read(chordAutoscrollProvider.notifier).setSpeed(speed);
+    final praiseId = _currentPraiseId;
+    if (praiseId.isNotEmpty) {
+      final fontSize = ref.read(chordReaderFontSizeProvider);
+      ref.read(autoscrollTelemetryDatasourceProvider).recordAdjustment(
+            AutoscrollAdjustment(
+              praiseId: praiseId,
+              materialKind: 'chord',
+              speed: speed,
+              fontSize: fontSize,
+              timestamp: DateTime.now(),
+            ),
+          );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    clearSnackbarsOnEnter(context);
+    _schedulePublishRouteParams();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _applySpeedRecommendation();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant ChordReaderScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.queryParams != widget.queryParams) {
+      _schedulePublishRouteParams();
+    }
+    final oldId = oldWidget.queryParams[UrlSyncParams.pdfId];
+    final newId = widget.queryParams[UrlSyncParams.pdfId];
+    // C9: o autoscroll não atravessa a troca de louvor — sem isso a rolagem
+    // automática de uma música continuaria correndo sozinha na próxima.
+    if (oldId != newId) {
+      _stopAutoscroll();
+      _showSpeedSlider = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _applySpeedRecommendation();
+      });
+    }
+  }
+
+  void _schedulePublishRouteParams() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(readerRouteParamsProvider.notifier).update(widget.queryParams);
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoscrollTicker?.dispose();
+    _scrollController.dispose();
+    _keyboardFocusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _navigateLouvor(CarouselReaderDirection direction) async {
+    if (_louvorNavigationInProgress) return;
+    _louvorNavigationInProgress = true;
+    try {
+      await navigateReaderCarouselByKeyboard(
+        ref: ref,
+        context: context,
+        currentPdfId: widget.queryParams[UrlSyncParams.pdfId],
+        direction: direction,
+      );
+    } finally {
+      _louvorNavigationInProgress = false;
+    }
+  }
+
+  /// Teclado do leitor de cifras (C1, C9).
+  ///
+  /// `+`/`=` e `-` transpõem, `Ctrl+↑/↓` mexem no corpo da letra e `Ctrl+→/←`
+  /// trocam de louvor. O `=` entra junto do `+` porque na maioria dos teclados
+  /// é a mesma tecla — cobrar o Shift seria cobrar precisão de quem está com o
+  /// violão na mão. `S` liga/desliga o autoscroll e `[`/`]` regulam sua
+  /// velocidade — essas três, como a busca (`/`) em [AppShortcuts], não valem
+  /// com o foco num campo de texto. Teclas fora desta lista sobem para
+  /// [AppShortcuts] (`F`, `Esc`, `Espaço`).
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final keyboard = HardwareKeyboard.instance;
+    final commandModifier = keyboard.isControlPressed || keyboard.isMetaPressed;
+    final key = event.logicalKey;
+
+    if (commandModifier) {
+      if (key == LogicalKeyboardKey.arrowUp) {
+        ref.read(chordReaderFontSizeProvider.notifier).increase();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowDown) {
+        ref.read(chordReaderFontSizeProvider.notifier).decrease();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowRight) {
+        _navigateLouvor(CarouselReaderDirection.next);
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowLeft) {
+        _navigateLouvor(CarouselReaderDirection.previous);
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
+    if (_isTransposeUpKey(key, event.character)) {
+      ref.read(chordReaderTransposeProvider(_r2Key).notifier).up();
+      return KeyEventResult.handled;
+    }
+    if (_isTransposeDownKey(key, event.character)) {
+      ref.read(chordReaderTransposeProvider(_r2Key).notifier).down();
+      return KeyEventResult.handled;
+    }
+
+    if (!keyboardFocusIsInsideTextField()) {
+      if (key == LogicalKeyboardKey.keyS) {
+        ref.read(chordAutoscrollProvider.notifier).toggle();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.bracketRight) {
+        final speed = ref.read(chordAutoscrollProvider).speed;
+        _onSpeedChanged(speed + 1);
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.bracketLeft) {
+        final speed = ref.read(chordAutoscrollProvider).speed;
+        _onSpeedChanged(speed - 1);
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.escape && _showSpeedSlider) {
+        setState(() => _showSpeedSlider = false);
+        return KeyEventResult.handled;
+      }
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  static bool _isTransposeUpKey(LogicalKeyboardKey key, String? character) {
+    return key == LogicalKeyboardKey.equal ||
+        key == LogicalKeyboardKey.add ||
+        key == LogicalKeyboardKey.numpadAdd ||
+        character == '+' ||
+        character == '=';
+  }
+
+  static bool _isTransposeDownKey(LogicalKeyboardKey key, String? character) {
+    return key == LogicalKeyboardKey.minus ||
+        key == LogicalKeyboardKey.numpadSubtract ||
+        character == '-';
+  }
+
+  /// `r2Key` decodificado do id da rota; vazio se o id faltar ou for inválido.
+  ///
+  /// Dobra como a chave da família de [chordReaderTransposeProvider] (C10):
+  /// cada cifra guarda seu próprio tom nesta sessão.
+  String get _r2Key {
+    final id = widget.queryParams[UrlSyncParams.pdfId] ?? '';
+    if (id.isEmpty) return '';
+    try {
+      return PdfPathNormalizer.getPdfRelPath(id);
+    } on Object {
+      return '';
+    }
+  }
+
+  /// Garante o `Ticker` do autoscroll rodando (C9).
+  ///
+  /// `Ticker`, não `Timer`: sincroniza com o vsync do resto da UI e para
+  /// sozinho quando a tela sai de cena (`SingleTickerProviderStateMixin`
+  /// cobra isso na hora de descartar o `State`).
+  void _ensureAutoscrollTicker() {
+    _autoscrollTicker ??= createTicker(_onAutoscrollTick);
+    if (!_autoscrollTicker!.isActive) {
+      _autoscrollLastTick = null;
+      _autoscrollTicker!.start();
+    }
+  }
+
+  void _onAutoscrollTick(Duration elapsed) {
+    final lastTick = _autoscrollLastTick;
+    _autoscrollLastTick = elapsed;
+    if (lastTick == null) return; // primeiro tick só marca o relógio.
+
+    if (!ref.read(chordAutoscrollProvider).running) {
+      _autoscrollTicker?.stop();
+      return;
+    }
+    if (!_scrollController.hasClients) return;
+
+    final dtSeconds =
+        (elapsed - lastTick).inMicroseconds / Duration.microsecondsPerSecond;
+    if (dtSeconds <= 0) return;
+
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0) {
+      ref.read(chordAutoscrollProvider.notifier).stop();
+      return;
+    }
+
+    final speed = ref.read(chordAutoscrollProvider).speed;
+    final delta = speed * kChordAutoscrollPxPerSecondPerSpeed * dtSeconds;
+    final next = (position.pixels + delta).clamp(0.0, position.maxScrollExtent);
+    _scrollController.jumpTo(next);
+
+    if (next >= position.maxScrollExtent) {
+      ref.read(chordAutoscrollProvider.notifier).stop();
+    }
+  }
+
+  /// Para o autoscroll ao trocar de louvor (C9).
+  ///
+  /// O `Ticker` pode parar na hora — não é estado do Riverpod. Mas o
+  /// `chordAutoscrollProvider` não pode ser escrito aqui dentro: este método
+  /// só é chamado de [didUpdateWidget], e o Riverpod proíbe modificar um
+  /// provider durante um ciclo de vida de widget (build/didUpdateWidget/...) —
+  /// escrever `state` synchronamente lançaria "Tried to modify a provider
+  /// while the widget tree was building". Adia para o próximo frame, como
+  /// [_schedulePublishRouteParams] já faz para o mesmo motivo.
+  void _stopAutoscroll() {
+    _autoscrollTicker?.stop();
+    if (!ref.read(chordAutoscrollProvider).running) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(chordAutoscrollProvider.notifier).stop();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final mode = ref.watch(chordReaderModeProvider);
+    final palette = mode.palette;
+    final fontSize = ref.watch(chordReaderFontSizeProvider);
+    final r2Key = _r2Key;
+    final semitones = ref.watch(chordReaderTransposeProvider(r2Key));
+    final songAsync = ref.watch(chordSongProvider(r2Key));
+    final autoscroll = ref.watch(chordAutoscrollProvider);
+
+    // Liga/desliga o motor do Ticker junto da intenção do usuário — o
+    // provider só guarda o estado, quem move o scroll é este `State`.
+    ref.listen<ChordAutoscrollState>(chordAutoscrollProvider, (previous, next) {
+      if (next.running) {
+        _ensureAutoscrollTicker();
+      } else {
+        _autoscrollTicker?.stop();
+      }
+    });
+
+    ref.listen<double>(chordReaderFontSizeProvider, (previous, next) {
+      if (previous == null || previous == next) return;
+      final praiseId = _currentPraiseId;
+      if (praiseId.isEmpty) return;
+      final rec = ref
+          .read(autoscrollTelemetryDatasourceProvider)
+          .getRecommendedSpeed(
+            praiseId: praiseId,
+            currentFontSize: next,
+            materialKind: 'chord',
+          );
+      if (rec != null) {
+        ref.read(chordAutoscrollProvider.notifier).setSpeed(rec);
+      }
+    });
+
+    return Focus(
+      focusNode: _keyboardFocusNode,
+      autofocus: true,
+      onKeyEvent: _onKeyEvent,
+      child: Listener(
+        // Rolar/clicar na cifra devolve o teclado ao leitor depois de um
+        // desvio pelos botões da barra.
+        onPointerDown: (_) => _keyboardFocusNode.requestFocus(),
+        child: ColoredBox(
+          color: palette.background,
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _ChordReaderToolbar(
+                  mode: mode,
+                  palette: palette,
+                  fontSize: fontSize,
+                  semitones: semitones,
+                  chordId: r2Key,
+                  rawPdfId: widget.queryParams[UrlSyncParams.pdfId] ?? '',
+                  praiseId: _currentPraiseId,
+                  autoscroll: autoscroll,
+                  showSpeedSlider: _showSpeedSlider,
+                  onToggleSpeedSlider: () =>
+                      setState(() => _showSpeedSlider = !_showSpeedSlider),
+                  l10n: l10n,
+                ),
+                if (_showSpeedSlider)
+                  AutoscrollSpeedSliderBar(
+                    speed: autoscroll.speed,
+                    onSpeedChanged: _onSpeedChanged,
+                    onClose: () => setState(() => _showSpeedSlider = false),
+                    backgroundColor: palette.background,
+                    foregroundColor: palette.lyric,
+                    activeColor: palette.chord,
+                    inactiveColor: palette.comment.withValues(alpha: 0.35),
+                    dividerColor: palette.comment.withValues(alpha: 0.2),
+                  ),
+                Expanded(
+                  // Important 4 (onda 4): colunas pela largura DISPONÍVEL —
+                  // `LayoutBuilder` aqui já mede o espaço real desta área
+                  // (dentro do `Expanded` acima), que hoje equivale à largura
+                  // da tela (sem painel lateral tirando espaço).
+                  child: SpotlightGuideTarget(
+                    id: 'chords-content-view',
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns =
+                            constraints.maxWidth >= kWideLayoutBreakpoint ? 2 : 1;
+                        return songAsync.when(
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (_, _) => _Unavailable(
+                            message: l10n.chordReaderUnavailable,
+                            palette: palette,
+                          ),
+                          data: (song) {
+                            if (song == null) {
+                              return _Unavailable(
+                                message: l10n.chordReaderUnavailable,
+                                palette: palette,
+                              );
+                            }
+                            return NotificationListener<UserScrollNotification>(
+                              // A11: rolar com o dedo/mouse é o jeito mais
+                              // claro de dizer "eu assumo daqui" — para o
+                              // autoscroll na hora, sem esperar o usuário
+                              // achar o botão de pausa.
+                              onNotification: (notification) {
+                                if (notification.direction !=
+                                    ScrollDirection.idle) {
+                                  ref
+                                      .read(chordAutoscrollProvider.notifier)
+                                      .stop();
+                                }
+                                return false;
+                              },
+                              child: CustomScrollView(
+                                controller: _scrollController,
+                                slivers: [
+                                  SliverPadding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      0,
+                                      16,
+                                      12,
+                                    ),
+                                    sliver: SliverToBoxAdapter(
+                                      child: ChordHeader(
+                                        song: song,
+                                        semitones: semitones,
+                                        palette: palette,
+                                      ),
+                                    ),
+                                  ),
+                                  SliverPadding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      0,
+                                      16,
+                                      24,
+                                    ),
+                                    sliver: ChordProView(
+                                      song: song,
+                                      palette: palette,
+                                      fontSize: fontSize,
+                                      semitones: semitones,
+                                      memo: _transposeMemo,
+                                      columns: columns,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+class _Unavailable extends StatelessWidget {
+  const _Unavailable({required this.message, required this.palette});
+
+  final String message;
+  final ChordReaderPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: AppTypography.body.copyWith(color: palette.lyric),
+        ),
+      ),
+    );
+  }
+}
+
+/// Largura reservada ao rótulo de transposição.
+///
+/// Fixa mesmo em zero: sem isso o rótulo surge ao primeiro toque e empurra os
+/// botões à sua esquerda, tirando o `−` de baixo do dedo justo quando o usuário
+/// está repetindo o toque.
+const _transposeLabelWidth = 34.0;
+
+/// Espaço entre grupos de controles — mesmo gap da barra de carousel.
+const _toolbarGroupGap = 8.0;
+
+/// Estilo dos botões da barra do leitor de cifras.
+///
+/// Espelha [carouselBarIconButtonStyle] na forma (densidade compacta, alvo de
+/// 44pt, desabilitado no mesmo matiz) trocando só a cor, que aqui vem da paleta
+/// clara/escura do leitor em vez de [AppColors]. O mínimo de 44 é o que
+/// uniformiza o espaçamento: todo glifo cabe folgado, então cada botão ocupa
+/// exatamente a mesma largura, independentemente de `add` ser mais estreito que
+/// `text_increase`.
+ButtonStyle _toolbarButtonStyle(Color color) => IconButton.styleFrom(
+  foregroundColor: color,
+  disabledForegroundColor: color.withValues(alpha: 0.38),
+  visualDensity: VisualDensity.compact,
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  minimumSize: const Size(44, 44),
+);
+
+/// Barra compacta do leitor: transposição, corpo da letra, autoscroll e tema.
+///
+/// Os controles ficam sempre visíveis porque o tom é o que mais se mexe durante
+/// um ensaio — escondê-los num painel custaria dois toques a cada meio tom.
+class _ChordReaderToolbar extends ConsumerWidget {
+  const _ChordReaderToolbar({
+    required this.mode,
+    required this.palette,
+    required this.fontSize,
+    required this.semitones,
+    required this.chordId,
+    required this.rawPdfId,
+    this.praiseId,
+    required this.autoscroll,
+    required this.showSpeedSlider,
+    required this.onToggleSpeedSlider,
+    required this.l10n,
+  });
+
+  final String rawPdfId;
+  final String? praiseId;
+
+  final ChordReaderMode mode;
+  final ChordReaderPalette palette;
+  final double fontSize;
+  final int semitones;
+
+  /// Chave da família de [chordReaderTransposeProvider] (C10).
+  final String chordId;
+  final ChordAutoscrollState autoscroll;
+  final bool showSpeedSlider;
+  final VoidCallback onToggleSpeedSlider;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final transpose = ref.read(chordReaderTransposeProvider(chordId).notifier);
+    final size = ref.read(chordReaderFontSizeProvider.notifier);
+    final autoscrollNotifier = ref.read(chordAutoscrollProvider.notifier);
+    final style = _toolbarButtonStyle(palette.chord);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: _toolbarGroupGap),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SpotlightGuideTarget(
+                id: 'chords-transpose-controls',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      style: style,
+                      tooltip: l10n.chordReaderTransposeDown,
+                      icon: const Icon(Icons.remove),
+                      onPressed: semitones > -ChordReaderTransposeNotifier.limit
+                          ? transpose.down
+                          : null,
+                    ),
+                    SizedBox(
+                      width: _transposeLabelWidth,
+                      child: semitones == 0
+                          ? null
+                          // TextButton, não InkWell: ele traz o próprio Material, e a
+                          // tela do leitor é um ColoredBox sem Scaffold acima.
+                          : TextButton(
+                              onPressed: transpose.reset,
+                              style: TextButton.styleFrom(
+                                foregroundColor: palette.chord,
+                                visualDensity: VisualDensity.compact,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(_transposeLabelWidth, 40),
+                                textStyle: AppTypography.label.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              child: Tooltip(
+                                message: l10n.chordReaderResetTranspose,
+                                child: Text(semitones > 0 ? '+$semitones' : '$semitones'),
+                              ),
+                            ),
+                    ),
+                    IconButton(
+                      style: style,
+                      tooltip: l10n.chordReaderTransposeUp,
+                      icon: const Icon(Icons.add),
+                      onPressed: semitones < ChordReaderTransposeNotifier.limit
+                          ? transpose.up
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+              _ToolbarSeparator(color: palette.comment),
+              SpotlightGuideTarget(
+                id: 'chords-font-size-controls',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      style: style,
+                      tooltip: l10n.chordReaderDecreaseFont,
+                      icon: const Icon(Icons.text_decrease),
+                      onPressed: ChordReaderFontSize.canDecrease(fontSize)
+                          ? size.decrease
+                          : null,
+                    ),
+                    IconButton(
+                      style: style,
+                      tooltip: l10n.chordReaderIncreaseFont,
+                      icon: const Icon(Icons.text_increase),
+                      onPressed: ChordReaderFontSize.canIncrease(fontSize)
+                          ? size.increase
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+              _ToolbarSeparator(color: palette.comment),
+              SpotlightGuideTarget(
+                id: 'chords-autoscroll-controls',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      key: chordReaderAutoscrollKey,
+                      style: style,
+                      tooltip: autoscroll.running
+                          ? l10n.chordAutoscrollPause
+                          : l10n.chordAutoscrollPlay,
+                      icon: Icon(
+                        autoscroll.running
+                            ? Icons.pause_circle_outline
+                            : Icons.play_circle_outline,
+                      ),
+                      onPressed: autoscrollNotifier.toggle,
+                    ),
+                    SizedBox(
+                      width: _transposeLabelWidth,
+                      child: IconButton(
+                        key: chordReaderSpeedKey,
+                        style: IconButton.styleFrom(
+                          foregroundColor: palette.chord,
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(_transposeLabelWidth, 40),
+                        ),
+                        tooltip: l10n.autoscrollSpeedTooltip,
+                        icon: Icon(
+                          Icons.speed,
+                          color: showSpeedSlider ? palette.chord : null,
+                        ),
+                        onPressed: onToggleSpeedSlider,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _ToolbarSeparator(color: palette.comment),
+              SpotlightGuideTarget(
+                id: 'chords-mode-controls',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      style: style,
+                      tooltip: l10n.chordReaderToggleTheme,
+                      icon: Icon(
+                        mode == ChordReaderMode.light
+                            ? Icons.dark_mode
+                            : Icons.light_mode,
+                      ),
+                      onPressed: () =>
+                          ref.read(chordReaderModeProvider.notifier).toggle(),
+                    ),
+                    IconButton(
+                      key: chordReaderFullscreenKey,
+                      style: style,
+                      tooltip: ref.watch(readerFullscreenProvider)
+                          ? l10n.readerExitFullscreenTooltip
+                          : l10n.readerFullscreenTooltip,
+                      icon: Icon(
+                        ref.watch(readerFullscreenProvider)
+                            ? Icons.fullscreen_exit
+                            : Icons.fullscreen,
+                      ),
+                      onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
+                    ),
+                  ],
+                ),
+              ),
+          _ToolbarSeparator(color: palette.comment),
+          IconButton(
+            style: style,
+            tooltip: l10n.contributeReportTooltip,
+            icon: const Icon(Icons.handshake_outlined),
+            onPressed: () {
+              final effectiveMaterialId =
+                  rawPdfId.isNotEmpty ? rawPdfId : chordId;
+              final lookupPraiseId = ref
+                  .read(catalogMaterialLookupProvider)
+                  .chord(effectiveMaterialId)
+                  ?.groupId;
+              final sourcePraiseId = ref
+                  .read(coldigomCatalogSourceProvider)
+                  .findGroupForMaterial(effectiveMaterialId)
+                  ?.groupId;
+              final effectivePraiseId =
+                  (lookupPraiseId != null && lookupPraiseId.isNotEmpty)
+                      ? lookupPraiseId
+                      : ((sourcePraiseId != null && sourcePraiseId.isNotEmpty)
+                          ? sourcePraiseId
+                          : praiseId);
+              openContribute(
+                context,
+                target: ContributionTarget(
+                  source: ContributionSource.coldigom,
+                  praiseId: effectivePraiseId,
+                  materialId: effectiveMaterialId,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    ),
+  ),
+);
+  }
+}
+
+
+/// Traço entre grupos de controles.
+///
+/// Separa transposição, corpo, autoscroll e tema — sem ele os botões se leem
+/// como uma fileira só de controles equivalentes.
+class _ToolbarSeparator extends StatelessWidget {
+  const _ToolbarSeparator({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 18,
+      margin: const EdgeInsets.symmetric(horizontal: _toolbarGroupGap / 2),
+      color: color.withValues(alpha: 0.4),
+    );
+  }
+}

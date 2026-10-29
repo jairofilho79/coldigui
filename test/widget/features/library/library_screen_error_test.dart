@@ -1,0 +1,278 @@
+import 'dart:async';
+
+import 'package:coldigui/core/network/connectivity_stream_provider.dart';
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
+import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
+import 'package:coldigui/features/library/presentation/pages/library_screen.dart';
+import 'package:coldigui/l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
+
+Widget _app(SharedPreferences prefs, List<Override> overrides) {
+  return ProviderScope(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      ...overrides,
+    ],
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('pt'),
+      home: const Scaffold(body: LibraryScreen()),
+    ),
+  );
+}
+
+/// `pumpAndSettle` trava com o shimmer do skeleton (animação em loop).
+Future<void> _settle(WidgetTester tester) async {
+  for (var i = 0; i < 5; i++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+}
+
+const _resultsEmpty = 'Nenhum louvor encontrado com os filtros atuais';
+
+const _failed = ColdigomCatalogSyncState(
+  lastResult: ColdigomCatalogSyncFailed('sem rede'),
+);
+
+void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+  });
+
+  testWidgets(
+    'índice vazio e sync falhado: catalogLoadError e «Tentar novamente» chama sync()',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final sync = FakeColdigomCatalogSyncNotifier(_failed);
+
+      await tester.pumpWidget(
+        _app(prefs, [
+          ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
+          connectivityStreamProvider.overrideWith(
+            (ref) => const Stream<bool>.empty(),
+          ),
+        ]),
+      );
+      await _settle(tester);
+
+      expect(find.text('Não foi possível carregar o catálogo'), findsOneWidget);
+      expect(find.byType(LouvorGroupCardSkeleton), findsNothing);
+      // Sem catálogo não há «nenhum resultado com os filtros».
+      expect(find.text(_resultsEmpty), findsNothing);
+
+      final retry = find.widgetWithText(FilledButton, 'Tentar novamente');
+      await tester.ensureVisible(retry);
+      await tester.tap(retry);
+      await _settle(tester);
+
+      expect(sync.syncCalls, 1);
+    },
+  );
+
+  testWidgets(
+    '«Tentar novamente» também refaz a hidratação (erro ao ler o catálogo)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final sync = FakeColdigomCatalogSyncNotifier();
+      var hydrations = 0;
+
+      await tester.pumpWidget(
+        _app(prefs, [
+          coldigomCatalogHydrationProvider.overrideWith((ref) async {
+            hydrations++;
+            throw StateError('Isar ilegível');
+          }),
+          coldigomCatalogSyncProvider.overrideWith(() => sync),
+          connectivityStreamProvider.overrideWith(
+            (ref) => const Stream<bool>.empty(),
+          ),
+        ]),
+      );
+      await _settle(tester);
+
+      expect(find.text('Não foi possível carregar o catálogo'), findsOneWidget);
+      expect(hydrations, 1);
+
+      final retry = find.widgetWithText(FilledButton, 'Tentar novamente');
+      await tester.ensureVisible(retry);
+      await tester.tap(retry);
+      await _settle(tester);
+
+      expect(sync.syncCalls, 1);
+      expect(hydrations, 2);
+    },
+  );
+
+  testWidgets('índice a carregar: skeleton, sem «Nenhum louvor encontrado»', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sync = FakeColdigomCatalogSyncNotifier(
+      const ColdigomCatalogSyncState(isSyncing: true),
+    );
+
+    await tester.pumpWidget(
+      _app(prefs, [
+        ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
+        connectivityStreamProvider.overrideWith(
+          (ref) => const Stream<bool>.empty(),
+        ),
+      ]),
+    );
+    await _settle(tester);
+
+    expect(find.byType(LouvorGroupCardSkeleton), findsWidgets);
+    expect(find.text(_resultsEmpty), findsNothing);
+  });
+
+  testWidgets(
+    'índice pronto sem resultados: «Nenhum louvor encontrado» aparece',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        _app(prefs, [
+          // Sync bem-sucedido (noop) com o índice vazio → `ready`.
+          ...catalogIndexOverrides(ColdigomSearchIndex.empty),
+          connectivityStreamProvider.overrideWith(
+            (ref) => const Stream<bool>.empty(),
+          ),
+        ]),
+      );
+      await _settle(tester);
+
+      expect(find.text(_resultsEmpty), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a rede volta (offline → online) com o índice vazio: sync() sozinho',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final sync = FakeColdigomCatalogSyncNotifier(_failed);
+      final connectivity = StreamController<bool>();
+      addTearDown(connectivity.close);
+
+      await tester.pumpWidget(
+        _app(prefs, [
+          ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
+          connectivityStreamProvider.overrideWith((ref) => connectivity.stream),
+        ]),
+      );
+      await _settle(tester);
+      expect(sync.syncCalls, 0);
+
+      connectivity.add(false);
+      await _settle(tester);
+      expect(sync.syncCalls, 0);
+
+      connectivity.add(true);
+      await _settle(tester);
+      expect(sync.syncCalls, 1);
+
+      // Outra queda e volta: outra tentativa.
+      connectivity.add(false);
+      await _settle(tester);
+      connectivity.add(true);
+      await _settle(tester);
+      expect(sync.syncCalls, 2);
+    },
+  );
+
+  testWidgets(
+    'arranque offline: o primeiro «online» (vindo de loading) com o sync '
+    'falhado sincroniza',
+    (tester) async {
+      // Web: o connectivity_plus não emite valor inicial, só os eventos
+      // online/offline do browser — depois de um arranque sem rede o
+      // primeiro `true` chega direto de loading.
+      final prefs = await SharedPreferences.getInstance();
+      final sync = FakeColdigomCatalogSyncNotifier(_failed);
+      final connectivity = StreamController<bool>();
+      addTearDown(connectivity.close);
+
+      await tester.pumpWidget(
+        _app(prefs, [
+          ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
+          connectivityStreamProvider.overrideWith((ref) => connectivity.stream),
+        ]),
+      );
+      await _settle(tester);
+      expect(sync.syncCalls, 0);
+
+      connectivity.add(true);
+      await _settle(tester);
+      expect(sync.syncCalls, 1);
+    },
+  );
+
+  testWidgets(
+    'o primeiro «online» (vindo de loading) com o índice ainda a carregar '
+    'não sincroniza',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      // Sem resultado de sync ainda: o boot está a sincronizar.
+      final sync = FakeColdigomCatalogSyncNotifier(
+        const ColdigomCatalogSyncState(),
+      );
+      final connectivity = StreamController<bool>();
+      addTearDown(connectivity.close);
+
+      await tester.pumpWidget(
+        _app(prefs, [
+          ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
+          connectivityStreamProvider.overrideWith((ref) => connectivity.stream),
+        ]),
+      );
+      await _settle(tester);
+
+      connectivity.add(true);
+      await _settle(tester);
+      expect(sync.syncCalls, 0);
+    },
+  );
+
+  testWidgets(
+    'índice pronto: sem erro, e a volta da rede (ou «online» repetido) não sincroniza',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final sync = FakeColdigomCatalogSyncNotifier(_failed);
+      final connectivity = StreamController<bool>();
+      addTearDown(connectivity.close);
+
+      await tester.pumpWidget(
+        _app(prefs, [
+          ...catalogIndexOverrides(
+            catalogIndexOf([
+              catalogGroup(praiseId: 'p1', number: '001', name: 'Aleluia'),
+            ]),
+            sync: sync,
+          ),
+          connectivityStreamProvider.overrideWith((ref) => connectivity.stream),
+        ]),
+      );
+      await _settle(tester);
+
+      connectivity.add(false);
+      await _settle(tester);
+      connectivity.add(true);
+      await _settle(tester);
+      // online → online (evento repetido) com o índice pronto: também não.
+      connectivity.add(true);
+      await _settle(tester);
+
+      expect(find.text('Não foi possível carregar o catálogo'), findsNothing);
+      expect(find.text('#001 — Aleluia'), findsOneWidget);
+      expect(sync.syncCalls, 0);
+    },
+  );
+}

@@ -2,6 +2,7 @@ import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/widgets/golden_tagged_container.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import 'library_pagination_controls.dart';
 import 'library_sort_selector.dart';
@@ -29,12 +30,18 @@ class LibraryViewControls extends StatelessWidget {
         children: [
           Text(l10n.sortByLabel, style: AppTypography.label),
           const SizedBox(height: 8),
-          const LibrarySortSelector(),
+          const SpotlightGuideTarget(
+            id: 'library-sort-selector',
+            child: LibrarySortSelector(),
+          ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Divider(height: 1),
           ),
-          const LibraryPaginationControls(),
+          const SpotlightGuideTarget(
+            id: 'library-pagination-controls',
+            child: LibraryPaginationControls(),
+          ),
         ],
       ),
     );

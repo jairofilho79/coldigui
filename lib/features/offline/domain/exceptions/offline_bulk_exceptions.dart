@@ -1,4 +1,4 @@
-/// Espaço em disco insuficiente para o bulk UC-09.
+/// Espaço em disco insuficiente para o download em massa (Coldigom UC-09).
 class InsufficientDiskSpaceException implements Exception {
   const InsufficientDiskSpaceException({
     required this.requiredBytes,
@@ -13,27 +13,22 @@ class InsufficientDiskSpaceException implements Exception {
       'InsufficientDiskSpaceException(required: $requiredBytes, available: $availableBytes)';
 }
 
-/// Tamanho do `.tmp` diverge de `part.size` após download bulk.
-class ZipDownloadSizeMismatchException implements Exception {
-  const ZipDownloadSizeMismatchException({
-    required this.expected,
-    required this.actual,
-    required this.filename,
-  });
+/// Falha ao gravar PDF no storage (web — Cache API) não relacionada a quota.
+class PdfStorageWriteException implements Exception {
+  const PdfStorageWriteException(this.message);
 
-  final int expected;
-  final int actual;
-  final String filename;
+  final String message;
 
   @override
-  String toString() => 'ZipDownloadSizeMismatchException(filename: $filename, '
-      'expected: $expected, actual: $actual)';
+  String toString() => 'PdfStorageWriteException($message)';
 }
 
-/// Bulk download cancelado pelo usuário.
-class OfflineBulkCancelledException implements Exception {
-  const OfflineBulkCancelledException();
+/// Falha ao gravar áudio no storage (web — Cache API) não relacionada a quota.
+class AudioStorageWriteException implements Exception {
+  const AudioStorageWriteException(this.message);
+
+  final String message;
 
   @override
-  String toString() => 'OfflineBulkCancelledException';
+  String toString() => 'AudioStorageWriteException($message)';
 }

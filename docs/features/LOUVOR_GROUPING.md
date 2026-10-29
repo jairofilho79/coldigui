@@ -2,7 +2,12 @@
 
 > **Para agentes:** documento normativo para agrupamento de catálogo. APIs implementadas: [FEATURE_INDEX.md § Agrupamento manifest](./FEATURE_INDEX.md#agrupamento-manifest-groupid--implementado-jun2026).
 
-**Status:** **parcialmente implementado** (jun/2026) — app agrupa client-side; [LouvorNumeroNormalizer] pad 3 dígitos; Worker `plpcg-catalog` + D1 (local); [LouvorCache.groupId] persistido; deploy remoto D1 pendente; fallback [LouvorGroupId] se JSON legado omitir `groupId`.  
+**Status:** **parcialmente implementado** (jun/2026) — app agrupa client-side; [LouvorNumeroNormalizer] pad 3 dígitos; Worker `plpcg-catalog` + D1 (local); [LouvorCache.groupId] persistido; deploy remoto D1 pendente; fallback [LouvorGroupId] se JSON legado omitir `groupId`.
+
+**Atualização set/2026:** a identidade do louvor lógico passou a ser o `praiseId` do coldigom (`Louvor.effectiveGroupId` = `praiseId` → `groupId` do manifest → calculado). O `groupId` fuzzy do script Python continua no manifest e no Isar, mas só decide quando não há `praiseId` (cache anterior ao primeiro sync). Consequência aceite: 82 grupos fuzzy que juntavam 2 praises separam-se; 64 praises que estavam em 2 grupos fundem-se. Ver spec `docs/superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md` §4.2.
+
+**Atualização 23/09/2026 (fim da fonte PLPCG):** o app já não lê o `louvores-manifest.json` em forma nenhuma. Um louvor lógico é um praise do coldigom: o `ColdigomSearchIndex` monta um `LouvorGroup` por praise a partir do dump `GET /api/plpcg/catalog` (`effectiveGroupId` = `praiseId`). O `groupId` fuzzy saiu; o `LouvorCache` não tem mais leitores, mas a coleção fica registada no schema Isar (dados limpos no passo 5 da migração) até a remoção ser medida na web. O resto deste documento é histórico. Ver `docs/superpowers/specs/2026-09-23-fim-fonte-plpcg-design.md`.
+
 **Relacionado:** UC-01 (Home), UC-03 (Biblioteca), UC-12 (manifest)  
 **Índice geral:** [FEATURE_INDEX.md](./FEATURE_INDEX.md) · [AGENT_PIPELINE.md](../AGENT_PIPELINE.md)
 
@@ -252,7 +257,7 @@ Categorias no manifest: Partitura, Cifra nível I/II, Cifra, Gestos em Gravura.
 4. ~~**Worker D1 local:** `workers/plpcg-catalog/` + `seed_d1_louvores.py`~~ ✅
 5. **Deploy remoto:** migrar + seed + deploy D1 em produção (`wrangler`).
 6. **Curadoria:** revisar `tmp/grouping-revisao.csv` antes do próximo seed.
-7. **PWA web:** migrar de `/louvores-manifest.json` para `/api/catalog/*` (opcional).
+7. ~~**PWA web:** migrar de `/louvores-manifest.json` para `/api/catalog/*` (opcional).~~ Obsoleto (set/2026) — o app agora lê `/api/plpcg/manifest` do `coldigom-api`; `/api/catalog/*` deixou de ser usado.
 
 ---
 

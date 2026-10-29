@@ -1,24 +1,89 @@
 {
   "@@locale": "en",
   "appTitle": "PLPCG",
+  "browserTitleLouvor": "{numero} — {nome} · PLPCG",
+  "@browserTitleLouvor": {
+    "description": "Browser tab title in the reader/chords view with a number (C14)",
+    "placeholders": {
+      "numero": {
+        "type": "String"
+      },
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "browserTitleLouvorSemNumero": "{nome} · PLPCG",
+  "@browserTitleLouvorSemNumero": {
+    "description": "Browser tab title in the reader/chords view without a number (C14)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "browserTitleTab": "{label} · PLPCG",
+  "@browserTitleTab": {
+    "description": "Browser tab title outside the reader/chords/audio views (C14)",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "searchHint": "Search by number or title",
   "searchLabel": "Search",
   "searchClear": "Clear search",
   "@searchClear": {
     "description": "Tooltip for the clear (X) button inside SearchBar (UC-01 Home)"
   },
+  "searchFreshnessChecking": "Cached · checking…",
+  "searchFreshnessUpdated": "Up to date",
+  "searchFreshnessUpdatedNew": "{count, plural, one{Up to date · 1 new} other{Up to date · {count} new}}",
+  "@searchFreshnessUpdatedNew": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchFreshnessOffline": "Cached · offline",
+  "searchFreshnessFailed": "Cached · could not verify",
+  "searchResultNew": "new",
   "filtersTitle": "Filters",
   "filtersTapToExpand": "Tap to see more",
+  "filtersActiveCount": "Filters ({count})",
+  "@filtersActiveCount": {
+    "description": "Filters panel header when filters are active (saved or from the URL) — {count} selected values",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filtersClear": "Clear filters",
+  "@filtersClear": {
+    "description": "Button to quickly clear all active filters in the filters panel"
+  },
   "sharePdf": "Share",
   "savePdf": "Download",
   "pdfShareSuccess": "PDF ready to share",
   "pdfSaveSuccess": "PDF saved successfully",
   "pdfActionError": "Could not complete the action",
+  "readerFullscreenTooltip": "Fullscreen (F)",
+  "readerExitFullscreenTooltip": "Exit fullscreen (Esc)",
+  "readerFitModeTooltip": "Fit width/page (Z)",
+  "readerGoToPageTitle": "Go to page",
+  "readerGoToPageFieldLabel": "Page number",
+  "readerGoToPageCancel": "Cancel",
+  "readerGoToPageConfirm": "Go",
   "louvorPdfDownloading": "Downloading...",
   "louvorPdfDownloadingWithProgress": "Downloading... {percent}%",
   "@louvorPdfDownloadingWithProgress": {
     "placeholders": {
-      "percent": { "type": "int" }
+      "percent": {
+        "type": "int"
+      }
     }
   },
   "libraryTitle": "Library",
@@ -48,16 +113,20 @@
       }
     }
   },
-  "specialArrangementPadrao": "Default",
-  "filtersSpecialArrangementTitle": "Special arrangement",
-  "catalogRefreshAction": "Update list",
-  "catalogRefreshLabel": "Catalog",
-  "catalogRefreshMessage": "Download the latest catalog",
-  "catalogRefreshSuccess": "Catalog updated",
-  "catalogRefreshError": "Could not update the catalog",
-  "catalogStaleBanner": "Catalog last updated over 7 days ago. Connect to refresh.",
+  "pageCurrent": "Page {page}",
+  "@pageCurrent": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
   "catalogLoadError": "Could not load the catalog",
-  "libraryResultsSummary": "Showing {from}–{to} of {total} hymns",
+  "retry": "Try again",
+  "storagePreparing": "Preparing local storage…",
+  "storageUnavailableTitle": "Local storage unavailable",
+  "storageUnavailableBody": "This area needs the app's local database. The online catalog and the PDF reader are still available on the other tabs.",
+  "libraryResultsSummary": "Showing {from}–{to} of {total} results",
   "@libraryResultsSummary": {
     "placeholders": {
       "from": {
@@ -72,90 +141,44 @@
     }
   },
   "libraryResultsEmpty": "No hymns match the current filters",
+  "coldigomFilterTonality": "Key",
+  "coldigomFilterRhythm": "Rhythm",
+  "coldigomFilterTags": "Tags",
+  "coldigomFilterSubtags": "Subtags",
+  "coldigomFilterMaterials": "Materials",
+  "materialTypeFilterLabel": "Type",
+  "materialTypeAll": "All",
+  "materialTypePdf": "PDF",
+  "materialTypeChord": "Chords",
+  "materialTypeAudio": "Audio",
+  "materialTypeYoutube": "YouTube",
+  "materialTypeGesture": "Gestures",
+  "materialKindOtherClass": "Other",
+  "materialKindHiddenByType": "{count, plural, =1{1 material hidden by type} other{{count} materials hidden by type}}",
+  "materialKindShowVariants": "Show variants of {name}",
+  "materialKindFamilyVariantsLabel": "{name}, {count, plural, =1{1 variant} other{{count} variants}}",
+  "materialKindFamilyRefinedValue": "Partially selected",
   "offlineTitle": "Offline",
-  "offlineSelectCategories": "Select categories",
-  "offlineDownloadSelected": "Download selected",
-  "offlineCancelDownload": "Cancel",
-  "offlineResumeBanner": "An offline download was interrupted.",
-  "offlineResumeDownload": "Resume",
-  "offlineDismissCheckpoint": "Dismiss",
-  "offlineDownloadCompleted": "Offline download completed",
-  "offlineDownloadError": "Could not complete offline download",
-  "offlineDownloadTimeout": "Slow connection. Tap Resume when the network improves.",
-  "offlineDownloadNetworkError": "No connection. Check your internet and resume.",
-  "offlineKeepAppOpenDuringDownload": "Keep the app open while downloading.",
+  "offlineStoppingDownload": "Stopping...",
   "offlineInsufficientDiskSpace": "Not enough disk space for download",
-  "offlinePhaseFetching": "downloading",
-  "offlinePhaseExtracting": "extracting",
-  "offlinePhaseStoring": "storing",
-  "offlinePhaseSyncing": "syncing",
-  "offlineProgressDetail": "{category} — part {part}/{totalParts} — {done}/{total} PDFs ({phase})",
-  "@offlineProgressDetail": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "part": { "type": "int" },
-      "totalParts": { "type": "int" },
-      "done": { "type": "int" },
-      "total": { "type": "int" },
-      "phase": { "type": "String" }
-    }
-  },
-  "offlineFetchProgress": "Downloading package {part}/{totalParts} — {received} / {total}",
-  "@offlineFetchProgress": {
-    "placeholders": {
-      "part": { "type": "int" },
-      "totalParts": { "type": "int" },
-      "received": { "type": "String" },
-      "total": { "type": "String" }
-    }
-  },
-  "offlineStatsTitle": "Stored PDFs",
-  "offlineStatsTotal": "{count, plural, =0{No offline PDFs} one{1 offline PDF} other{{count} offline PDFs}}",
-  "@offlineStatsTotal": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "offlineStatsCategory": "{category}: {count}",
-  "@offlineStatsCategory": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "count": { "type": "int" }
-    }
-  },
-  "offlineStatsCategoryWithMissing": "{category}: {downloaded} ({missing} missing)",
-  "@offlineStatsCategoryWithMissing": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "downloaded": { "type": "int" },
-      "missing": { "type": "int" }
-    }
-  },
-  "offlineStatsTotalMissing": "{count, plural, one{1 PDF missing in total} other{{count} PDFs missing in total}}",
-  "@offlineStatsTotalMissing": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "offlineStatsMissingUnreliable": "Missing count unavailable (offline)",
+  "offlineStorageUnavailable": "Local storage is unavailable. Reload the page or free up space.",
   "offlineStatsDiskUsage": "Offline library: {used} | Available: {free}",
   "@offlineStatsDiskUsage": {
     "placeholders": {
-      "used": { "type": "String" },
-      "free": { "type": "String" }
+      "used": {
+        "type": "String"
+      },
+      "free": {
+        "type": "String"
+      }
     }
   },
   "offlineStatsDiskUsageUsedOnly": "Offline library: {used}",
   "@offlineStatsDiskUsageUsedOnly": {
     "placeholders": {
-      "used": { "type": "String" }
-    }
-  },
-  "offlineStatsCategoryUnreliableMissing": "{category}: {downloaded} (— missing, offline)",
-  "@offlineStatsCategoryUnreliableMissing": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "downloaded": { "type": "int" }
+      "used": {
+        "type": "String"
+      }
     }
   },
   "offlineRefreshStats": "Refresh",
@@ -164,79 +187,94 @@
   "offlineRemovedBanner": "{count, plural, one{1 PDF is no longer available locally} other{{count} PDFs are no longer available locally}}",
   "@offlineRemovedBanner": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
-  "offlineDownloadMissing": "Download missing",
-  "offlineMissingLouvoresSheetTitle": "{category} — missing",
-  "@offlineMissingLouvoresSheetTitle": {
-    "placeholders": {
-      "category": { "type": "String" }
-    }
-  },
-  "offlineMissingLouvoresEmpty": "No missing PDFs in this category",
-  "offlineMissingLouvoresLoadError": "Could not load missing PDFs",
   "offlineDismissRemoved": "Dismiss",
-  "offlineClearCache": "Clear offline cache",
-  "offlineClearCacheConfirmTitle": "Clear offline cache?",
-  "offlineClearCacheConfirmBody": "Downloaded PDFs for {categories} will be removed. This action cannot be undone.",
-  "@offlineClearCacheConfirmBody": {
-    "placeholders": {
-      "categories": { "type": "String" }
-    }
-  },
-  "offlineClearCacheConfirm": "Clear",
-  "offlineClearCacheCancel": "Cancel",
-  "offlineClearCacheSuccess": "Offline cache cleared",
-  "offlineClearCacheSuccessPartial": "Cache cleared for {categories}",
-  "@offlineClearCacheSuccessPartial": {
-    "placeholders": {
-      "categories": { "type": "String" }
-    }
-  },
-  "offlineMissingProgress": "Downloading missing: {done}/{total}",
-  "@offlineMissingProgress": {
-    "placeholders": {
-      "done": { "type": "int" },
-      "total": { "type": "int" }
-    }
-  },
-  "offlineMissingCompleted": "Download complete: {downloaded} downloaded, {failed} failed",
-  "@offlineMissingCompleted": {
-    "placeholders": {
-      "downloaded": { "type": "int" },
-      "failed": { "type": "int" }
-    }
-  },
-  "offlineMissingError": "Could not download missing PDFs",
-  "pdfOfflineUnavailableMessage": "This PDF was not downloaded for offline use. Connect to the internet or go to Offline Settings → Download Missing.",
+  "pdfOfflineUnavailableMessage": "This PDF was not downloaded for offline use. Connect to the internet or download its type in Offline → Download for offline use.",
+  "pdfLocalReadFailedMessage": "Could not read the file. Please try again.",
+  "pdfExternallyDeleted": "The PDF was removed from this device. Go online or download its type again in Offline → Download for offline use.",
+  "pdfLocalCorrupted": "The PDF saved on this device is corrupted. Download it again to continue.",
   "pdfOfflineGoToSettings": "Download",
   "pdfOfflinePersistentTooltip": "Available offline (guaranteed download)",
   "pdfOfflineCachedLruTooltip": "Temporary cache — may be removed to free space",
   "carouselClear": "Clear selection",
   "carouselClearConfirmTitle": "Clear selection?",
-  "carouselClearConfirmMessage": "All songs will be removed from the selection.",
+  "carouselClearConfirmMessage": "New list clears the selection and keeps the current playlist. Delete list permanently removes the unsaved draft.",
+  "carouselClearCancel": "Cancel",
+  "carouselClearNewList": "New list",
+  "carouselClearDeleteList": "Delete list",
   "carouselAdded": "Added to selection",
   "carouselAlreadyAdded": "Already in selection",
+  "materialRemoveTooltip": "Remove from list",
+  "@materialRemoveTooltip": {
+    "description": "Tooltip of the × trailing the material sheet row when the material is already in the active list"
+  },
+  "materialRemoveConfirmTitle": "Remove from list?",
+  "materialRemoveConfirmMessage": "“{name}” will leave the active list.",
+  "@materialRemoveConfirmMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "materialRemoved": "Removed from list",
   "carouselRemoveTooltip": "Remove",
   "carouselAddTooltip": "Add to selection",
-  "carouselSavePlaylist": "Save as playlist",
   "carouselSharePlaylist": "Share",
   "@carouselSharePlaylist": {
-    "description": "Carousel bar overflow menu item and share button tooltip (UC-07/UC-08)."
+    "description": "Carousel bar share button tooltip (UC-07/UC-08)."
   },
   "carouselGenerateLeaflet": "Generate leaflet",
-  "carouselOverflowMenu": "More actions",
-  "carouselOpenList": "View selection",
+  "carouselOpen": "Open",
+  "carouselMaterial": "Material",
+  "carouselList": "List",
+  "carouselClearShort": "Clear",
   "carouselListTitle": "Temporary selection",
   "carouselListClose": "Close",
   "readerCarouselPrevious": "Previous hymn",
   "readerCarouselNext": "Next hymn",
+  "readerSwitchMaterial": "Switch material",
+  "@readerSwitchMaterial": {
+    "description": "Tooltip for switching PDF material variant in the reader toolbar"
+  },
+  "readerSwitchPraiseSwipe": "Swipe to switch version",
+  "@readerSwitchPraiseSwipe": {
+    "description": "Swipe hint on switch material button to switch between versions of the same hymn"
+  },
+  "relatedPraisesTitle": "Versions",
+  "@relatedPraisesTitle": {
+    "description": "Title of the versions/related praises section in the material sheet"
+  },
+  "relatedPraisesSwapped": "Switched to version: {tag}",
+  "@relatedPraisesSwapped": {
+    "description": "Message displayed when switching praise version in active playlist",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "cardAddedSwapMaterial": "Added to the list",
+  "@cardAddedSwapMaterial": {
+    "description": "Snackbar for the always-visible card «+» (C5) — the preferred material was added to the active list"
+  },
+  "cardSwapMaterialAction": "Switch material",
+  "@cardSwapMaterialAction": {
+    "description": "Action on the `cardAddedSwapMaterial` snackbar — reopens the material sheet in the swap flow for the just-added entry"
+  },
   "readerCarouselPosition": "{current} of {total}",
   "@readerCarouselPosition": {
     "placeholders": {
-      "current": { "type": "int" },
-      "total": { "type": "int" }
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "leafletGenerating": "Generating leaflet…",
@@ -247,6 +285,7 @@
   "leafletColumnName": "HYMN NAME",
   "leafletFooterPeace": "THE PEACE OF THE LORD JESUS CHRIST",
   "leafletFooterGreeting": "Have a blessed service!",
+  "leafletShareQrCaption": "Open the list in PLPCG",
   "leafletWeekdayMonday": "MONDAY",
   "leafletWeekdayTuesday": "TUESDAY",
   "leafletWeekdayWednesday": "WEDNESDAY",
@@ -266,51 +305,341 @@
   "playlistRenameTitle": "Rename playlist",
   "playlistRenameConfirm": "Save",
   "playlistDelete": "Delete",
-  "playlistDeleteConfirmTitle": "Delete playlist?",
-  "playlistDeleteConfirmMessage": "This playlist will be permanently removed.",
+  "playlistDeletedUndo": "Playlist removed",
+  "@playlistDeletedUndo": {
+    "description": "Snackbar after deleting a playlist, with an Undo action (C11)"
+  },
+  "playlistDuplicate": "Duplicate",
+  "@playlistDuplicate": {
+    "description": "Tile menu item that creates a copy of the playlist (C11)"
+  },
+  "playlistCopyName": "{nome} (copy)",
+  "@playlistCopyName": {
+    "description": "Default name of the copy created by \"Duplicate\" (C11)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDraftLabel": "Draft",
+  "@playlistDraftLabel": {
+    "description": "Label for the unsaved active playlist on the carousel bar (C11)"
+  },
   "playlistFavoriteOn": "Mark as favorite",
   "playlistFavoriteOff": "Remove from favorites",
   "playlistPdfCount": "{count, plural, =1{1 song} other{{count} songs}}",
   "@playlistPdfCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
+  "playlistSheetCount": "{count, plural, =1{1 sheet} other{{count} sheets}}",
+  "@playlistSheetCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistAudioOnlyCount": "{count, plural, =1{1 audio} other{{count} audios}}",
+  "@playlistAudioOnlyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistEmptyCount": "Empty",
   "playlistDeleteLastPdfTitle": "Remove last song?",
   "playlistDeleteLastPdfMessage": "The playlist will be empty and will be deleted.",
-  "playlistLoadIntoCarousel": "Load into carousel",
+  "playlistActivate": "Edit from here",
   "playlistOpenInReader": "Open in reader",
-  "playlistLoadConfirmTitle": "Replace selection?",
-  "playlistLoadConfirmMessage": "The current selection will be replaced with songs from this playlist.",
-  "playlistLoaded": "Playlist loaded into carousel",
+  "playlistOpenInAudioPlayer": "Open in audio player",
+  "playlistAudioEmpty": "This playlist has no audio tracks.",
+  "audioPlayerTitle": "Audio",
+  "pdfMaterialSection": "Sheet music",
+  "audioMaterialSection": "Audio",
+  "youtubeMaterialSection": "YouTube",
+  "chordMaterialSection": "Chords",
+  "chordUnavailableRetry": "Chord sheet unavailable · try again",
+  "materialNotDownloadedOffline": "Not downloaded · offline",
+  "materialNeedsConnection": "Needs a connection",
+  "materialSheetOfflineBanner": "Offline · only what is on the device opens",
+  "playlistStorageUnavailable": "Local storage is unavailable. Playlists can't be saved.",
+  "liveFollowingCannotEdit": "You're following someone else's list — leave the session to edit yours",
+  "@liveFollowingCannotEdit": {
+    "description": "Snackbar when trying to edit the active list while it's the projection of a live host (lista-ao-vivo spec D4)"
+  },
+  "chordReaderUnavailable": "Chord chart not available yet",
+  "chordReaderToggleTheme": "Toggle reader theme",
+  "chordReaderIncreaseFont": "Increase text size",
+  "chordReaderDecreaseFont": "Decrease text size",
+  "chordReaderTransposeUp": "Transpose up a semitone",
+  "chordReaderTransposeDown": "Transpose down a semitone",
+  "chordReaderResetTranspose": "Back to original key",
+  "gestureNotFound": "gesture not found",
+  "gesturesMaterialLabel": "Gestures",
+  "gesturesMaterialSection": "Gestures",
+  "gesturesReaderTitle": "Gesture reader",
+  "gesturesReaderEmpty": "This hymn has no gestures yet",
+  "gesturesReaderUnavailable": "Gestures unavailable · try again",
+  "gesturesReaderIncreaseFont": "Increase gesture text",
+  "gesturesReaderDecreaseFont": "Decrease gesture text",
+  "gesturesReaderFullscreen": "Full screen",
+  "gesturesNewerSchemaWarning": "Document in a newer format; update the app.",
+  "gestureInstructionInstruments": "Instruments",
+  "gestureInstructionRepeatPraise": "Repeat the hymn",
+  "gestureInstructionBackToChorus": "Back to chorus",
+  "gestureInstructionBackToChorusAndFinish": "Back to chorus and finish",
+  "gestureContextRepeat": "{count}x",
+  "@gestureContextRepeat": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gestureContextChorus": "CHORUS",
+  "gestureContextFinal": "END",
+  "gestureContextLink": "link",
+  "gestureFocusNext": "next:",
+  "gestureFocusEnd": "end",
+  "gestureFocusClose": "Close",
+  "gestureSectionChorus": "chorus",
+  "gestureSectionVerse": "verse",
+  "gestureSectionPass": "time {n}",
+  "@gestureSectionPass": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "gesturesReaderToggleTheme": "Toggle reader theme",
+  "gesturesReaderLinear": "Switch to linear reading",
+  "gesturesReaderStructured": "Switch to structured reading",
+  "gesturesAutoscrollPlay": "Start autoscroll",
+  "gesturesAutoscrollPause": "Pause autoscroll",
+  "gesturesAutoscrollSpeed": "Scroll speed: {speed}",
+  "@gesturesAutoscrollSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "int"
+      }
+    }
+  },
+  "chordAutoscrollPlay": "Start autoscroll",
+  "chordAutoscrollPause": "Pause autoscroll",
+  "chordAutoscrollSpeed": "Scroll speed: {speed}",
+  "@chordAutoscrollSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "int"
+      }
+    }
+  },
+  "lyricsAutoscrollPlay": "Start autoscroll",
+  "lyricsAutoscrollPause": "Pause autoscroll",
+  "lyricsAutoscrollSpeed": "Scroll speed: {speed}",
+  "@lyricsAutoscrollSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "int"
+      }
+    }
+  },
+  "autoscrollSpeedTooltip": "Scroll speed",
+  "autoscrollSlow": "Slow",
+  "autoscrollFast": "Fast",
+  "autoscrollClose": "Close speed settings",
+  "coldigomMetaTonality": "Key",
+  "coldigomMetaAuthor": "Author",
+  "coldigomMetaRhythm": "Rhythm",
+  "coldigomMetaBiblical": "Biblical Insight",
+  "coldigomMetaTags": "Tags",
+  "coldigomMetaMoreDetails": "More details",
+  "coldigomMetaLessDetails": "Less details",
+  "youtubeOpenError": "Could not open YouTube",
+  "audioPlay": "Play",
+  "audioPause": "Pause",
+  "audioPrevious": "Previous",
+  "audioNext": "Next",
+  "audioSeekBack10": "Back 10 s",
+  "@audioSeekBack10": {
+    "description": "Tooltip for the button that seeks back 10 s in the audio (C12)"
+  },
+  "audioSeekForward10": "Forward 10 s",
+  "@audioSeekForward10": {
+    "description": "Tooltip for the button that seeks forward 10 s in the audio (C12)"
+  },
+  "audioSpeed": "Playback speed",
+  "@audioSpeed": {
+    "description": "Tooltip for the playback speed menu (C12)"
+  },
+  "audioSpeedValue": "{value}x",
+  "@audioSpeedValue": {
+    "description": "Label for one playback speed in the menu, e.g. 1.25x (C12)",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "miniPlayerPrevious": "Previous track",
+  "@miniPlayerPrevious": {
+    "description": "Tooltip for the previous-track button in the persistent mini-player (D5)"
+  },
+  "miniPlayerNext": "Next track",
+  "@miniPlayerNext": {
+    "description": "Tooltip for the next-track button in the persistent mini-player (D5)"
+  },
+  "miniPlayerOpenScreen": "Open audio screen",
+  "@miniPlayerOpenScreen": {
+    "description": "Tooltip for the button that opens the full audio screen (/audio) from the persistent mini-player — the only way back to it once the faceless bar (D5) stopped exposing that action"
+  },
+  "miniPlayerBackToReading": "Back to reading",
+  "@miniPlayerBackToReading": {
+    "description": "Tooltip for the button in the persistent mini-player that, on the audio screen (/audio), replaces 'open' and returns to the sheet music/chords of the track's hymn"
+  },
+  "miniPlayerClose": "Close audio",
+  "@miniPlayerClose": {
+    "description": "Tooltip for the button in the persistent mini-player that ends playback and closes the audio bar"
+  },
+  "audioClosePlayer": "Close and return to search",
+  "audioOpenSheetMusic": "Sheet music for this hymn",
+  "audioFollowReader": "Follow the audio",
+  "audioFlagAdd": "Add audio flag",
+  "audioFlagAddTitle": "New audio flag",
+  "audioFlagLabelHint": "Optional label",
+  "audioFlagCancel": "Cancel",
+  "audioFlagSave": "Save",
+  "audioFlagListTitle": "Flags",
+  "audioFlagListEmpty": "No flags yet. Pause and tap the flag button.",
+  "audioFlagDelete": "Remove flag",
+  "audioFlagsSyncFailed": "Markers not synced",
+  "@audioFlagsSyncFailed": {
+    "description": "Title of the audio-flag sync error row on the audio player screen"
+  },
+  "audioPlaybackError": "Could not play this audio.",
+  "audioNotDownloaded": "This audio was not downloaded — offline, only what is on the device plays",
+  "audioWebBackgroundNotice": "On the web, background playback and system controls depend on the browser — this is not an app bug.",
+  "audioWebPlatformHintTooltip": "About web playback",
+  "@audioWebPlatformHintTooltip": {
+    "description": "Tooltip on the player icon that reveals the web background-playback notice"
+  },
+  "audioWebIosPwaNotice": "On iPhone with the app installed on the Home Screen, audio may pause when you lock the screen or switch apps. Keep the app open to listen.",
+  "playlistActivated": "List \"{nome}\" is active",
+  "@playlistActivated": {
+    "description": "Snackbar after making a playlist the active list",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "undo": "Undo",
+  "@undo": {
+    "description": "Undo action in snackbars"
+  },
   "playlistEmptyPdfList": "This playlist has no songs.",
+  "playlistGoLive": "Go live",
+  "@playlistGoLive": {
+    "description": "Saved playlist menu item: start broadcasting the list live (lista-ao-vivo spec)"
+  },
   "playlistShare": "Share",
   "playlistImport": "Import playlist",
+  "liveJoinRoom": "Join room",
+  "@liveJoinRoom": {
+    "description": "Playlists screen FAB: opens the dialog to paste a live room link/code"
+  },
+  "liveJoinRoomTitle": "Join a live room",
+  "liveJoinRoomInputLabel": "Room link or code",
+  "liveJoinRoomInvalid": "Invalid room link or code",
+  "liveJoinRoomConfirm": "Join",
   "playlistImportTitle": "Import shared playlist",
   "playlistImportUrlLabel": "Shared URL or link",
   "playlistImportPaste": "Paste",
   "playlistImportConfirm": "Import",
+  "playlistSyncFailed": "Could not sync your playlists",
+  "playlistSyncConflicts": "{count, plural, one{1 playlist in conflict} other{{count} playlists in conflict}}",
+  "@playlistSyncConflicts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistConflictCopySaved": "Local edits to “{nome}” saved in “{copia}”",
+  "@playlistConflictCopySaved": {
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      },
+      "copia": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistsRemovedRemotely": "{count, plural, one{1 playlist removed on another device} other{{count} playlists removed on another device}}",
+  "@playlistsRemovedRemotely": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "playlistImported": "Playlist imported",
-  "playlistImportInvalidUrl": "Invalid link. Use a URL with sharepdfs and sharename.",
+  "playlistImportedWithSkipped": "Playlist imported — {count, plural, one{1 song was left out} other{{count} songs were left out}}",
+  "@playlistImportedWithSkipped": {
+    "description": "Snackbar after importing a link when some of its songs were not added (missing from the local catalogue or with nothing addable)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistImportAlreadySaved": "Playlist was already saved: {nome}",
+  "@playlistImportAlreadySaved": {
+    "description": "Snackbar when importing a share link whose content is already a saved playlist (dedupe, D7)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistImportInvalidUrl": "Invalid link.",
+  "deepLinkImportFailed": "Could not import the shared playlist.",
+  "playlistShareLegacyLinkUnsupported": "This link is from an older version and no longer opens. Ask the person for a new link.",
+  "@playlistShareLegacyLinkUnsupported": {
+    "description": "Snackbar when opening or pasting an old list link (?s=, sharepdfs, shareitems…)"
+  },
   "playlistShareError": "Could not share the playlist.",
+  "playlistShareSkippedEntries": "{count, plural, one{1 list item was left out of the link} other{{count} list items were left out of the link}}",
+  "@playlistShareSkippedEntries": {
+    "description": "Snackbar after sharing the link when legacy entries (outside the Coldigom catalogue) were left out of it",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "playlistShareSheetTitle": "Share",
   "playlistShareOptionLink": "Link only",
   "playlistShareOptionLinkSubtitle": "Recipients can import the playlist in PLPCG",
-  "playlistShareOptionLeaflet": "Leaflet only",
-  "playlistShareOptionLeafletSubtitle": "Image with the hymn list",
-  "playlistShareOptionLinkWithLeaflet": "Link with leaflet",
-  "playlistShareOptionLinkWithLeafletSubtitle": "Image and link in one message",
-  "playlistShareOptionWhatsApp": "Link + leaflet",
-  "playlistShareOptionWhatsAppSubtitle": "For WhatsApp — sends photo then link",
-  "playlistShareWhatsAppStepTitle": "Send the link",
-  "playlistShareWhatsAppStepMessage": "Send the link in the same chat where you sent the leaflet.",
-  "playlistShareWhatsAppStepContinue": "Send link",
-  "playlistShareWhatsAppStepCancel": "Not now",
+  "playlistShareOptionLinkWithLeaflet": "Leaflet",
+  "playlistShareOptionLinkWithLeafletSubtitle": "List image with link and QR code",
   "playlistShareLinkWithLeafletMessage": "{name}\n\n{url}",
   "@playlistShareLinkWithLeafletMessage": {
     "placeholders": {
-      "name": { "type": "String" },
-      "url": { "type": "String" }
+      "name": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
     }
   },
   "playlistTabUnsaved": "Unsaved",
@@ -324,11 +653,23 @@
   "playlistDeleteAllUnsavedTitle": "Delete all unsaved playlists?",
   "playlistDeleteAllUnsavedMessage": "All playlists in the Unsaved tab will be permanently removed.",
   "playlistDeleteAllUnsavedDone": "Unsaved playlists deleted",
+  "playlistPublish": "Publish",
+  "playlistPublishTitle": "Publish playlist?",
+  "playlistPublishMessage": "Publishing is irreversible. To remove the publication, delete the playlist.",
+  "playlistPublishConfirm": "Publish",
+  "playlistPublishCancel": "Cancel",
+  "playlistPublishCategoryLabel": "Category",
+  "playlistPublishReachLabel": "Reach",
+  "playlistPublishReachUsual": "Usual",
+  "playlistPublishReachPontual": "One-off",
+  "playlistPublishCategoryRequired": "Choose a category to publish.",
+  "playlistPublished": "Playlist published",
+  "playlistPublicBadge": "Public",
+  "playlistCategoryEvangelizacao": "Evangelism",
+  "playlistCategoryAprendizado": "Learning",
+  "playlistCategoryMedleys": "Medleys",
+  "playlistCategoryCultoEspecial": "Special service",
   "playlistClearSavedBlocked": "Saved playlists cannot be cleared from the bar. Use the playlist menu.",
-  "playlistOpenLouvorChoiceTitle": "How to add to the playlist?",
-  "playlistOpenLouvorChoiceMessage": "This song is not in the current playlist. How would you like to continue?\n\nWhen creating a new playlist, the current one will not be lost — it will remain in Unsaved playlists.",
-  "playlistOpenLouvorChoiceAddToCurrent": "Add to current playlist",
-  "playlistOpenLouvorChoiceCreateNew": "Create new playlist",
   "louvorGroupMetadataSummary": "{entryCount, plural, one{1 entry} other{{entryCount} entries}} with {arrangementCount, plural, one{1 arrangement} other{{arrangementCount} arrangements}}",
   "@louvorGroupMetadataSummary": {
     "description": "Card subtitle when a hymn groups multiple PDFs (Home/Library)",
@@ -340,5 +681,918 @@
         "type": "int"
       }
     }
-  }
+  },
+  "usernameCreateButton": "Create username",
+  "usernameCreateTitle": "Create username",
+  "usernameCreateMessage": "Choose a unique username for the app. It identifies you and your public playlists. Use 3 to 30 characters: lowercase letters, numbers, or _.",
+  "usernameCreatePrompt": "Create a username to publish playlists.",
+  "usernameFieldLabel": "Username",
+  "usernameFieldHint": "e.g. maria_silva",
+  "usernameCreateCancel": "Cancel",
+  "usernameCreateConfirm": "Save",
+  "usernameErrorInvalid": "Use 3–30 characters: a-z, 0-9, or _.",
+  "usernameErrorTaken": "That username is already taken.",
+  "usernameErrorAlreadySet": "You already have a username.",
+  "usernameErrorGeneric": "Could not save. Please try again.",
+  "usernameRequiredToPublish": "Register Username",
+  "socialSearchHint": "Search people by username",
+  "socialSearchEmptyHint": "Type a username to find people.",
+  "socialSearchNoResults": "No people found.",
+  "socialSearchError": "Search failed. Please try again.",
+  "publicPlaylistsTitle": "Public playlists",
+  "socialSignInRequired": "Sign in with Google to explore public playlists.",
+  "socialPlaylistCount": "{count, plural, one{1 playlist} other{{count} playlists}}",
+  "@socialPlaylistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "socialPlaylistsError": "Could not load playlists.",
+  "socialPlaylistsEmpty": "This profile has no public playlists yet.",
+  "socialCategoryOther": "Other",
+  "socialPlaylistImported": "{count, plural, one{1 song added to your playlist} other{{count} songs added to your playlist}}",
+  "@socialPlaylistImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "socialPlaylistImportNone": "No new songs to add.",
+  "deferredLoaderLoading": "Loading…",
+  "deferredLoaderError": "Could not load this section.",
+  "deferredLoaderRetry": "Try again",
+  "authSignInUnavailable": "Sign-in is unavailable right now.",
+  "authSignInRetry": "Try again",
+  "authSignInWithGoogle": "Sign in with Google",
+  "authSignInContextMismatchTitle": "We couldn't finish signing you in",
+  "authSignInContextMismatchBody": "Google answered in another window. Tap to try again.",
+  "authSignInOpenInBrowserHint": "If this keeps happening, open v2.plpcg.com in Safari.",
+  "errorNoConnection": "No internet connection. Check your network and try again.",
+  "errorTimeout": "The connection took too long. Try again.",
+  "errorServer": "The server is unavailable right now. Try again in a moment.",
+  "errorSessionExpired": "Your session has expired. Sign in again to continue.",
+  "errorGeneric": "Could not complete the action. Try again.",
+  "failureNetwork": "No internet connection. Check your network and try again.",
+  "failureOffline": "This PDF was not downloaded for offline use. Connect to the internet or download its type in Offline → Download for offline use.",
+  "failureNotFound": "Could not find this. It may have been removed.",
+  "failureStorage": "Local storage is unavailable. Reload the page or free up space.",
+  "failureAuth": "Your session has expired. Sign in again to continue.",
+  "failureConflict": "Sync conflict. Please try again.",
+  "failureUnknown": "Could not complete the action. Try again.",
+  "homeEmptyHint": "Search by title or number",
+  "homeEmptyRecent": "Recently opened",
+  "homeNoResults": "No songs found for “{query}”",
+  "homeNoResultsTips": "Try another term, or check the number and spelling.",
+  "homeClearFilters": "Clear filters",
+  "homeColdigomOffline": "No connection — the catalog may be incomplete for this search.",
+  "favoriteMaterialKindsTitle": "Favorite materials",
+  "favoriteMaterialKindsHelp": "Pick up to {max} material types. They show first when you open a hymn.",
+  "favoriteMaterialKindsYours": "Your favorites ({count} of {max})",
+  "favoriteMaterialKindsEmpty": "No favorites yet",
+  "favoriteMaterialKindsAdd": "Add",
+  "favoriteMaterialKindsSearchHint": "Search material type",
+  "favoriteMaterialKindsLimitReached": "Limit of {max} — remove one to swap",
+  "favoriteMaterialKindsSignInPrompt": "Sign in with Google to pick your favorite materials.",
+  "favoriteMaterialKindsSyncPending": "Sync pending",
+  "favoriteMaterialKindsRemoveTooltip": "Remove from favorites",
+  "favoriteMaterialKindsAddTooltip": "Add to favorites",
+  "favoriteMaterialKindsUnknownKind": "Unknown",
+  "favoriteMaterialKindsLoadError": "Couldn't load material types",
+  "favoriteMaterialKindsRetry": "Try again",
+  "favoriteMaterialKindsNoMatch": "No type with that name",
+  "favoriteMaterialKindsTypePreferenceTooltip": "Choose preferred format",
+  "favoriteMaterialKindsTypePreferenceTitle": "Preferred format for {kind}",
+  "@favoriteMaterialKindsTypePreferenceTitle": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "favoriteMaterialKindsTypePreferenceHelp": "Drag to reorder — the top of the list is the preferred format.",
+  "liveFollowing": "Following {owner} · {list}",
+  "@liveFollowing": {
+    "description": "Consumer's banner during a live session"
+  },
+  "liveLeaderAway": "host away",
+  "@liveLeaderAway": {
+    "description": "Suffix on the consumer's banner when the host is away"
+  },
+  "liveWaitingFor": "Waiting for {owner}",
+  "@liveWaitingFor": {
+    "description": "Consumer's banner in a room that isn't broadcasting yet"
+  },
+  "liveReconnecting": "Reconnecting…",
+  "@liveReconnecting": {
+    "description": "Live session banner while trying to reconnect"
+  },
+  "liveReturnToLeader": "Back to host",
+  "@liveReturnToLeader": {
+    "description": "Consumer's banner action to follow the host's focus again (D3)"
+  },
+  "liveLeave": "Leave",
+  "@liveLeave": {
+    "description": "Live session banner action to leave the room"
+  },
+  "liveOnAir": "LIVE · {viewers}",
+  "@liveOnAir": {
+    "description": "Host's banner; viewers = connected people"
+  },
+  "liveRoom": "Room",
+  "@liveRoom": {
+    "description": "Host's banner action to open the live room screen"
+  },
+  "liveEnd": "End",
+  "@liveEnd": {
+    "description": "Live session banner action to end the broadcast"
+  },
+  "liveEndConfirmTitle": "End the live session?",
+  "@liveEndConfirmTitle": {
+    "description": "Title of the confirmation to end the live session"
+  },
+  "liveEndConfirmBody": "Everyone following will stop receiving the list.",
+  "@liveEndConfirmBody": {
+    "description": "Body of the confirmation to end the live session"
+  },
+  "liveReplacedElsewhere": "Session taken over on another device",
+  "@liveReplacedElsewhere": {
+    "description": "Host's banner when another device took over the live session"
+  },
+  "liveOk": "OK",
+  "@liveOk": {
+    "description": "Generic confirm action on the live session banner"
+  },
+  "liveWasLive": "You were live with “{list}”",
+  "@liveWasLive": {
+    "description": "Banner for a pending host session found on boot (§7)"
+  },
+  "liveResume": "Resume",
+  "@liveResume": {
+    "description": "Pending host session banner action to resume the broadcast"
+  },
+  "liveJoining": "Joining…",
+  "@liveJoining": {
+    "description": "Live room screen: state while connecting"
+  },
+  "liveUnavailableTitle": "Couldn't connect to the session",
+  "@liveUnavailableTitle": {
+    "description": "Live room screen: title when the connection fails for good"
+  },
+  "liveUnavailableBody": "This network may block live connections. Try another network or ask for the public list link.",
+  "@liveUnavailableBody": {
+    "description": "Live room screen: body when the connection fails for good"
+  },
+  "liveRetry": "Try again",
+  "@liveRetry": {
+    "description": "Live room screen: action to try connecting again"
+  },
+  "liveNotFound": "This link doesn't exist or was replaced by a new one.",
+  "@liveNotFound": {
+    "description": "Live room screen: room missing or replaced"
+  },
+  "liveIdleTitle": "{owner} isn't live right now",
+  "@liveIdleTitle": {
+    "description": "Live room screen: consumer in a room not broadcasting yet"
+  },
+  "liveIdleBody": "Stay here — when it starts, you'll join automatically.",
+  "@liveIdleBody": {
+    "description": "Live room screen: body of the consumer's idle state"
+  },
+  "liveFollowingTitle": "You're following {owner}",
+  "@liveFollowingTitle": {
+    "description": "Live room screen: consumer following the broadcast"
+  },
+  "liveGoToList": "Go to the list",
+  "@liveGoToList": {
+    "description": "Live room screen: consumer action to go to the active list"
+  },
+  "liveEndedTitle": "Session ended",
+  "@liveEndedTitle": {
+    "description": "Live room screen: title when the session has ended"
+  },
+  "liveSaveCopy": "Save a copy",
+  "@liveSaveCopy": {
+    "description": "Live room screen: action to save a copy of the host's list (D4)"
+  },
+  "liveCopyName": "{list} (live with {owner})",
+  "@liveCopyName": {
+    "description": "Name given to a saved copy of a live list"
+  },
+  "liveCopySaved": "Copy saved to Lists",
+  "@liveCopySaved": {
+    "description": "Confirmation after saving the live list copy"
+  },
+  "liveLeftTitle": "You left the session",
+  "@liveLeftTitle": {
+    "description": "Live room screen: title after leaving the room"
+  },
+  "liveJoinAgain": "Join again",
+  "@liveJoinAgain": {
+    "description": "Live room screen: action to join again after leaving"
+  },
+  "liveYourRoom": "Your live room",
+  "@liveYourRoom": {
+    "description": "Live room screen: title for the host"
+  },
+  "liveShareHint": "Anyone who opens this link sees your list in real time.",
+  "@liveShareHint": {
+    "description": "Live room screen: explanation of the link for the host"
+  },
+  "liveCopyLink": "Copy link",
+  "@liveCopyLink": {
+    "description": "Live room screen: action to copy the room link"
+  },
+  "liveLinkCopied": "Link copied",
+  "@liveLinkCopied": {
+    "description": "Confirmation after copying the live room link"
+  },
+  "liveShareLink": "Share",
+  "@liveShareLink": {
+    "description": "Live room screen: action to share the room link"
+  },
+  "liveRegenerateLink": "Generate new link",
+  "@liveRegenerateLink": {
+    "description": "Live room screen: action to generate a new room link"
+  },
+  "liveRegenerateConfirmTitle": "Generate a new link?",
+  "@liveRegenerateConfirmTitle": {
+    "description": "Title of the confirmation to generate a new room link"
+  },
+  "liveRegenerateConfirmBody": "The current link stops working for everyone.",
+  "@liveRegenerateConfirmBody": {
+    "description": "Body of the confirmation to generate a new room link"
+  },
+  "liveViewers": "{count, plural, =0{Nobody connected} =1{1 person connected} other{{count} people connected}}",
+  "@liveViewers": {
+    "description": "Live room screen: count of connected people"
+  },
+  "liveRoomError": "Couldn't load your room",
+  "@liveRoomError": {
+    "description": "Generic error loading/regenerating the host's live room"
+  },
+  "liveLoginRequired": "Sign in with Google to go live",
+  "@liveLoginRequired": {
+    "description": "Snackbar when trying to \"Go live\" while signed out"
+  },
+  "liveRoomMenu": "Live Room",
+  "@liveRoomMenu": {
+    "description": "FAB on the playlists screen that expands into \"Open Room\" and \"Join room\""
+  },
+  "liveOpenRoom": "Open Room",
+  "@liveOpenRoom": {
+    "description": "Sub-button of the \"Live Room\" FAB that opens the signed-in user's live room"
+  },
+  "lyricsTitle": "Lyrics",
+  "lyricsTab": "Lyrics",
+  "lyricsReaderEmpty": "No lyrics stored for this hymn",
+  "lyricsReaderIncreaseFont": "Increase text size",
+  "lyricsReaderDecreaseFont": "Decrease text size",
+  "offlineSectionTitle": "Download for offline use",
+  "offlineKindsAll": "Types",
+  "offlineColdigomCatalogStatus": "Catalog: {count} hymns · updated {ago}",
+  "offlineColdigomCatalogMissing": "Connect to the internet to download the catalog",
+  "offlineColdigomAgoJustNow": "just now",
+  "offlineColdigomAgoMinutes": "{n} min ago",
+  "offlineColdigomAgoHours": "{n} h ago",
+  "offlineColdigomAgoDays": "{n} d ago",
+  "offlineColdigomSignInPrompt": "Sign in with Google to see your favorite types first",
+  "offlineColdigomFavoriteKinds": "Your favorite types",
+  "offlineColdigomNoFavorites": "No favorites — pick some in Favorite materials or open “Other types”",
+  "offlineColdigomOtherKinds": "Other types",
+  "offlineColdigomKindSummary": "{count} materials · {size}",
+  "offlineColdigomDownloadSelected": "Download selected ({size})",
+  "offlineColdigomStop": "Stop",
+  "offlineColdigomProgress": "{kind} · {done}/{total}",
+  "offlineColdigomDone": "{count, plural, =0{Nothing new to download} one{1 material downloaded} other{{count} materials downloaded}}",
+  "offlineColdigomFailures": "{count, plural, one{1 not downloaded} other{{count} not downloaded}}",
+  "offlineColdigomStopped": "{n, plural, one{Stopped — 1 remaining} other{Stopped — {n} remaining}}",
+  "offlineColdigomOutOfSpace": "Not enough space on this device",
+  "offlineColdigomRetry": "Try again",
+  "offlineColdigomRemove": "Remove all downloads",
+  "offlineColdigomRemoveConfirmBody": "All PDFs and audio stored on this device are removed, including recently opened ones. Chords, gestures and lyrics stay.",
+  "offlineColdigomRemoveConfirmTitle": "Remove all downloads?",
+  "offlineColdigomRemoved": "{pdfs} PDFs and {audios} audios removed",
+  "offlineColdigomSpaceWarning": "Estimated {size} exceeds free space ({free}) — the download may stop midway.",
+  "contributeTitle": "Help improve PLPCG",
+  "contributeSignInPrompt": "Sign in with Google to contribute.",
+  "contributeKindLabel": "What do you want to tell us?",
+  "contributeKindBug": "App bug",
+  "contributeKindWrongInfo": "Wrong information",
+  "contributeKindContent": "Content",
+  "contributeKindImprovement": "Improvement",
+  "contributeKindOther": "Other",
+  "contributeSubkindLabel": "About what?",
+  "contributeSubkindBugScreen": "A screen",
+  "contributeSubkindBugReader": "Reader",
+  "contributeSubkindBugAudio": "Audio",
+  "contributeSubkindBugSearch": "Search",
+  "contributeSubkindBugOffline": "Offline",
+  "contributeSubkindBugLogin": "Login",
+  "contributeSubkindBugPlaylistLive": "Playlists / live",
+  "contributeSubkindBugOther": "Other",
+  "contributeSubkindWrongMetadata": "Title, number, key…",
+  "contributeSubkindWrongLyrics": "Lyrics",
+  "contributeSubkindWrongMaterial": "Material from another praise",
+  "contributeSubkindWrongKind": "Wrong material type",
+  "contributeSubkindDuplicate": "Duplicate praise",
+  "contributeSubkindAddMaterial": "Add material",
+  "contributeSubkindAddPraise": "Add praise",
+  "contributeSubkindReplaceMaterial": "Replace material",
+  "contributeSubkindRemove": "Remove",
+  "contributeSubkindFeature": "New feature",
+  "contributeSubkindBehavior": "Change a behavior",
+  "contributeMaterialLabel": "About which material?",
+  "contributeMaterialWhole": "The praise in general",
+  "contributeMetadataField": "Field",
+  "contributeMetadataCurrent": "Current value",
+  "contributeMetadataProposed": "Correct value",
+  "contributeMetadataTitle": "Title",
+  "contributeMetadataNumber": "Number",
+  "contributeMetadataAuthor": "Author",
+  "contributeMetadataTonality": "Key",
+  "contributeMetadataRhythm": "Rhythm",
+  "contributeMetadataTags": "Tags",
+  "contributeDuplicateOf": "Same as (number or title)",
+  "contributeSuggestedKind": "Material type (optional)",
+  "contributeTitleField": "Title",
+  "contributeBodyField": "Description",
+  "contributeBodyHintBug": "What you did, what you expected and what happened",
+  "contributeAttachments": "Attachments",
+  "contributeAddFile": "Attach file",
+  "contributeAttachmentTooLarge": "Above 32 MB, send via a Drive link.",
+  "contributeAttachmentTypeNotAllowed": "File type not accepted.",
+  "contributeAttachmentTooMany": "5 files maximum.",
+  "contributeAttachmentTotalTooLarge": "Attachments can't total more than 96 MB.",
+  "contributeLinks": "Links (YouTube / Drive)",
+  "contributeAddLink": "Add link",
+  "contributeLinkNotAllowed": "Only YouTube or Google Drive links.",
+  "contributeTooManyLinks": "5 links maximum.",
+  "contributeDeviceTitle": "This will be sent",
+  "contributeDeviceLineApp": "App",
+  "contributeDeviceLinePlatform": "Platform",
+  "contributeDeviceLineDevice": "Device",
+  "contributeDeviceLineSystem": "System",
+  "contributeDeviceLineBrowser": "Browser",
+  "contributeDeviceLineScreen": "Screen",
+  "contributeDeviceLineLocale": "Language",
+  "contributeDeviceLineOnline": "Online",
+  "contributeDeviceLinePwa": "PWA installed",
+  "commonYes": "yes",
+  "commonNo": "no",
+  "contributeSameDeviceQuestion": "Did the bug happen on this device?",
+  "contributeSameDeviceYes": "Yes",
+  "contributeSameDeviceNo": "No",
+  "contributeOtherDevice": "On which device?",
+  "contributeSend": "Send",
+  "contributeSent": "Received, thank you!",
+  "contributeErrorOffline": "No connection. Try again.",
+  "contributeErrorQuota": "Daily limit reached; back at {time}.",
+  "contributeErrorRejected": "The submission was rejected: {error}",
+  "contributeErrorUnknown": "Couldn't send. Try again.",
+  "contributeReportTooltip": "Report",
+  "myContributionsTitle": "My contributions",
+  "myContributionsEmpty": "You haven't sent any contributions yet.",
+  "contributionStatusRecebida": "Sent · checking attachments",
+  "contributionStatusPendente": "Awaiting review",
+  "contributionStatusEmAnalise": "Under review",
+  "contributionStatusAceita": "Accepted",
+  "contributionStatusRecusada": "Rejected",
+  "contributionStatusAplicada": "Applied",
+  "contributionStatusBloqueada": "Could not be reviewed: attachment rejected by security scan",
+  "contributionDecisionNote": "Team's note",
+  "contributionFilesTitle": "Attachments",
+  "contributionFileScanPending": "checking",
+  "contributionFileScanClean": "ok",
+  "contributionFileScanBlocked": "rejected",
+  "contributeClearForm": "Clear form",
+  "contributeClearFormConfirmTitle": "Clear form?",
+  "contributeClearFormConfirmMessage": "Are you sure you want to clear all filled fields? This action cannot be undone.",
+  "contributeClearFormCancel": "Cancel",
+  "contributeClearFormConfirm": "Clear",
+  "contributeSendDeviceData": "Send device data to help with diagnosis",
+  "contributeBodyHint": "Describe the issue, error, or suggestion you encountered here...",
+  "contributeLinkedPraise": "Report linked to song",
+  "contributeEditorTitle": "Suggest material improvement",
+  "contributeEditorRawTab": "Editor",
+  "contributeEditorPreviewTab": "Preview",
+  "contributeEditorAddLine": "Add line",
+  "contributeEditorRemoveLine": "Remove line",
+  "contributeEditorChangeGesture": "Change gesture",
+  "contributeEditorSearchGesture": "Search gesture by name or trigger...",
+  "contributeEditorRestore": "Restore original",
+  "contributeEditorNotesLabel": "Notes about the suggestion (optional)",
+  "contributeEditorNotesHint": "Briefly describe what you adjusted or why...",
+  "contributeEditorTriggerLabel": "Trigger",
+  "contributeEditorLyricsLabel": "Lyrics",
+  "contributeEditorAddGestureLine": "Add gesture",
+  "contributeEditorAddTextLine": "Add text line",
+  "contributeEditorAddChorus": "Add chorus",
+  "contributeEditorAddRepeat": "Add repeat",
+  "contributeEditorMoveUp": "Move up",
+  "contributeEditorMoveDown": "Move down",
+  "contributeEditorInsertChord": "Insert chord [ ]",
+  "contributeEditorInsertComment": "Insert comment (chorus)",
+  "contributeEditorSwitchToGeneral": "Switch to general form",
+  "contributeEditorSwitchToExtracted": "Edit extracted material",
+  "contributeEditorLoading": "Loading material...",
+  "contributeEditorNoGestureFound": "No gestures found",
+  "contributeEditorSelectGesture": "Choose gesture",
+  "contributeEditorLyricsKind": "Lyrics",
+  "contributeEditorChordKind": "Chord",
+  "contributeEditorGestureKind": "Gestures",
+  "contributeEditorGeneralKind": "General",
+  "contributeEditorGeneralHint": "To suggest edits for Lyrics, Chords, or Gestures, open the desired song in the app and tap the 🤝 icon in the top toolbar.",
+  "praiseOpenDetailsTooltip": "Open full praise page",
+  "praiseShareTooltip": "Share praise",
+  "praiseShareLinkCopied": "Praise link copied!",
+  "praiseNotFound": "Praise not found",
+  "praiseBackToSearch": "Back to home",
+  "praiseLyricsSectionTitle": "Lyrics",
+  "praiseMaterialsSectionTitle": "Materials",
+  "praiseLyricsCopyTooltip": "Copy lyrics",
+  "praiseLyricsCopied": "Lyrics copied!",
+  "praiseOpenLyricsReader": "Open in lyrics reader",
+  "praiseNoLyricsAvailable": "Lyrics not available for this praise",
+  "praiseIncreaseFontSizeTooltip": "Increase font size",
+  "praiseDecreaseFontSizeTooltip": "Decrease font size",
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "close": "Close",
+  "back": "Back",
+  "backTooltip": "Back",
+  "homeTooltip": "Home",
+  "placeholderComingSoon": "Coming soon",
+  "degradedStorageBannerMessage": "Local storage unavailable. The online catalog continues to work; playlists and offline mode are disabled.",
+  "tabEvents": "Events",
+  "tabPlaylists": "Playlists",
+  "tabSearch": "Search",
+  "tabProfile": "Profile",
+  "tabAbout": "About",
+  "tabPraise": "Praise",
+  "tabPublicPlaylists": "Public playlists",
+  "aboutTitle": "About",
+  "profileResetTutorials": "Reset Tutorials",
+  "profileResetTutorialsDialogTitle": "Reset Tutorials",
+  "profileResetTutorialsDialogContent": "Do you want to reset all tutorials? Introductory guides will be shown again automatically when accessing app screens.",
+  "profileResetTutorialsConfirm": "Reset",
+  "profileResetTutorialsSuccess": "Tutorials reset successfully!",
+  "profileSyncPromptTitle": "Sign in to sync your data",
+  "profileSyncPromptBody": "Use your Google account to sync playlists and other features.",
+  "profileSignOut": "Sign out",
+  "shortcutsTitle": "Keyboard Shortcuts",
+  "shortcutsSubtitle": "Fast productivity commands for Desktop and Web",
+  "shortcutsAboutDescription": "View high-productivity quick commands for Desktop and Web.",
+  "welcomeTourAboutTitle": "Welcome Tour",
+  "welcomeTourAboutDescription": "Take the 4-step guided tour learning the flow from catalog to worship.",
+  "shortcutsTabAll": "All",
+  "shortcutsTabNavigation": "Navigation",
+  "shortcutsTabRepertoireAudio": "Repertoire & Audio",
+  "shortcutsTabSheetMusic": "Sheet Music",
+  "shortcutsTabChordsGestures": "Chords & Gestures",
+  "shortcutsFooterTip": "Press ? on any screen to open this panel at any time.",
+  "shortcutsGotIt": "Got it",
+  "shortcutsEmpty": "No shortcuts found.",
+  "shortcutsOr": "or",
+  "shortcutCatNavigation": "Navigation & Search",
+  "shortcutCatRepertoireAudio": "Repertoire & Audio",
+  "shortcutCatSheetMusic": "Sheet Music (PDF)",
+  "shortcutCatChordsGestures": "Chords & Gestures",
+  "shortcutActionHomeSearch": "Go to Home and focus search field",
+  "shortcutActionOpenShortcuts": "Open this Keyboard Shortcuts Center",
+  "shortcutActionEscape": "Exit full screen, clear search, or close dialogs",
+  "shortcutActionNextPraise": "Go to next praise in repertoire",
+  "shortcutActionPreviousPraise": "Go to previous praise in repertoire",
+  "shortcutActionCarouselQueue": "Navigate praise carousel queue",
+  "shortcutActionToggleAudio": "Play or pause praise audio",
+  "shortcutActionToggleAudioPdf": "Play or pause audio even with sheet music open",
+  "shortcutActionSeekAudioBack": "Rewind audio 10 seconds",
+  "shortcutActionSeekAudioForward": "Fast-forward audio 10 seconds",
+  "shortcutActionToggleFullscreen": "Toggle full-screen mode",
+  "shortcutActionNextPagePdf": "Next page or scroll sheet music",
+  "shortcutActionPrevPagePdf": "Previous sheet music page",
+  "shortcutActionFirstPagePdf": "Go to first page",
+  "shortcutActionLastPagePdf": "Go to last page",
+  "shortcutActionFitModePdf": "Toggle fit mode (width / height)",
+  "shortcutActionPageGridPdf": "Open quick page grid selector",
+  "shortcutActionToggleAutoscroll": "Toggle autoscroll on or off",
+  "shortcutActionAdjustAutoscrollSpeed": "Decrease or increase scroll speed",
+  "shortcutActionTransposePitch": "Transpose praise pitch (+1 / -1 semitone)",
+  "shortcutActionNextGesture": "Next or previous conducting gesture",
+  "shortcutBadgeReader": "Reader",
+  "shortcutBadgeGeneral": "General",
+  "shortcutBadgeReaderPdf": "PDF Reader",
+  "shortcutBadgeChordsLyrics": "Chords/Lyrics",
+  "shortcutBadgeAutoscroll": "Autoscroll",
+  "shortcutBadgeChords": "Chords",
+  "shortcutBadgeFocusModeCias": "Focus Mode CIAs",
+  "materialKindChordExtracted": "Extracted (chords)",
+  "materialKindGestureExtracted": "Extracted (gestures)",
+  "offlineKindVariantsCount": "{count} var.",
+  "@offlineKindVariantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineKindVariantsTitle": "Variants of {name} ({count}):",
+  "@offlineKindVariantsTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineSearchMaterialTypeHint": "Search material type...",
+  "offlineClearSearchTooltip": "Clear search",
+  "offlineFilterButton": "Filter",
+  "offlineSearchNoResults": "No material types found for \"{query}\"",
+  "@offlineSearchNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "tutorialTooltipHowToShare": "How to share",
+  "tutorialTooltipHowToPublish": "How to publish",
+  "tutorialTooltipHowToUseFilters": "How to use filters",
+  "tutorialTooltipHowToUseMaterialSheet": "How to use this selector",
+  "tutorialTooltipHowToManageList": "How to manage list",
+  "tutorialTooltipHowToUseFocusMode": "How to use Focus Mode",
+  "tutorialTooltipHowToJoinLive": "How to join",
+  "tutorialTooltipHowToUseShortcuts": "How to use shortcuts",
+  "contributeNeedHelp": "Need help?",
+  "contributeHelpIntro": "This page allows you to submit contributions and help us improve the app and the PLPCG catalog. Choose the option that best describes your case:",
+  "contributeHelpDescBug": "App issues (crashes, black screen, unresponsive buttons, or audio/reader failure). Attach a screenshot if possible.",
+  "contributeHelpDescWrongInfo": "Incorrect data in an existing praise (number, key, title, author, rhythm, or duplicate entry).",
+  "contributeHelpDescContent": "Submitting or suggesting new materials (chords, sheet music, audio, or lyrics) or improvements to existing files.",
+  "contributeHelpDescImprovement": "Feature suggestions, visual changes, or ideas to make the app more practical for rehearsals and worship services.",
+  "contributeHelpDescOther": "General questions, notes for the team, or any other topic not listed above.",
+  "contributeHelpTipAttachments": "You can also attach files (up to 32 MB) or paste Google Drive and YouTube links to support your submission.",
+  "contributeEditorChordProExampleHint": "[G]Example of [D]ChordPro chords...",
+  "contributeEditorLinesCount": "{count, plural, one{1 line} other{{count} lines}}",
+  "@contributeEditorLinesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "contributeEditorGestureEmptyDocument": "No items in document. Add a line above.",
+  "contributeEditorGestureBlocksCount": "{count, plural, one{1 block/line} other{{count} blocks/lines}}",
+  "@contributeEditorGestureBlocksCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "contributeEditorGestureInstructionLabel": "Instruction: {kind}",
+  "@contributeEditorGestureInstructionLabel": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "authGoogleSignInError": "Failed to sign in: {error}",
+  "@authGoogleSignInError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "tutorialStepCounter": "Step {current} of {total}",
+  "@tutorialStepCounter": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "tutorialDismissForever": "Don't show again",
+  "tutorialSkip": "Skip",
+  "tutorialPrevious": "Back",
+  "tutorialNext": "Next",
+  "tutorialFinish": "Finish",
+  "tutorialHowToUseScreen": "How to use this screen",
+  "welcomeHeroTitle": "Welcome to PLPCG!",
+  "welcomeHeroSubtitle": "The digital hymnal and praise organizer for musicians, instrumentalists, and worship teams.",
+  "welcomeHeroFeatureSearch": "Fast search by number, title, rhythm, and tags.",
+  "welcomeHeroFeaturePlaylists": "Create playlists and setlists for worship services.",
+  "welcomeHeroFeatureReader": "Sheet music and chord reader with Bluetooth pedals.",
+  "welcomeHeroPrompt": "Would you like a quick 1-minute tour to explore the main features?",
+  "welcomeHeroStartTour": "Take Quick Tour (1 min)",
+  "welcomeHeroDismiss": "Explore on My Own",
+  "authSigningIn": "Signing in…",
+  "aboutWhoWeAreTitle": "Who we are",
+  "aboutWhoWeAreBody": "The Peace of the Lord Jesus. We are brothers and sisters from the Maranatha Christian Church in the Triângulo Mineiro region serving at the Maanaim of Uberlândia-MG. This application is not an official church application, but its purpose is to help all those in the praise ministry serving in the Work, following Church guidelines, 100% free of charge.",
+  "aboutObjectiveTitle": "Objective",
+  "aboutObjectiveParagraph1": "The goal of this application — called Praise Researcher in Sheet Music, Chords in General — is to assist worship team members with essential praise materials. To make it easy to search, access, and work offline, as many churches lack internet access.",
+  "aboutObjectiveParagraph2": "Therefore, let us remain in prayer for all brethren involved in this project, whether in app development, content creation, app testing, or related efforts.",
+  "tutorialAboutStep1Title": "About Us",
+  "tutorialAboutStep1Message": "Learn about the history and the team behind the application. A **100% free** and collaborative initiative built to assist worship teams.",
+  "tutorialAboutStep2Title": "Our Mission",
+  "tutorialAboutStep2Message": "The main purpose is to facilitate access to **sheet music, chords, gestures, and audio**, with guaranteed **offline** operation even in places without internet.",
+  "tutorialAboutStep3Title": "Help & Tutorials",
+  "tutorialAboutStep3Message": "Tap the **(i) icon** anytime you want to review this guide or check detailed instructions on any screen of the app!",
+  "tutorialAppShortcutsStep1Title": "Shortcut Categories",
+  "tutorialAppShortcutsStep1Message": "Navigate between tabs to explore commands grouped by context: **Navigation & Search**, **Setlist & Audio**, **Sheet Music**, and **Chords & Gestures**.",
+  "tutorialAppShortcutsStep2Title": "High-Productivity Shortcuts",
+  "tutorialAppShortcutsStep2Message": "Review shortcut keys and their actions. Side badges highlight the **contexts and viewers where each command operates**.",
+  "tutorialAppShortcutsStep3Title": "Quick Access with the ? Key",
+  "tutorialAppShortcutsStep3Message": "Press **?** (or **Shift + /**) on any app screen to open this **shortcuts center instantly** on Desktop and Web.",
+  "tutorialAppShortcutsStep4Title": "Shortcuts Center Help",
+  "tutorialAppShortcutsStep4Message": "Tap this icon to review instructions on PLPCG's **quick commands and shortcuts**.",
+  "tutorialAudioStep1Title": "Track Information",
+  "tutorialAudioStep1Message": "View the **title**, **number**, **author**, and **classification** of the praise or audio currently playing.",
+  "tutorialAudioStep2Title": "Actions and Synchronization",
+  "tutorialAudioStep2Message": "Access the **linked sheet music**, add **audio markers**, enable **follow audio** mode in the reader, and adjust **playback speed**.",
+  "tutorialAudioStep3Title": "Progress Bar",
+  "tutorialAudioStep3Message": "Track **current time**, **total duration**, and drag the slider to seek forward or backward. Registered **markers** are highlighted on the timeline.",
+  "tutorialAudioStep4Title": "Playback Controls",
+  "tutorialAudioStep4Message": "Control playback with **Play/Pause**, skip to the **previous or next track**, and quickly seek forward or backward by **10 seconds**.",
+  "tutorialAudioStep5Title": "Practice Markers",
+  "tutorialAudioStep5Message": "See all **timestamped markers** added to the track. Tap any marker to jump directly to that point in the rehearsal.",
+  "tutorialAudioStep6Title": "Help & Tutorials",
+  "tutorialAudioStep6Message": "Whenever you have questions about the audio player, tap this **(i) icon** to review this step-by-step tutorial!",
+  "tutorialCarouselSelectionStep1Title": "Reorder Setlist",
+  "tutorialCarouselSelectionStep1Message": "Hold and drag the **drag handle** icon to change the order of praises in real time during the service or rehearsal.",
+  "tutorialCarouselSelectionStep2Title": "Quick Navigation",
+  "tutorialCarouselSelectionStep2Message": "Tap the **body of the praise** to jump immediately to it in the active sheet music or chord reader.",
+  "tutorialCarouselSelectionStep3Title": "Remove from Selection",
+  "tutorialCarouselSelectionStep3Message": "Tap the **×** button to remove the praise from the temporary service list without deleting your saved playlists.",
+  "tutorialCarouselSelectionStep4Title": "Clear or Reset List",
+  "tutorialCarouselSelectionStep4Message": "Use this action to **clear the active list** and start a new selection from scratch or discard the current draft.",
+  "tutorialCarouselSelectionStep5Title": "Active Setlist Help",
+  "tutorialCarouselSelectionStep5Message": "Check this **quick guide** whenever you have questions about organizing and operating your setlist.",
+  "tutorialChordsStep1Title": "Key Transposition",
+  "tutorialChordsStep1Message": "Raise or lower the song key in **semitones** using the **+** and **-** buttons (or keyboard). Tap the key number to **restore the original key**.",
+  "tutorialChordsStep2Title": "Font Size",
+  "tutorialChordsStep2Message": "Adjust the **text and chord size** for optimal reading on your screen using the **decrease** and **increase font** buttons.",
+  "tutorialChordsStep3Title": "Auto-Scroll",
+  "tutorialChordsStep3Message": "Start **auto-scroll** (**S** key) to play hands-free. Adjust **speed** with the speedometer icon or with the **[** and **]** keys.",
+  "tutorialChordsStep4Title": "Theme and Fullscreen",
+  "tutorialChordsStep4Message": "Switch between **light and dark mode** for better ambient visibility, and use **fullscreen** (**F** key) to focus exclusively on chords.",
+  "tutorialChordsStep5Title": "Reading and Layout",
+  "tutorialChordsStep5Message": "On wide screens, the **chords** are automatically arranged into **two columns**. Tapping or manually scrolling the screen **automatically pauses** auto-scroll.",
+  "tutorialChordsStep6Title": "Help & Tutorials",
+  "tutorialChordsStep6Message": "Whenever you want to review this guide or clarify questions about using the Chord Reader, tap this **(i) icon**!",
+  "tutorialCollaborationDialogsStep1Title": "Illustrated Bulletin",
+  "tutorialCollaborationDialogsStep1Message": "Generates and shares an **image with the praise list** along with the direct link for viewing.",
+  "tutorialCollaborationDialogsStep2Title": "Direct Link",
+  "tutorialCollaborationDialogsStep2Message": "Copies or shares only the **shortened link**, ideal for quick messaging.",
+  "tutorialCollaborationDialogsStep3Title": "Sharing Help",
+  "tutorialCollaborationDialogsStep3Message": "Tap this icon to review **setlist sharing** options.",
+  "tutorialCollaborationDialogsStep4Title": "Setlist Category",
+  "tutorialCollaborationDialogsStep4Message": "Classify the setlist as **Evangelism**, **Learning**, **Medleys**, or **Special Service** to help others find it easily.",
+  "tutorialCollaborationDialogsStep5Title": "Setlist Scope",
+  "tutorialCollaborationDialogsStep5Message": "Check as **one-time** for sporadic events or leave unchecked if it is a **regular selection for regular services**.",
+  "tutorialCollaborationDialogsStep6Title": "Community Publishing",
+  "tutorialCollaborationDialogsStep6Message": "Tap **Publish** to make the list available on the public tab. The list can be accessed and imported by the entire church.",
+  "tutorialCollaborationDialogsStep7Title": "Publishing Help",
+  "tutorialCollaborationDialogsStep7Message": "Tap this icon to review instructions on **publishing setlists** in the community.",
+  "tutorialCollaborationDialogsStep8Title": "Room Code or Link",
+  "tutorialCollaborationDialogsStep8Message": "Type or paste the **7-character code** or **full URL** provided by the live room leader.",
+  "tutorialCollaborationDialogsStep9Title": "Paste from Clipboard",
+  "tutorialCollaborationDialogsStep9Message": "Tap **Paste** to instantly fill with the link you just copied from WhatsApp or messaging.",
+  "tutorialCollaborationDialogsStep10Title": "Connect to Room",
+  "tutorialCollaborationDialogsStep10Message": "Tap **Join** to enter the broadcast and follow **praise changes in real time**.",
+  "tutorialCollaborationDialogsStep11Title": "Live Room Help",
+  "tutorialCollaborationDialogsStep11Message": "Tap this icon to review instructions for **syncing as a follower** in a live room.",
+  "tutorialContributeStep1Title": "Submission Context",
+  "tutorialContributeStep1Message": "Indicate whether your contribution is **linked to a specific praise** or is a **general suggestion** for the app.",
+  "tutorialContributeStep2Title": "Suggestion Description",
+  "tutorialContributeStep2Message": "Describe in detail the **problem encountered**, **lyric or key correction**, or the **improvement** you would like to propose.",
+  "tutorialContributeStep3Title": "Device Diagnostics",
+  "tutorialContributeStep3Message": "Keep enabled to send **anonymous technical data** (system, browser, resolution), speeding up bug resolution.",
+  "tutorialContributeStep4Title": "Attachments and Links",
+  "tutorialContributeStep4Message": "Add **supporting files** (audio, sheet music, or screenshots up to 32 MB) and YouTube or Google Drive **links**.",
+  "tutorialContributeStep5Title": "Submit Contribution",
+  "tutorialContributeStep5Message": "Tap **Submit** to send your report. If you are not signed in, sign in with your **Google account** to submit.",
+  "tutorialContributeStep6Title": "Help & Tutorials",
+  "tutorialContributeStep6Message": "Tap this icon anytime to review this **step-by-step guide** for the suggestion submission screen.",
+  "tutorialContributionDetailStep1Title": "Submission Title and Status",
+  "tutorialContributionDetailStep1Message": "Track the **contribution title** and its current status (**Pending**, **Approved**, or **Rejected**).",
+  "tutorialContributionDetailStep2Title": "Contribution Type",
+  "tutorialContributionDetailStep2Message": "Indicates the category of collaboration sent, such as **Chords**, **Lyrics**, **Sheet Music**, or **Information Correction**.",
+  "tutorialContributionDetailStep3Title": "Description and Notes",
+  "tutorialContributionDetailStep3Message": "Here you can see the **descriptive text**, justifications, and external links added when the proposal was submitted.",
+  "tutorialContributionDetailStep4Title": "Changed Fields",
+  "tutorialContributionDetailStep4Message": "When the contribution proposes correcting data, see the direct comparison between the **current** and **proposed** value.",
+  "tutorialContributionDetailStep5Title": "Files and Antivirus Check",
+  "tutorialContributionDetailStep5Message": "View the list of **submitted attachments** and real-time security check status (**Clean**, **Scanning**, or **Blocked**).",
+  "tutorialContributionDetailStep6Title": "Moderation Feedback",
+  "tutorialContributionDetailStep6Message": "When the PLPCG team evaluates the submission, the **reviewers' feedback and justification** will appear in this area.",
+  "tutorialContributionDetailStep7Title": "Help & Tutorials",
+  "tutorialContributionDetailStep7Message": "Whenever you have questions about contribution details, tap this **(i) icon** to review this step-by-step tutorial!",
+  "tutorialExtractedMaterialEditorStep1Title": "Toolbar & Shortcuts",
+  "tutorialExtractedMaterialEditorStep1Message": "Use quick shortcuts to **add verses**, **remove lines**, **insert chords or annotations**, and restore original text.",
+  "tutorialExtractedMaterialEditorStep2Title": "Editing Area",
+  "tutorialExtractedMaterialEditorStep2Message": "Edit content directly. For chords, use the **[Chord]** syntax immediately before the syllable to sync placement with lyrics.",
+  "tutorialExtractedMaterialEditorStep3Title": "Children's Gestures Selector",
+  "tutorialExtractedMaterialEditorStep3Message": "Tap **Change Gesture** to open the official dictionary and link the movement to the corresponding trigger phrase.",
+  "tutorialExtractedMaterialEditorStep4Title": "Live Preview",
+  "tutorialExtractedMaterialEditorStep4Message": "Track changes **in real time** with rendering identical to what users will see in the praise reader.",
+  "tutorialExtractedMaterialEditorStep5Title": "Proposal Submission",
+  "tutorialExtractedMaterialEditorStep5Message": "Add notes if desired and tap **Submit** to make your suggestion available for community review.",
+  "tutorialExtractedMaterialEditorStep6Title": "Help & Tutorials",
+  "tutorialExtractedMaterialEditorStep6Message": "Tap this icon anytime to review this **step-by-step guide** for the material editor.",
+  "tutorialFavoriteMaterialKindsStep1Title": "Material Priority",
+  "tutorialFavoriteMaterialKindsStep1Message": "Set up to **4 favorite materials** to prioritize your instruments and voices at the top of search results and in the reader.",
+  "tutorialFavoriteMaterialKindsStep2Title": "Your Favorites and Order",
+  "tutorialFavoriteMaterialKindsStep2Message": "Track your selected materials. Drag by the **side handle** to set priority, toggle **preferred format**, or tap **(X)** to remove.",
+  "tutorialFavoriteMaterialKindsStep3Title": "Add New Materials",
+  "tutorialFavoriteMaterialKindsStep3Message": "Search for instruments (e.g., **guitar**, **bass**, **organ**) or voices and tap the **(+)** icon to add them to your priority list.",
+  "tutorialFavoriteMaterialKindsStep4Title": "Cloud Sync",
+  "tutorialFavoriteMaterialKindsStep4Message": "Sign in with your **Google account** to save and synchronize your material preferences across any device.",
+  "tutorialFavoriteMaterialKindsStep5Title": "Help & Tutorials",
+  "tutorialFavoriteMaterialKindsStep5Message": "Tap the **(i) icon** anytime to review this guide or learn more about application features!",
+  "tutorialFiltersStep1Title": "Key Filter",
+  "tutorialFiltersStep1Message": "Filter the catalog by **musical key** (C, D, E...) and accidentals to find praises in your team's exact key.",
+  "tutorialFiltersStep2Title": "Rhythm Filter",
+  "tutorialFiltersStep2Message": "Select specific time signatures and rhythms such as **Waltz**, **March**, **Basic**, or **Toada** to tailor setlists to the service.",
+  "tutorialFiltersStep3Title": "Worship Categories and Tags",
+  "tutorialFiltersStep3Message": "Refine hymns by **service occasion**, such as **Communion**, **Lord's Supper**, **Children**, or devotional moments.",
+  "tutorialFiltersStep4Title": "Material Types",
+  "tutorialFiltersStep4Message": "Restrict results to display only praises that have **Chords**, **Sheet Music**, **Children's Gestures**, or **Audio** available.",
+  "tutorialFiltersStep5Title": "Clear Filters",
+  "tutorialFiltersStep5Message": "Tap **Clear** to instantly reset all applied filters and view the full collection.",
+  "tutorialFiltersStep6Title": "Filters Help",
+  "tutorialFiltersStep6Message": "Tap this icon whenever you want to review guidelines on **combining advanced filters**.",
+  "tutorialGestureFocusStep1Title": "Featured Gesture Card",
+  "tutorialGestureFocusStep1Message": "View the gesture movement in an **enlarged size**, with animation or illustration for easy following by the conductor.",
+  "tutorialGestureFocusStep2Title": "Trigger Phrase & Lyric",
+  "tutorialGestureFocusStep2Message": "Follow the associated lyric, highlighted in **red on the trigger** where the gesture should be executed by the worship group.",
+  "tutorialGestureFocusStep3Title": "Gesture Navigation",
+  "tutorialGestureFocusStep3Message": "Tap the **sides of the screen**, **swipe horizontally**, or use the **keyboard arrows (← and →)** to step forward or backward.",
+  "tutorialGestureFocusStep4Title": "Next Trigger",
+  "tutorialGestureFocusStep4Message": "Check the footer for the **word or phrase of the next gesture**, preparing the transition before it happens.",
+  "tutorialGestureFocusStep5Title": "Focus Mode Help",
+  "tutorialGestureFocusStep5Message": "Tap this icon to review this **step-by-step guide** or press **Esc** to close and return to the reader at any time.",
+  "tutorialGesturesStep1Title": "Lyrics Font Size",
+  "tutorialGesturesStep1Message": "Increase or decrease the **text size** of praises for more comfortable reading during rehearsals or services.",
+  "tutorialGesturesStep2Title": "Auto-Scroll",
+  "tutorialGesturesStep2Message": "Enable **auto-scroll** (**S** key) to follow gestures without touching the screen. Adjust **speed** on the speedometer or with **[** and **]**.",
+  "tutorialGesturesStep3Title": "Linear vs. Structured Mode",
+  "tutorialGesturesStep3Message": "Switch between **structured** display (grouped by stanzas and choruses) and **linear** reading (continuous sequence with all full repeats).",
+  "tutorialGesturesStep4Title": "Theme and Fullscreen",
+  "tutorialGesturesStep4Message": "Switch between **light and dark mode** for better visibility, and use **fullscreen** mode (**F** key) to hide bars and focus on gestures.",
+  "tutorialGesturesStep5Title": "Gesture Cards",
+  "tutorialGesturesStep5Message": "Gestures appear synchronized with corresponding words. Tap any **gesture card** to open **focus view** with enlarged image and detailed description.",
+  "tutorialGesturesStep6Title": "Help & Tutorials",
+  "tutorialGesturesStep6Message": "Whenever you have questions about using the gesture reader, tap this **(i) icon** to review this step-by-step tutorial!",
+  "tutorialHomeStep1Title": "Smart Search",
+  "tutorialHomeStep1Message": "Type the **number** of the praise, the **title**, or an **excerpt of the lyrics** to locate it instantly in the catalog.",
+  "tutorialHomeStep2Title": "Active Filters",
+  "tutorialHomeStep2Message": "When **active**, the selected filter button gets a **golden highlight**. The header displays the **active filters** count and you can tap **'Clear filters'** to reset.",
+  "tutorialHomeStep3Title": "Inactive Filters",
+  "tutorialHomeStep3Message": "With filters **inactive** (unselected), search covers **the entire catalog**. Tap any button to **activate it** or collapse the panel to save space.",
+  "tutorialHomeStep4Title": "Main Navigation",
+  "tutorialHomeStep4Message": "Easily switch between the Praise **Search**, your saved **Playlists**, and your user **Profile**.",
+  "tutorialHomeStep5Title": "Help & Tutorials",
+  "tutorialHomeStep5Message": "Whenever you have questions about using any screen, tap this **(i) icon** to review step-by-step explanations!",
+  "tutorialLibraryStep1Title": "Catalog Filters",
+  "tutorialLibraryStep1Message": "Refine the full library by **musical key**, **rhythm**, **categories/tags**, or **material type** (sheet music, chords, audio). Tap the header to **expand or collapse** filters.",
+  "tutorialLibraryStep2Title": "Catalog Sorting",
+  "tutorialLibraryStep2Message": "Quickly switch the order of praises between **'By number'** (official hymnal number) or **'By name'** (alphabetical order of titles).",
+  "tutorialLibraryStep3Title": "Pagination and Display",
+  "tutorialLibraryStep3Message": "Check the **total praises** found, select the **items per page** (10, 20, 50...), and use the **navigation arrows** to browse the catalog.",
+  "tutorialLibraryStep4Title": "Praise Cards",
+  "tutorialLibraryStep4Message": "Each card shows the praise number, title, and details. Tap it to directly access its **sheet music**, **chords**, **audio**, and **full details**.",
+  "tutorialLibraryStep5Title": "Help & Tutorials",
+  "tutorialLibraryStep5Message": "Whenever you have questions about navigating or using the Library, tap this **(i) icon** to review this step-by-step guide!",
+  "tutorialLiveRoomStep1Title": "Room Code and QR Code",
+  "tutorialLiveRoomStep1Message": "Participants can scan this **QR code** with their phone camera or use the **direct link** to follow the service.",
+  "tutorialLiveRoomStep2Title": "Share and Manage",
+  "tutorialLiveRoomStep2Message": "Copy or **share the link** to the broadcast with the group or tap **generate new link** if you need to reset access.",
+  "tutorialLiveRoomStep3Title": "Connected Participants",
+  "tutorialLiveRoomStep3Message": "Track in real time the **number of members** who are tuned in and following chords and lyrics in your room.",
+  "tutorialLiveRoomStep4Title": "End Broadcast",
+  "tutorialLiveRoomStep4Message": "Tap **End** to conclude the live session with participants and return to your playlists.",
+  "tutorialLiveRoomStep5Title": "Broadcast Status",
+  "tutorialLiveRoomStep5Message": "Track session progress: see if the leader is **live**, waiting for the service, or if the connection is **syncing**.",
+  "tutorialLiveRoomStep6Title": "Save Copy",
+  "tutorialLiveRoomStep6Message": "At the end of the service, tap **Save copy** to save the setlist directly to your personal playlists.",
+  "tutorialLiveRoomStep7Title": "Help & Tutorials",
+  "tutorialLiveRoomStep7Message": "Tap this icon anytime to review this **step-by-step guide** for the live room.",
+  "tutorialLyricsStep1Title": "Lyrics Font Size",
+  "tutorialLyricsStep1Message": "Increase or decrease the **font size** of lyrics for more comfortable reading during rehearsals or services. You can also use **Ctrl + ↑ / ↓** (or **Cmd + ↑ / ↓**).",
+  "tutorialLyricsStep2Title": "Auto-Scroll",
+  "tutorialLyricsStep2Message": "Enable **auto-scroll** (**S** key) to read lyrics hands-free. Tap the **speedometer** to adjust speed (or use the **[** and **]** keys).",
+  "tutorialLyricsStep3Title": "Fullscreen Mode",
+  "tutorialLyricsStep3Message": "Tap the **fullscreen** button (or **F** key) to hide all bars and focus entirely on reading lyrics.",
+  "tutorialLyricsStep4Title": "Text Reading and Selection",
+  "tutorialLyricsStep4Message": "Lyrics are available **completely offline**. Text is selectable for copying excerpts, and scrolling smoothly pauses when you touch the screen.",
+  "tutorialLyricsStep5Title": "Help & Tutorials",
+  "tutorialLyricsStep5Message": "Whenever you have questions about using the lyrics reader, tap this **(i) icon** to review this step-by-step tutorial!",
+  "tutorialMaterialSheetStep1Title": "Available Formats",
+  "tutorialMaterialSheetStep1Message": "Switch between **Sheet Music**, **Chords**, **Children's Gestures**, **Audio**, and **YouTube** videos to choose the ideal format for service or rehearsal.",
+  "tutorialMaterialSheetStep2Title": "Add to Setlist",
+  "tutorialMaterialSheetStep2Message": "Tap the **+** button to include this arrangement directly in your active **Service Carousel** list or one of your **Playlists**.",
+  "tutorialMaterialSheetStep3Title": "Metadata and Lyrics",
+  "tutorialMaterialSheetStep3Message": "Check the **original key**, **rhythm**, **worship categories**, and preview the praise lyrics.",
+  "tutorialMaterialSheetStep4Title": "Related Versions",
+  "tutorialMaterialSheetStep4Message": "Quickly select **alternative arrangements**, versions in other keys, or hymns related to the selected praise.",
+  "tutorialMaterialSheetStep5Title": "Suggest Improvement",
+  "tutorialMaterialSheetStep5Message": "Found any discrepancy in chords, lyrics, or sheet music? Tap here to send a **correction suggestion** to curators.",
+  "tutorialMaterialSheetStep6Title": "Selector Help",
+  "tutorialMaterialSheetStep6Message": "Tap this icon whenever you need guidance on how to **choose materials** and **organize your setlist**.",
+  "tutorialMyContributionsStep1Title": "Sign-In Required",
+  "tutorialMyContributionsStep1Message": "Sign in with your **Google account** to access the history of suggestions, corrections, and materials you submitted.",
+  "tutorialMyContributionsStep2Title": "No Submissions Yet",
+  "tutorialMyContributionsStep2Message": "All **lyric, sheet music, or correction suggestions** submitted by you via the **Contribute** button will be listed on this screen.",
+  "tutorialMyContributionsStep3Title": "Submission History",
+  "tutorialMyContributionsStep3Message": "View the title, material type, and date of your collaboration. Tap any row to open the **details screen** and view team notes.",
+  "tutorialMyContributionsStep4Title": "Review Status",
+  "tutorialMyContributionsStep4Message": "Track the progress of your request: **pending**, **under review**, **approved**, or **rejected**.",
+  "tutorialMyContributionsStep5Title": "Help & Tutorials",
+  "tutorialMyContributionsStep5Message": "Tap the **(i) icon** anytime to review this guide or learn more about application screens!",
+  "tutorialOfflineStep1Title": "Status and Disk Usage",
+  "tutorialOfflineStep1Message": "Track total praises in the **local catalog**, the **last sync** date, and the **used and free space** on the device. Tap **Refresh** to recalculate data.",
+  "tutorialOfflineStep2Title": "Material Search",
+  "tutorialOfflineStep2Message": "Use the search field to quickly find specific types of sheet music or chords (e.g., **guitar**, **collection**, **choir**) and enable **Filter** to display only matching results.",
+  "tutorialOfflineStep3Title": "Format Selection",
+  "tutorialOfflineStep3Message": "Select the **material types** you want to keep available offline. On each item you can individually toggle between **sheet music (PDF)**, **chords**, and **audio**.",
+  "tutorialOfflineStep4Title": "Download and Manage Storage",
+  "tutorialOfflineStep4Message": "Tap **Download selected** to save files to the device for offline use. When you need to free disk space, tap **Remove downloads**.",
+  "tutorialOfflineStep5Title": "Help & Tutorials",
+  "tutorialOfflineStep5Message": "Whenever you have questions about offline storage, tap this **(i) icon** to review this step-by-step tutorial!",
+  "tutorialPlaylistsStep1Title": "Setlist Tabs",
+  "tutorialPlaylistsStep1Message": "Switch between your **Unsaved** lists (quick rehearsal picks), **Saved** lists (stored and synced setlists), and **Favorites** (for quick access).",
+  "tutorialPlaylistsStep2Title": "Import Setlist",
+  "tutorialPlaylistsStep2Message": "Received a shared list? Tap **Import setlist** and paste the link or code to load praises into your app.",
+  "tutorialPlaylistsStep3Title": "Live Room",
+  "tutorialPlaylistsStep3Message": "Open a room or connect to church rehearsal. All musicians follow the **real-time praise switching** during worship.",
+  "tutorialPlaylistsStep4Title": "Create New Setlists",
+  "tutorialPlaylistsStep4Message": "To assemble a new list, go to **Search** and tap the **'+'** button on any praise or sheet music version.",
+  "tutorialPlaylistsStep5Title": "Help & Tutorials",
+  "tutorialPlaylistsStep5Message": "Tap the **(i)** icon whenever you have questions about using any screen in the app!",
+  "tutorialPraiseStep1Title": "Praise Information",
+  "tutorialPraiseStep1Message": "See the **number** and **title** of the praise. Tap **Share** to copy the direct link or **Suggest improvement** to send us corrections.",
+  "tutorialPraiseStep2Title": "Related Versions",
+  "tutorialPraiseStep2Message": "When there are different **arrangements, keys, or variants**, you can easily switch between them by tapping related praise buttons.",
+  "tutorialPraiseStep3Title": "Materials and Sheet Music",
+  "tutorialPraiseStep3Message": "Access all **sheet music**, **chords**, **gestures**, and **audio** available for this praise. Tap an item to open or **+** to add it to your active list.",
+  "tutorialPraiseStep4Title": "Lyrics and Metadata",
+  "tutorialPraiseStep4Message": "View full **praise lyrics**, adjust font size, copy text, or tap the play button to open in the **dedicated reader** with auto-scroll.",
+  "tutorialPraiseStep5Title": "Help & Tutorials",
+  "tutorialPraiseStep5Message": "Whenever you have questions about praise details, tap this **(i) icon** to review this step-by-step tutorial!",
+  "tutorialProfileStep1Title": "Account & Sync",
+  "tutorialProfileStep1Message": "Connect your **Google** account to automatically sync your **praise lists**, preferences, and favorite materials across devices.",
+  "tutorialProfileStep2Title": "Full Library",
+  "tutorialProfileStep2Message": "Access the **Library** to explore the entire catalog in a **paginated list** format, with detailed instrument and category filters.",
+  "tutorialProfileStep3Title": "Contribute",
+  "tutorialProfileStep3Message": "Submit **new sheet music**, chords, gestures, or lyric corrections. Community collaboration keeps the collection updated and accurate!",
+  "tutorialProfileStep4Title": "Offline Mode",
+  "tutorialProfileStep4Message": "Download sheet music and lyrics files to use the app **without internet** during services and rehearsals with maximum speed.",
+  "tutorialProfileStep5Title": "Help & Tutorials",
+  "tutorialProfileStep5Message": "Tap the **(i)** icon anytime you want to review instructions and tips for this screen!",
+  "tutorialPublicPlaylistsStep1Title": "Your Username",
+  "tutorialPublicPlaylistsStep1Message": "Sign in with your Google account and create your **@username** to share your own public lists with the church.",
+  "tutorialPublicPlaylistsStep2Title": "Search Members and Teams",
+  "tutorialPublicPlaylistsStep2Message": "Type the **@username** of other team members to locate their public lists and shared setlists.",
+  "tutorialPublicPlaylistsStep3Title": "Setlists and Import",
+  "tutorialPublicPlaylistsStep3Message": "In results, view published lists and tap **import** to add praises to your active list.",
+  "tutorialPublicPlaylistsStep4Title": "Help & Tutorials",
+  "tutorialPublicPlaylistsStep4Message": "Tap the **(i) icon** anytime to review this step-by-step guide!",
+  "tutorialReaderStep1Title": "Screen Fit",
+  "tutorialReaderStep1Message": "Switch between fitting to **screen width** (great for enlarging sheet music) or **full page**. You can also press the **Z** key.",
+  "tutorialReaderStep2Title": "Fullscreen Mode",
+  "tutorialReaderStep2Message": "Tap to hide all bars and **focus on sheet music** during rehearsal or service. Use the **F** key to enter or **Esc** to exit.",
+  "tutorialReaderStep3Title": "Page Indicator",
+  "tutorialReaderStep3Message": "Displays the **current page** and **total pages**. Tap to jump to a page or **long press** to return directly to the **first page**!",
+  "tutorialReaderStep4Title": "Tap on Margins (Sides)",
+  "tutorialReaderStep4Message": "Tap the **left outer fifth** to go back and the **right outer fifth** to advance pages instantly, without dragging sheet music.",
+  "tutorialReaderStep5Title": "Bluetooth Pedals & Keyboard",
+  "tutorialReaderStep5Message": "Connect any **Bluetooth page-turner pedal** (AirTurn, PageFlip, Donner via PageUp/Down or Arrows) to turn pages and switch praises **hands-free**.",
+  "tutorialReaderStep6Title": "Help & Tutorials",
+  "tutorialReaderStep6Message": "Tap the **(i)** icon whenever you have questions about using the reader tools!",
+  "tutorialWelcomeTourStep1Title": "1. Search the Hymnal",
+  "tutorialWelcomeTourStep1Message": "Type the **number**, the **title**, or any **lyric excerpt** to instantly locate hymns and songs in the collection.",
+  "tutorialWelcomeTourStep2Title": "2. Specialized Formats",
+  "tutorialWelcomeTourStep2Message": "Tap the praise to select between **Sheet Music**, **Chords**, **Children's Gestures**, or **Lyrics**, with key transposition and auto-scroll.",
+  "tutorialWelcomeTourStep3Title": "3. Build Your Worship Setlist",
+  "tutorialWelcomeTourStep3Message": "Tap the **(+)** button to include praises in the **Active Carousel**, allowing you to quickly switch between sheets during worship.",
+  "tutorialWelcomeTourStep4Title": "4. Setlist Always with You",
+  "tutorialWelcomeTourStep4Message": "Access the **Playlists** tab to organize rehearsal playlists and open **Offline Storage** in Profile to praise **offline** anywhere!",
+  "privacyPolicyTitle": "Privacy Policy",
+  "privacyPolicyAboutDescription": "Learn how we protect your data and privacy.",
+  "profileDeleteAccount": "Delete account",
+  "profileDeleteAccountDialogTitle": "Delete account and data?",
+  "profileDeleteAccountDialogContent": "This action is irreversible. Your account, synced playlists, audio flags, and preferences will be permanently deleted from the PLPCG servers.",
+  "profileDeleteAccountConfirm": "Delete permanently",
+  "profileDeleteAccountSuccess": "Your account and all associated data were successfully deleted.",
+  "profileDeleteAccountError": "Could not delete your account. Check your connection and try again."
 }

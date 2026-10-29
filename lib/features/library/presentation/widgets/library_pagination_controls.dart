@@ -5,7 +5,7 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/library_results_provider.dart';
+import '../providers/library_group_results_provider.dart';
 import '../providers/library_view_settings_provider.dart';
 import 'library_results_summary.dart';
 
@@ -26,10 +26,10 @@ class LibraryPaginationControls extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final results = ref.watch(libraryResultsProvider);
-    final itemsPerPage = ref.watch(libraryViewSettingsProvider.select(
-      (state) => state.itemsPerPage,
-    ));
+    final results = ref.watch(libraryGroupResultsProvider);
+    final itemsPerPage = ref.watch(
+      libraryViewSettingsProvider.select((state) => state.itemsPerPage),
+    );
 
     if (results.totalItems == 0) {
       return const LibraryResultsSummary();
@@ -91,8 +91,8 @@ class LibraryPaginationControls extends ConsumerWidget {
           visualDensity: VisualDensity.compact,
           onPressed: results.page > 1
               ? () => ref
-                  .read(libraryViewSettingsProvider.notifier)
-                  .goToPreviousPage()
+                    .read(libraryViewSettingsProvider.notifier)
+                    .goToPreviousPage()
               : null,
           icon: const Icon(Icons.chevron_left),
         ),
@@ -105,8 +105,8 @@ class LibraryPaginationControls extends ConsumerWidget {
           visualDensity: VisualDensity.compact,
           onPressed: results.page < results.totalPages
               ? () => ref
-                  .read(libraryViewSettingsProvider.notifier)
-                  .goToNextPage(results.totalPages)
+                    .read(libraryViewSettingsProvider.notifier)
+                    .goToNextPage(results.totalPages)
               : null,
           icon: const Icon(Icons.chevron_right),
         ),
@@ -138,11 +138,7 @@ class LibraryPaginationControls extends ConsumerWidget {
 
             return Row(
               crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                pageSizeControl,
-                const Spacer(),
-                pageNavigation,
-              ],
+              children: [pageSizeControl, const Spacer(), pageNavigation],
             );
           },
         ),

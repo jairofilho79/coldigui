@@ -1,0 +1,203 @@
+import '../../../../core/utils/material_id_kind.dart';
+import '../../../audio_player/domain/entities/audio_track.dart';
+import '../../../chords/domain/entities/chord_material.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
+import 'louvor.dart';
+import 'youtube_material.dart';
+
+/// Qualquer material abrível de um louvor — PDF, cifra, gestos, áudio,
+/// YouTube ou letra.
+///
+/// Fachada `sealed` sobre as entidades que já existem: nenhuma delas muda de
+/// forma (Isar/JSON intactos), cada uma ganha um invólucro aqui. Isso dá ao app
+/// um único vocabulário (`kind`) e um único ponto de abertura
+/// (`openMaterialProvider`), sem ainda unificar as listas de [LouvorGroup].
+///
+/// `sealed` obriga o `switch` do opener a cobrir os seis casos — um material
+/// novo quebra a compilação em vez de cair num `else` silencioso.
+sealed class CatalogMaterial {
+  const CatalogMaterial();
+
+  /// Id do material no espaço de ids da sua família (pdfId/chordId/audioId…).
+  String get id;
+
+  /// Tipo do material — vocabulário único do app.
+  MaterialKind get kind;
+
+  /// Louvor lógico ao qual o material pertence.
+  String get groupId;
+
+  /// Label do material exibida na UI (ex.: `Partitura`, `Cifra I`, `Áudio`).
+  String get categoria;
+
+  /// Id do `material_kind` Coldigom; `null` quando o acervo não o conhece.
+  String? get materialKindId;
+
+  /// Anotação rápida do arranjo/material (ex.: "I", "II", "Cifrado").
+  String? get notes;
+}
+
+/// PDF (partitura, gestos…) — abre no leitor interno `/leitor`.
+final class PdfMaterial extends CatalogMaterial {
+  const PdfMaterial(this.louvor);
+
+  final Louvor louvor;
+
+  @override
+  String get id => louvor.pdfId;
+
+  @override
+  MaterialKind get kind => MaterialKind.pdf;
+
+  @override
+  String get groupId => louvor.effectiveGroupId;
+
+  @override
+  String get categoria => louvor.categoria;
+
+  @override
+  String? get materialKindId => louvor.materialKindId;
+
+  @override
+  String? get notes => louvor.notes;
+}
+
+/// Cifra ChordPro — abre em `/cifra`.
+///
+/// Invólucro (`Ref`) porque [ChordMaterial] vive em `features/chords` e uma
+/// classe `sealed` só aceita subtipos da própria biblioteca.
+final class ChordMaterialRef extends CatalogMaterial {
+  const ChordMaterialRef(this.chord);
+
+  final ChordMaterial chord;
+
+  @override
+  String get id => chord.chordId;
+
+  @override
+  MaterialKind get kind => MaterialKind.chord;
+
+  @override
+  String get groupId => chord.groupId;
+
+  @override
+  String get categoria => chord.categoria;
+
+  @override
+  String? get materialKindId => chord.materialKindId;
+
+  @override
+  String? get notes => chord.notes;
+}
+
+/// Documento de gestos CIAs — abre em `/gestos`.
+final class GestureMaterialRef extends CatalogMaterial {
+  const GestureMaterialRef(this.gesture);
+
+  final GestureMaterial gesture;
+
+  @override
+  String get id => gesture.gestureId;
+
+  @override
+  MaterialKind get kind => MaterialKind.gesture;
+
+  @override
+  String get groupId => gesture.groupId;
+
+  @override
+  String get categoria => gesture.categoria;
+
+  @override
+  String? get materialKindId => gesture.materialKindId;
+
+  @override
+  String? get notes => gesture.notes;
+}
+
+/// Faixa de áudio Coldigom — toca na sessão global e abre `/audio`.
+final class AudioMaterial extends CatalogMaterial {
+  const AudioMaterial(this.track);
+
+  final AudioTrack track;
+
+  @override
+  String get id => track.audioId;
+
+  @override
+  MaterialKind get kind => MaterialKind.audio;
+
+  @override
+  String get groupId => track.groupId;
+
+  @override
+  String get categoria => track.categoria;
+
+  @override
+  String? get materialKindId => track.materialKindId;
+
+  @override
+  String? get notes => track.notes;
+}
+
+/// Link YouTube — abre fora do app (app do YouTube ou navegador).
+final class YoutubeMaterialRef extends CatalogMaterial {
+  const YoutubeMaterialRef(this.material);
+
+  final YoutubeMaterial material;
+
+  @override
+  String get id => material.id;
+
+  @override
+  MaterialKind get kind => MaterialKind.youtube;
+
+  @override
+  String get groupId => material.groupId;
+
+  @override
+  String get categoria => material.categoria;
+
+  @override
+  String? get materialKindId => material.materialKindId;
+
+  @override
+  String? get notes => material.notes;
+}
+
+/// Letra do louvor (Coldigom) — abre no leitor `/letra`.
+///
+/// Material sintético (O6): o texto vem no dump do catálogo e vive no Isar,
+/// nunca no R2. Não tem `material_kind` — logo não entra nos favoritos nem
+/// nas contagens de download — e não é adicionável a playlist nesta entrega.
+final class LyricsMaterial extends CatalogMaterial {
+  const LyricsMaterial({
+    required this.praiseId,
+    required this.nome,
+    required this.numero,
+    this.categoria = 'Letra',
+  });
+
+  final String praiseId;
+  final String nome;
+  final String numero;
+
+  @override
+  final String categoria;
+
+  /// Mesmo id do material sintético do Worker (`lyrics:<praiseId>`).
+  @override
+  String get id => 'lyrics:$praiseId';
+
+  @override
+  MaterialKind get kind => MaterialKind.lyrics;
+
+  @override
+  String get groupId => praiseId;
+
+  @override
+  String? get materialKindId => null;
+
+  @override
+  String? get notes => null;
+}

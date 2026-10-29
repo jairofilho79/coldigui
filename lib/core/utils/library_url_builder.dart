@@ -1,30 +1,32 @@
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 
-/// Monta path da Biblioteca com query params sincronizados (§2.5 MAPEAMENTO).
+/// Monta path da /biblioteca com query params sincronizados (spec fim-fonte
+/// §2.5).
 ///
-/// Omite params com valor padrão: [materiais] todos selecionados, [arranjo] e
-/// [arranjoEspecial] vazios, [ordenar] `numero`, [itensPorPagina] `10`,
-/// [pagina] `1`. Valores codificados via [Uri.encodeComponent].
+/// Filtros do catálogo (os mesmos da página inicial): CSV de [tonality],
+/// [rhythm], [tags] (nomes) e [materialKinds] (ids de kind);
+/// omitidos quando vazios. Vista: [ordenar] `numero`, [itensPorPagina] `10` e
+/// [pagina] `1` são omitidos. Valores codificados via [Uri.encodeComponent].
 String buildLibraryLocation({
-  String? materiais,
-  String? arranjo,
-  String? arranjoEspecial,
+  String? tonality,
+  String? rhythm,
+  String? tags,
+  String? materialKinds,
   String ordenar = UrlSyncParams.defaultOrdenar,
   String itensPorPagina = UrlSyncParams.defaultItensPorPagina,
   String pagina = UrlSyncParams.defaultPagina,
 }) {
   final params = <String, String>{};
 
-  if (materiais != null && materiais.isNotEmpty) {
-    params[UrlSyncParams.materiais] = materiais;
+  void put(String key, String? value) {
+    if (value != null && value.isNotEmpty) params[key] = value;
   }
-  if (arranjo != null && arranjo.isNotEmpty) {
-    params[UrlSyncParams.arranjo] = arranjo;
-  }
-  if (arranjoEspecial != null && arranjoEspecial.isNotEmpty) {
-    params[UrlSyncParams.arranjoEspecial] = arranjoEspecial;
-  }
+
+  put(UrlSyncParams.tonality, tonality);
+  put(UrlSyncParams.rhythm, rhythm);
+  put(UrlSyncParams.tags, tags);
+  put(UrlSyncParams.materialKinds, materialKinds);
   if (ordenar != UrlSyncParams.defaultOrdenar) {
     params[UrlSyncParams.ordenar] = ordenar;
   }
@@ -43,17 +45,24 @@ String buildLibraryLocation({
   return '${RoutePaths.library}?$query';
 }
 
-/// Normaliza [uri] da Biblioteca para comparação com [buildLibraryLocation].
+/// Normaliza [uri] da /biblioteca para comparação com [buildLibraryLocation].
 ///
-/// Usado por [LibraryScreen] para evitar `go()` redundante no sync de URL.
+/// Params que não existem mais (`fonte`, `materiais`, `arranjo`,
+/// `arranjoEspecial`, `category`) são ignorados — um link antigo abre sem
+/// erro e o sync de URL os tira. `category` já virou tags na hidratação
+/// (spec seções-coletânea §4.2); quem compara força a regravação quando ele
+/// está presente (ver `LibraryScreen._applyUrlSyncFromState`).
 String buildLibraryLocationFromUri(Uri uri) => buildLibraryLocation(
-      materiais: uri.queryParameters[UrlSyncParams.materiais],
-      arranjo: uri.queryParameters[UrlSyncParams.arranjo],
-      arranjoEspecial: uri.queryParameters[UrlSyncParams.arranjoEspecial],
-      ordenar: uri.queryParameters[UrlSyncParams.ordenar] ??
-          UrlSyncParams.defaultOrdenar,
-      itensPorPagina: uri.queryParameters[UrlSyncParams.itensPorPagina] ??
-          UrlSyncParams.defaultItensPorPagina,
-      pagina: uri.queryParameters[UrlSyncParams.pagina] ??
-          UrlSyncParams.defaultPagina,
-    );
+  tonality: uri.queryParameters[UrlSyncParams.tonality],
+  rhythm: uri.queryParameters[UrlSyncParams.rhythm],
+  tags: uri.queryParameters[UrlSyncParams.tags],
+  materialKinds: uri.queryParameters[UrlSyncParams.materialKinds],
+  ordenar:
+      uri.queryParameters[UrlSyncParams.ordenar] ??
+      UrlSyncParams.defaultOrdenar,
+  itensPorPagina:
+      uri.queryParameters[UrlSyncParams.itensPorPagina] ??
+      UrlSyncParams.defaultItensPorPagina,
+  pagina:
+      uri.queryParameters[UrlSyncParams.pagina] ?? UrlSyncParams.defaultPagina,
+);

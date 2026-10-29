@@ -1,0 +1,1018 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
+
+import '../../../../../core/l10n/failure_message.dart';
+import '../../../../../core/theme/app_typography.dart';
+import '../../../../../core/theme/color_extensions.dart';
+import '../../../../../core/utils/byte_format.dart';
+import '../../../../../core/utils/louvor_search_tokens.dart';
+import '../../../../../core/utils/material_id_kind.dart';
+import '../../../../../core/widgets/confirm_dialog.dart';
+import '../../../../../l10n/app_localizations.dart';
+import '../../../../auth/presentation/providers/auth_state_provider.dart';
+import '../../../../auth/presentation/widgets/google_sign_in_button.dart';
+import '../../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
+import '../../../../material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
+import '../../../data/utils/storage_quota_estimator.dart';
+import '../../../domain/entities/coldigom_download_progress.dart';
+import '../../../domain/entities/coldigom_download_target.dart';
+import '../../../domain/exceptions/offline_bulk_exceptions.dart';
+import '../../../../catalog/domain/entities/material_kind_taxonomy.dart';
+import '../../../../catalog/domain/utils/material_kind_selection.dart';
+import '../../../../catalog/presentation/widgets/material_kind_chips.dart';
+import '../../providers/offline_cache_status_provider.dart';
+import '../../providers/offline_coldigom_download_provider.dart';
+import '../../providers/offline_coldigom_kind_selection_provider.dart';
+import '../../providers/offline_coldigom_stats_provider.dart';
+import '../../providers/offline_maintenance_lock_provider.dart';
+import 'offline_kind_chips.dart';
+
+/// Quantos alvos ainda faltam no último `progress` conhecido — usado tanto
+/// no snackbar de conclusão quanto na linha persistente sob os botões
+/// quando `result.cancelled` (achado do review final: um cancelamento com
+/// `done == 0` não pode ler como "nada novo para baixar").
+int _remainingCount(OfflineColdigomDownloadState state) {
+  final progress = state.progress;
+  if (progress == null) return 0;
+  final remaining = progress.total - progress.doneTotal;
+  return remaining < 0 ? 0 : remaining;
+}
+
+bool _hasInsufficientSpace(ColdigomDownloadResult result) =>
+    result.failed.any((f) => f.cause is InsufficientDiskSpaceException);
+
+/// Texto da linha persistente/snackbar quando a execução parou sem
+/// terminar tudo — falta de espaço tem prioridade (mensagem específica),
+/// depois cancelamento («Parado — N restantes»), depois falhas comuns.
+String _resultStatusText(
+  AppLocalizations l10n,
+  OfflineColdigomDownloadState state,
+) {
+  final result = state.result!;
+  if (_hasInsufficientSpace(result)) return l10n.offlineColdigomOutOfSpace;
+  if (result.cancelled) {
+    return l10n.offlineColdigomStopped(_remainingCount(state));
+  }
+  return l10n.offlineColdigomFailures(result.failed.length);
+}
+
+/// `~1,2 MB` quando há estimativa (O13), `1,2 MB` quando tudo é conhecido.
+String coldigomSizeLabel(int bytes, {required bool estimated}) =>
+    '${estimated ? '~' : ''}${formatCompactBytes(bytes)}';
+
+/// A secção única do `/offline` — «Baixar para usar offline» (spec
+/// 2026-09-23 §3.1): estado do catálogo e do disco, tipos de material,
+/// baixar/parar/remover. Sem login mostra todos os tipos; a conta só traz os
+/// favoritos para o topo.
+class ColdigomOfflineSection extends ConsumerWidget {
+  const ColdigomOfflineSection({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final user = ref.watch(authStateProvider).asData?.value;
+    final sync = ref.watch(coldigomCatalogSyncProvider);
+    final cacheStatus = ref.watch(offlineCacheStatusProvider);
+    final lockOwner = ref.watch(offlineMaintenanceLockProvider);
+    final download = ref.watch(offlineColdigomDownloadProvider);
+    // Um estado de ocupado só (§3.1): decide o lock. O nosso não nos
+    // desabilita — é o «Parar» que fica ativo.
+    final busy =
+        lockOwner != null && lockOwner != OfflineMaintenanceOwner.coldigom;
+
+    ref.listen(offlineColdigomDownloadProvider, (previous, next) {
+      if (next.failure != null && next.failure != previous?.failure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(failureMessage(l10n, next.failure!))),
+        );
+      }
+      if (next.status == OfflineColdigomDownloadStatus.done &&
+          previous?.status != next.status &&
+          next.result != null) {
+        final result = next.result!;
+        // Cancelado ou com falhas: mensagem específica (achado do review
+        // final) — nunca "nada novo para baixar" quando na verdade parou
+        // no meio. Sem cancelamento/falhas, a contagem normal de baixados.
+        final message = result.cancelled || result.hasFailures
+            ? _resultStatusText(l10n, next)
+            : l10n.offlineColdigomDone(result.done);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
+      }
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _StatusLines(
+          sync: sync,
+          cacheStatus: cacheStatus,
+          l10n: l10n,
+          busy: busy || download.isActive || download.removing,
+        ),
+        const SizedBox(height: 12),
+        if (user == null) ...[
+          _SignInRow(l10n: l10n),
+          const SizedBox(height: 8),
+        ],
+        _KindsBody(
+          l10n: l10n,
+          busy: busy,
+          download: download,
+          signedIn: user != null,
+        ),
+      ],
+    );
+  }
+}
+
+class _StatusLines extends ConsumerWidget {
+  const _StatusLines({
+    required this.sync,
+    required this.cacheStatus,
+    required this.l10n,
+    required this.busy,
+  });
+
+  final ColdigomCatalogSyncState sync;
+  final OfflineCacheStatus cacheStatus;
+  final AppLocalizations l10n;
+  final bool busy;
+
+  String _ago(DateTime? at) {
+    if (at == null) return l10n.offlineColdigomAgoJustNow;
+    final diff = DateTime.now().toUtc().difference(at.toUtc());
+    if (diff.inMinutes < 1) return l10n.offlineColdigomAgoJustNow;
+    if (diff.inHours < 1) return l10n.offlineColdigomAgoMinutes(diff.inMinutes);
+    if (diff.inDays < 1) return l10n.offlineColdigomAgoHours(diff.inHours);
+    return l10n.offlineColdigomAgoDays(diff.inDays);
+  }
+
+  String _diskUsage() {
+    final used = formatCompactBytes(cacheStatus.diskUsageBytes);
+    final free = cacheStatus.freeDiskBytes;
+    return free == null
+        ? l10n.offlineStatsDiskUsageUsedOnly(used)
+        : l10n.offlineStatsDiskUsage(used, formatCompactBytes(free));
+  }
+
+  /// Um «Atualizar» (desvio 4 do plano): catálogo (sync por ETag) + índice
+  /// offline (reconcile + uso de disco).
+  Future<void> _refresh(BuildContext context, WidgetRef ref) async {
+    unawaited(ref.read(coldigomCatalogSyncProvider.notifier).sync());
+    try {
+      await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.offlineRefreshSuccess)));
+    } on Object {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.offlineRefreshError)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final catalog = sync.count == 0
+        ? l10n.offlineColdigomCatalogMissing
+        : l10n.offlineColdigomCatalogStatus(
+            sync.count,
+            _ago(sync.lastSyncedAt),
+          );
+    final hintStyle = AppTypography.body.copyWith(
+      color: AppColors.title.withValues(alpha: 0.75),
+    );
+    return SpotlightGuideTarget(
+      id: 'offline-status-lines',
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(catalog, style: hintStyle),
+                const SizedBox(height: 4),
+                Text(_diskUsage(), style: hintStyle),
+              ],
+            ),
+          ),
+          if (sync.isSyncing || cacheStatus.isRefreshing)
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            TextButton.icon(
+              onPressed: busy ? null : () => unawaited(_refresh(context, ref)),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: Text(l10n.offlineRefreshStats),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Deslogado: convite opcional — os tipos aparecem na mesma (§3.1, M8).
+class _SignInRow extends StatelessWidget {
+  const _SignInRow({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          l10n.offlineColdigomSignInPrompt,
+          textAlign: TextAlign.center,
+          style: AppTypography.hint(),
+        ),
+        const SizedBox(height: 8),
+        const GoogleSignInButton(),
+      ],
+    );
+  }
+}
+
+class _KindsBody extends ConsumerStatefulWidget {
+  const _KindsBody({
+    required this.l10n,
+    required this.busy,
+    required this.download,
+    required this.signedIn,
+  });
+
+  final AppLocalizations l10n;
+  final bool busy;
+  final OfflineColdigomDownloadState download;
+  final bool signedIn;
+
+  @override
+  ConsumerState<_KindsBody> createState() => _KindsBodyState();
+}
+
+class _KindsBodyState extends ConsumerState<_KindsBody> {
+  final Map<String, bool> _open = {};
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  bool _filterOnlyMatches = false;
+  bool _otherKindsExpanded = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool _matchesQuery(String name, String query) {
+    final q = LouvorSearchTokens.normalize(query.trim());
+    if (q.isEmpty) return false;
+    return LouvorSearchTokens.normalize(name).contains(q);
+  }
+
+  bool _unitMatches(OfflineKindUnit unit, String query) {
+    if (_matchesQuery(unit.name, query)) return true;
+    if (unit is OfflineKindFamilyUnit) {
+      return unit.children.any((c) => _matchesQuery(c.kindName, query));
+    }
+    return false;
+  }
+
+  Widget _buildOtherKindsButton({
+    required int totalCount,
+    required bool isExpanded,
+    required VoidCallback onToggle,
+  }) {
+    return Semantics(
+      button: true,
+      expanded: isExpanded,
+      label: widget.l10n.offlineColdigomOtherKinds,
+      child: Material(
+        color: isExpanded
+            ? AppColors.gold.withValues(alpha: 0.1)
+            : AppColors.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: isExpanded
+                ? AppColors.gold
+                : AppColors.title.withValues(alpha: 0.28),
+            width: 1.5,
+          ),
+        ),
+        child: InkWell(
+          onTap: onToggle,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.layers_outlined,
+                  size: 20,
+                  color: isExpanded ? AppColors.gold : AppColors.title,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.l10n.offlineColdigomOtherKinds,
+                    style: AppTypography.body.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isExpanded ? AppColors.gold : AppColors.title,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isExpanded
+                        ? AppColors.gold.withValues(alpha: 0.22)
+                        : AppColors.title.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$totalCount',
+                    style: AppTypography.label.copyWith(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: isExpanded ? AppColors.gold : AppColors.title,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  isExpanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  size: 22,
+                  color: isExpanded ? AppColors.gold : AppColors.title,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _start(
+    BuildContext context,
+    WidgetRef ref,
+    Set<String> kindIds,
+    Set<String> selection,
+    int bytes,
+    bool estimated, {
+    MaterialKindTaxonomy? taxonomy,
+  }) async {
+    final free = await estimateFreeStorageBytes();
+    if (free != null && bytes > free && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.l10n.offlineColdigomSpaceWarning(
+              coldigomSizeLabel(bytes, estimated: estimated),
+              formatCompactBytes(free),
+            ),
+          ),
+        ),
+      );
+    }
+    await ref.read(offlineColdigomDownloadProvider.notifier).start(
+      kindIds,
+      selection: selection,
+      taxonomy: taxonomy,
+    );
+  }
+
+  Future<void> _remove(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showConfirmDialog(
+      context: context,
+      title: widget.l10n.offlineColdigomRemoveConfirmTitle,
+      message: widget.l10n.offlineColdigomRemoveConfirmBody,
+    );
+    if (confirmed != true || !context.mounted) return;
+    final result = await ref
+        .read(offlineColdigomDownloadProvider.notifier)
+        .removeDownloads();
+    if (result == null || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          widget.l10n.offlineColdigomRemoved(
+            result.removedPdfs,
+            result.removedAudios,
+          ),
+        ),
+      ),
+    );
+    unawaited(
+      ref
+          .read(offlineCacheStatusProvider.notifier)
+          .refresh()
+          .catchError(
+            (Object e) => debugPrint('[offline] uso de disco não relido: $e'),
+          ),
+    );
+  }
+
+  List<Widget> _renderUnit({
+    required OfflineKindUnit unit,
+    required Set<String> selection,
+    required bool enabled,
+    required void Function(String) onToggle,
+    required void Function(String, MaterialKind, Set<MaterialKind>) onToggleType,
+    required void Function(OfflineKindFamilyUnit, MaterialKind) onToggleFamilyType,
+    bool isHighlighted = false,
+  }) {
+    switch (unit) {
+      case OfflineKindSingleUnit(:final kind):
+        return [
+          OfflineKindChip(
+            kind: kind,
+            l10n: widget.l10n,
+            checked: selection.contains(kind.kindId),
+            enabled: enabled,
+            selection: selection,
+            isHighlighted: isHighlighted,
+            onChanged: () => onToggle(kind.kindId),
+            onToggleType: (type) =>
+                onToggleType(kind.kindId, type, kind.effectiveTypes.keys.toSet()),
+          ),
+        ];
+      case OfflineKindFamilyUnit(:final parentId, :final children):
+        final childIds = [for (final c in children) c.kindId];
+        final state = materialKindFamilyState(parentId, childIds, selection);
+        final open = _open[parentId] ?? state == MaterialKindFamilyState.refined;
+        final familyChip = OfflineKindFamilyChip(
+          unit: unit,
+          state: state,
+          expanded: open,
+          enabled: enabled,
+          selection: selection,
+          isHighlighted: isHighlighted,
+          l10n: widget.l10n,
+          onToggle: () => onToggle(parentId),
+          onExpand: () => setState(() {
+            _open[parentId] = !open;
+          }),
+          expandTooltip: widget.l10n.materialKindShowVariants(unit.name),
+          bodyLabel: widget.l10n.materialKindFamilyVariantsLabel(
+            unit.name,
+            children.length,
+          ),
+          refinedValue: widget.l10n.materialKindFamilyRefinedValue,
+          onToggleType: (type) => onToggleFamilyType(unit, type),
+        );
+        if (!open) {
+          return [familyChip];
+        }
+        return [
+          OfflineKindFamilyGroup(
+            unit: unit,
+            familyChip: familyChip,
+            children: [
+              for (final child in children)
+                OfflineKindChip(
+                  kind: child,
+                  l10n: widget.l10n,
+                  checked: state == MaterialKindFamilyState.selected ||
+                      selection.contains(child.kindId),
+                  enabled: enabled,
+                  isHighlighted: isHighlighted ||
+                      (_searchQuery.isNotEmpty &&
+                          _matchesQuery(child.kindName, _searchQuery)),
+                  look: state == MaterialKindFamilyState.selected
+                      ? MaterialKindChipLook.included
+                      : (selection.contains(child.kindId)
+                          ? MaterialKindChipLook.selected
+                          : MaterialKindChipLook.normal),
+                  selection: selection,
+                  onChanged: () => onToggle(child.kindId),
+                  onToggleType: (type) =>
+                      onToggleType(child.kindId, type, child.effectiveTypes.keys.toSet()),
+                ),
+            ],
+          ),
+        ];
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final stats =
+        ref.watch(offlineColdigomStatsProvider).value ??
+        OfflineColdigomStats.empty;
+    final taxonomy = ref.watch(coldigomKindTaxonomyProvider);
+    final rank = widget.signedIn
+        ? ref.watch(favoriteMaterialKindRankProvider)
+        : const <String, int>{};
+    final favoriteIds = rank.keys.toList()
+      ..sort((a, b) => rank[a]!.compareTo(rank[b]!));
+    final favorites = [
+      for (final id in favoriteIds)
+        if (stats.byKind.containsKey(id)) stats.byKind[id]!,
+    ];
+    final others = [
+      for (final s in stats.byKind.values)
+        if (!rank.containsKey(s.kindId)) s,
+    ];
+
+    ref.watch(offlineColdigomKindSelectionProvider);
+    final selection = ref
+        .read(offlineColdigomKindSelectionProvider.notifier)
+        .effectiveSelection(
+          favoriteKindIds: favoriteIds,
+          availableKindIds: stats.byKind.keys.toSet(),
+        );
+
+    final selectedKindIds = {
+      for (final s in selection)
+        s.contains(':') ? s.split(':').first : s,
+    };
+    final effectiveKindIds = effectiveMaterialKindIds(selectedKindIds, taxonomy);
+    final pendingBytes = stats.pendingBytes(
+      effectiveKindIds,
+      selection: selection,
+      taxonomy: taxonomy,
+    );
+    final estimated = effectiveKindIds.any(
+      (id) => stats.byKind[id]?.hasEstimate ?? false,
+    );
+    final canInteract = !widget.busy && !widget.download.isActive;
+
+    void toggleKind(String kindId) {
+      unawaited(
+        ref
+            .read(offlineColdigomKindSelectionProvider.notifier)
+            .toggle(kindId, currentEffective: selection, taxonomy: taxonomy),
+      );
+    }
+
+    void toggleKindType(
+      String kindId,
+      MaterialKind type,
+      Set<MaterialKind> availableTypes,
+    ) {
+      unawaited(
+        ref
+            .read(offlineColdigomKindSelectionProvider.notifier)
+            .toggleType(
+              kindId,
+              type,
+              availableTypes: availableTypes,
+              currentEffective: selection,
+            ),
+      );
+    }
+
+    void toggleFamilyType(OfflineKindFamilyUnit unit, MaterialKind type) {
+      final isCurrentlySelected = isOfflineTypeSelected(
+        kindId: unit.headId,
+        type: type,
+        selection: selection,
+      );
+      for (final child in unit.children) {
+        if (child.effectiveTypes.containsKey(type)) {
+          final isChildTypeSelected = isOfflineTypeSelected(
+            kindId: child.kindId,
+            type: type,
+            selection: selection,
+          );
+          if (isChildTypeSelected == isCurrentlySelected) {
+            toggleKindType(
+              child.kindId,
+              type,
+              child.effectiveTypes.keys.toSet(),
+            );
+          }
+        }
+      }
+      if (unit.parentStats != null &&
+          unit.parentStats!.effectiveTypes.containsKey(type)) {
+        final isParentTypeSelected = isOfflineTypeSelected(
+          kindId: unit.parentId,
+          type: type,
+          selection: selection,
+        );
+        if (isParentTypeSelected == isCurrentlySelected) {
+          toggleKindType(
+            unit.parentId,
+            type,
+            unit.parentStats!.effectiveTypes.keys.toSet(),
+          );
+        }
+      }
+    }
+
+    final favoriteUnits = [
+      for (final kind in favorites) OfflineKindSingleUnit(kind),
+    ];
+    final otherSections = buildOfflineKindSections(
+      kinds: others,
+      taxonomy: taxonomy,
+    );
+
+    final hasQuery = _searchQuery.trim().isNotEmpty;
+    final displayedFavorites = (_filterOnlyMatches && hasQuery)
+        ? favoriteUnits.where((u) => _unitMatches(u, _searchQuery)).toList()
+        : favoriteUnits;
+
+    final displayedOtherSections = (_filterOnlyMatches && hasQuery)
+        ? otherSections
+            .map((s) => OfflineKindSection(
+                  classId: s.classId,
+                  label: s.label,
+                  units: s.units
+                      .where((u) => _unitMatches(u, _searchQuery))
+                      .toList(),
+                ))
+            .where((s) => s.units.isNotEmpty)
+            .toList()
+        : otherSections;
+
+    final totalOtherCount =
+        displayedOtherSections.fold(0, (sum, s) => sum + s.count);
+    final isOtherExpanded =
+        _otherKindsExpanded || (_filterOnlyMatches && hasQuery);
+
+    final result = widget.download.result;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SpotlightGuideTarget(
+          id: 'offline-search-bar',
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: widget.l10n.offlineSearchMaterialTypeHint,
+                      hintStyle: AppTypography.hint(),
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              tooltip: widget.l10n.offlineClearSearchTooltip,
+                              onPressed: () {
+                                setState(() {
+                                  _searchController.clear();
+                                  _searchQuery = '';
+                                });
+                              },
+                            )
+                          : null,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 9,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.card,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppColors.title.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppColors.title.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          color: AppColors.gold,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                    style: AppTypography.body.copyWith(fontSize: 13.5),
+                    onChanged: (val) {
+                      setState(() {
+                        _searchQuery = val;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  selected: _filterOnlyMatches,
+                  label: Text(widget.l10n.offlineFilterButton),
+                  avatar: Icon(
+                    _filterOnlyMatches
+                        ? Icons.filter_alt
+                        : Icons.filter_alt_outlined,
+                    size: 16,
+                    color: _filterOnlyMatches
+                        ? AppColors.title
+                        : AppColors.title.withValues(alpha: 0.7),
+                  ),
+                  selectedColor: AppColors.gold.withValues(alpha: 0.25),
+                  checkmarkColor: AppColors.title,
+                  labelStyle: AppTypography.label.copyWith(
+                    fontSize: 12,
+                    fontWeight:
+                        _filterOnlyMatches ? FontWeight.w700 : FontWeight.w500,
+                    color: AppColors.title,
+                  ),
+                  side: BorderSide(
+                    color: _filterOnlyMatches
+                        ? AppColors.gold
+                        : AppColors.title.withValues(alpha: 0.25),
+                    width: _filterOnlyMatches ? 1.5 : 1.0,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  onSelected: (selected) {
+                    setState(() {
+                      _filterOnlyMatches = selected;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        SpotlightGuideTarget(
+          id: 'offline-kinds-selection',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (widget.signedIn) ...[
+                OfflineClassHeader(
+                  label: widget.l10n.offlineColdigomFavoriteKinds,
+                  count: displayedFavorites.length,
+                ),
+                if (displayedFavorites.isEmpty)
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                    child: Text(
+                      _filterOnlyMatches && hasQuery
+                          ? 'Nenhum favorito encontrado para esta pesquisa'
+                          : widget.l10n.offlineColdigomNoFavorites,
+                      style: AppTypography.hint(),
+                    ),
+                  )
+                else
+                  Wrap(
+                    alignment: WrapAlignment.start,
+                    crossAxisAlignment: WrapCrossAlignment.start,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final unit in displayedFavorites)
+                        ..._renderUnit(
+                          unit: unit,
+                          selection: selection,
+                          enabled: canInteract,
+                          isHighlighted:
+                              hasQuery && _unitMatches(unit, _searchQuery),
+                          onToggle: toggleKind,
+                          onToggleType: toggleKindType,
+                          onToggleFamilyType: toggleFamilyType,
+                        ),
+                    ],
+                  ),
+                const SizedBox(height: 12),
+                if (displayedOtherSections.isNotEmpty) ...[
+                  _buildOtherKindsButton(
+                    totalCount: totalOtherCount,
+                    isExpanded: isOtherExpanded,
+                    onToggle: () {
+                      setState(() {
+                        _otherKindsExpanded = !_otherKindsExpanded;
+                      });
+                    },
+                  ),
+                  if (isOtherExpanded) ...[
+                    const SizedBox(height: 10),
+                    for (final section in displayedOtherSections) ...[
+                      if (taxonomy.classes.isNotEmpty)
+                        OfflineClassHeader(
+                          label: section.label ??
+                              widget.l10n.materialKindOtherClass,
+                          count: section.count,
+                        ),
+                      Wrap(
+                        alignment: WrapAlignment.start,
+                        crossAxisAlignment: WrapCrossAlignment.start,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final unit in section.units)
+                            ..._renderUnit(
+                              unit: unit,
+                              selection: selection,
+                              enabled: canInteract,
+                              isHighlighted:
+                                  hasQuery && _unitMatches(unit, _searchQuery),
+                              onToggle: toggleKind,
+                              onToggleType: toggleKindType,
+                              onToggleFamilyType: toggleFamilyType,
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                  ],
+                ],
+              ] else ...[
+                _sectionLabel(widget.l10n.offlineKindsAll),
+                for (final section in displayedOtherSections) ...[
+                  if (taxonomy.classes.isNotEmpty)
+                    OfflineClassHeader(
+                      label:
+                          section.label ?? widget.l10n.materialKindOtherClass,
+                      count: section.count,
+                    ),
+                  Wrap(
+                    alignment: WrapAlignment.start,
+                    crossAxisAlignment: WrapCrossAlignment.start,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final unit in section.units)
+                        ..._renderUnit(
+                          unit: unit,
+                          selection: selection,
+                          enabled: canInteract,
+                          isHighlighted:
+                              hasQuery && _unitMatches(unit, _searchQuery),
+                          onToggle: toggleKind,
+                          onToggleType: toggleKindType,
+                          onToggleFamilyType: toggleFamilyType,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ],
+              if (_filterOnlyMatches &&
+                  hasQuery &&
+                  displayedFavorites.isEmpty &&
+                  displayedOtherSections.isEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      widget.l10n.offlineSearchNoResults(_searchQuery),
+                      style: AppTypography.hint(),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (widget.download.isActive && widget.download.progress != null) ...[
+          if (widget.download.progress!.kindId.isNotEmpty) ...[
+            Text(
+              widget.l10n.offlineColdigomProgress(
+                stats.byKind[widget.download.progress!.kindId]?.kindName ?? '',
+                widget.download.progress!.doneInKind,
+                widget.download.progress!.totalInKind,
+              ),
+              style: AppTypography.body.copyWith(color: AppColors.title),
+            ),
+            Text(widget.download.progress!.currentTitle, style: AppTypography.hint()),
+            const SizedBox(height: 6),
+          ],
+          LinearProgressIndicator(
+            value: widget.download.progress!.total == 0
+                ? null
+                : widget.download.progress!.doneTotal /
+                    widget.download.progress!.total,
+          ),
+          const SizedBox(height: 12),
+        ],
+        SpotlightGuideTarget(
+          id: 'offline-download-actions',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton(
+                      onPressed:
+                          widget.busy ||
+                              widget.download.isActive ||
+                              widget.download.removing ||
+                              selection.isEmpty
+                          ? null
+                          : () => unawaited(
+                              _start(
+                                context,
+                                ref,
+                                effectiveKindIds,
+                                selection,
+                                pendingBytes,
+                                estimated,
+                                taxonomy: taxonomy,
+                              ),
+                            ),
+                      child: Text(
+                        widget.l10n.offlineColdigomDownloadSelected(
+                          coldigomSizeLabel(pendingBytes, estimated: estimated),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (widget.download.isActive) ...[
+                    const SizedBox(width: 12),
+                    OutlinedButton(
+                      onPressed: widget.download.isRunning
+                          ? ref.read(offlineColdigomDownloadProvider.notifier).stop
+                          : null,
+                      child: Text(
+                        widget.download.status ==
+                                OfflineColdigomDownloadStatus.cancelling
+                            ? widget.l10n.offlineStoppingDownload
+                            : widget.l10n.offlineColdigomStop,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (!widget.download.isActive &&
+                  result != null &&
+                  (result.cancelled || result.hasFailures)) ...[
+                const SizedBox(height: 6),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      _resultStatusText(widget.l10n, widget.download),
+                      style: AppTypography.hint(),
+                    ),
+                    TextButton(
+                      onPressed: widget.busy ||
+                              selection.isEmpty ||
+                              widget.download.removing
+                          ? null
+                          : () => unawaited(
+                              _start(
+                                context,
+                                ref,
+                                effectiveKindIds,
+                                selection,
+                                pendingBytes,
+                                estimated,
+                                taxonomy: taxonomy,
+                              ),
+                            ),
+                      child: Text(widget.l10n.offlineColdigomRetry),
+                    ),
+                  ],
+                ),
+              ],
+              Align(
+                alignment: Alignment.center,
+                child: TextButton(
+                  onPressed: widget.busy ||
+                          widget.download.isActive ||
+                          widget.download.removing
+                      ? null
+                      : () => unawaited(_remove(context, ref)),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.title),
+                  child: Text(widget.l10n.offlineColdigomRemove),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _sectionLabel(String text) => Padding(
+    padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
+    child: Text(
+      text,
+      style: AppTypography.label.copyWith(
+        color: AppColors.title,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
+}

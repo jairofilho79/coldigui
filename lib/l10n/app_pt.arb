@@ -1,24 +1,89 @@
 {
   "@@locale": "pt",
   "appTitle": "PLPCG",
+  "browserTitleLouvor": "{numero} — {nome} · PLPCG",
+  "@browserTitleLouvor": {
+    "description": "Título da aba do navegador no leitor/cifra com número (C14)",
+    "placeholders": {
+      "numero": {
+        "type": "String"
+      },
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "browserTitleLouvorSemNumero": "{nome} · PLPCG",
+  "@browserTitleLouvorSemNumero": {
+    "description": "Título da aba do navegador no leitor/cifra sem número (C14)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "browserTitleTab": "{label} · PLPCG",
+  "@browserTitleTab": {
+    "description": "Título da aba do navegador fora do leitor/cifra/áudio (C14)",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "searchHint": "Buscar por número ou título",
   "searchLabel": "Buscar",
   "searchClear": "Limpar busca",
   "@searchClear": {
     "description": "Tooltip do botão X dentro do SearchBar (UC-01 Home)"
   },
+  "searchFreshnessChecking": "Em cache · a verificar…",
+  "searchFreshnessUpdated": "Atualizado",
+  "searchFreshnessUpdatedNew": "{count, plural, one{Atualizado · 1 novo} other{Atualizado · {count} novos}}",
+  "@searchFreshnessUpdatedNew": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchFreshnessOffline": "Em cache · sem ligação",
+  "searchFreshnessFailed": "Em cache · não foi possível verificar",
+  "searchResultNew": "novo",
   "filtersTitle": "Filtros",
   "filtersTapToExpand": "Toque para ver mais",
+  "filtersActiveCount": "Filtros ({count})",
+  "@filtersActiveCount": {
+    "description": "Cabeçalho do painel de filtros com filtros ativos (gravados ou da URL) — {count} valores escolhidos",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filtersClear": "Limpar filtros",
+  "@filtersClear": {
+    "description": "Botão para limpar todos os filtros ativos de forma rápida no painel de filtros"
+  },
   "sharePdf": "Compartilhar",
   "savePdf": "Baixar",
   "pdfShareSuccess": "PDF pronto para compartilhar",
   "pdfSaveSuccess": "PDF salvo com sucesso",
   "pdfActionError": "Não foi possível concluir a ação",
+  "readerFullscreenTooltip": "Tela cheia (F)",
+  "readerExitFullscreenTooltip": "Sair da tela cheia (Esc)",
+  "readerFitModeTooltip": "Ajustar largura/página (Z)",
+  "readerGoToPageTitle": "Ir para página",
+  "readerGoToPageFieldLabel": "Número da página",
+  "readerGoToPageCancel": "Cancelar",
+  "readerGoToPageConfirm": "Ir",
   "louvorPdfDownloading": "Baixando...",
   "louvorPdfDownloadingWithProgress": "Baixando... {percent}%",
   "@louvorPdfDownloadingWithProgress": {
     "placeholders": {
-      "percent": { "type": "int" }
+      "percent": {
+        "type": "int"
+      }
     }
   },
   "libraryTitle": "Biblioteca",
@@ -48,16 +113,20 @@
       }
     }
   },
-  "specialArrangementPadrao": "Padrão",
-  "filtersSpecialArrangementTitle": "Arranjo especial",
-  "catalogRefreshAction": "Atualizar lista",
-  "catalogRefreshLabel": "Catálogo",
-  "catalogRefreshMessage": "Baixar a versão mais recente do catálogo",
-  "catalogRefreshSuccess": "Catálogo atualizado",
-  "catalogRefreshError": "Não foi possível atualizar o catálogo",
-  "catalogStaleBanner": "Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.",
+  "pageCurrent": "Página {page}",
+  "@pageCurrent": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
   "catalogLoadError": "Não foi possível carregar o catálogo",
-  "libraryResultsSummary": "Mostrando {from}–{to} de {total} louvores",
+  "retry": "Tentar novamente",
+  "storagePreparing": "Preparando o armazenamento local…",
+  "storageUnavailableTitle": "Armazenamento local indisponível",
+  "storageUnavailableBody": "Esta área precisa do banco local do app. O catálogo online e o leitor de PDF continuam disponíveis nas outras abas.",
+  "libraryResultsSummary": "Mostrando {from}–{to} de {total} resultados",
   "@libraryResultsSummary": {
     "placeholders": {
       "from": {
@@ -72,90 +141,68 @@
     }
   },
   "libraryResultsEmpty": "Nenhum louvor encontrado com os filtros atuais",
+  "coldigomFilterTonality": "Tom",
+  "coldigomFilterRhythm": "Ritmo",
+  "coldigomFilterTags": "Tags",
+  "coldigomFilterSubtags": "Subtags",
+  "coldigomFilterMaterials": "Materiais",
+  "materialTypeFilterLabel": "Tipo",
+  "materialTypeAll": "Todos",
+  "materialTypePdf": "PDF",
+  "materialTypeChord": "Cifra",
+  "materialTypeAudio": "Áudio",
+  "materialTypeYoutube": "YouTube",
+  "materialTypeGesture": "Gestos",
+  "materialKindOtherClass": "Outros",
+  "materialKindHiddenByType": "{count, plural, =1{1 material oculto pelo tipo} other{{count} materiais ocultos pelo tipo}}",
+  "@materialKindHiddenByType": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "materialKindShowVariants": "Ver variantes de {name}",
+  "@materialKindShowVariants": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "materialKindFamilyVariantsLabel": "{name}, {count, plural, =1{1 variante} other{{count} variantes}}",
+  "@materialKindFamilyVariantsLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "materialKindFamilyRefinedValue": "Parcialmente selecionado",
   "offlineTitle": "Offline",
-  "offlineSelectCategories": "Selecione as categorias",
-  "offlineDownloadSelected": "Baixar selecionados",
-  "offlineCancelDownload": "Cancelar",
-  "offlineResumeBanner": "Há um download offline interrompido.",
-  "offlineResumeDownload": "Retomar",
-  "offlineDismissCheckpoint": "Descartar",
-  "offlineDownloadCompleted": "Download offline concluído",
-  "offlineDownloadError": "Não foi possível concluir o download offline",
-  "offlineDownloadTimeout": "Conexão lenta. Toque em Retomar quando a rede melhorar.",
-  "offlineDownloadNetworkError": "Sem conexão. Verifique a internet e retome.",
-  "offlineKeepAppOpenDuringDownload": "Mantenha o app aberto durante o download.",
+  "offlineStoppingDownload": "Parando...",
   "offlineInsufficientDiskSpace": "Espaço em disco insuficiente para o download",
-  "offlinePhaseFetching": "baixando",
-  "offlinePhaseExtracting": "extraindo",
-  "offlinePhaseStoring": "armazenando",
-  "offlinePhaseSyncing": "sincronizando",
-  "offlineProgressDetail": "{category} — parte {part}/{totalParts} — {done}/{total} PDFs ({phase})",
-  "@offlineProgressDetail": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "part": { "type": "int" },
-      "totalParts": { "type": "int" },
-      "done": { "type": "int" },
-      "total": { "type": "int" },
-      "phase": { "type": "String" }
-    }
-  },
-  "offlineFetchProgress": "Baixando pacote {part}/{totalParts} — {received} / {total}",
-  "@offlineFetchProgress": {
-    "placeholders": {
-      "part": { "type": "int" },
-      "totalParts": { "type": "int" },
-      "received": { "type": "String" },
-      "total": { "type": "String" }
-    }
-  },
-  "offlineStatsTitle": "PDFs armazenados",
-  "offlineStatsTotal": "{count, plural, =0{Nenhum PDF offline} one{1 PDF offline} other{{count} PDFs offline}}",
-  "@offlineStatsTotal": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "offlineStatsCategory": "{category}: {count}",
-  "@offlineStatsCategory": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "count": { "type": "int" }
-    }
-  },
-  "offlineStatsCategoryWithMissing": "{category}: {downloaded} ({missing} faltantes)",
-  "@offlineStatsCategoryWithMissing": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "downloaded": { "type": "int" },
-      "missing": { "type": "int" }
-    }
-  },
-  "offlineStatsTotalMissing": "{count, plural, one{1 PDF faltante no total} other{{count} PDFs faltantes no total}}",
-  "@offlineStatsTotalMissing": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "offlineStatsMissingUnreliable": "Faltantes indisponíveis (sem conexão)",
+  "offlineStorageUnavailable": "Armazenamento local indisponível. Recarregue a página ou libere espaço.",
   "offlineStatsDiskUsage": "Acervo offline: {used} | Disponível: {free}",
   "@offlineStatsDiskUsage": {
     "placeholders": {
-      "used": { "type": "String" },
-      "free": { "type": "String" }
+      "used": {
+        "type": "String"
+      },
+      "free": {
+        "type": "String"
+      }
     }
   },
   "offlineStatsDiskUsageUsedOnly": "Acervo offline: {used}",
   "@offlineStatsDiskUsageUsedOnly": {
     "placeholders": {
-      "used": { "type": "String" }
-    }
-  },
-  "offlineStatsCategoryUnreliableMissing": "{category}: {downloaded} (— faltantes, sem conexão)",
-  "@offlineStatsCategoryUnreliableMissing": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "downloaded": { "type": "int" }
+      "used": {
+        "type": "String"
+      }
     }
   },
   "offlineRefreshStats": "Atualizar",
@@ -164,79 +211,103 @@
   "offlineRemovedBanner": "{count, plural, one{1 PDF deixou de estar disponível localmente} other{{count} PDFs deixaram de estar disponíveis localmente}}",
   "@offlineRemovedBanner": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
-  "offlineDownloadMissing": "Baixar faltantes",
-  "offlineMissingLouvoresSheetTitle": "{category} — faltantes",
-  "@offlineMissingLouvoresSheetTitle": {
-    "placeholders": {
-      "category": { "type": "String" }
-    }
-  },
-  "offlineMissingLouvoresEmpty": "Nenhum PDF faltante nesta categoria",
-  "offlineMissingLouvoresLoadError": "Não foi possível carregar os faltantes",
   "offlineDismissRemoved": "Dispensar",
-  "offlineClearCache": "Limpar cache offline",
-  "offlineClearCacheConfirmTitle": "Limpar cache offline?",
-  "offlineClearCacheConfirmBody": "Os PDFs baixados de {categories} serão removidos. Esta ação não pode ser desfeita.",
-  "@offlineClearCacheConfirmBody": {
-    "placeholders": {
-      "categories": { "type": "String" }
-    }
+  "pdfOfflineUnavailableMessage": "Este PDF não foi baixado para uso offline. Conecte-se à internet ou baixe o tipo dele em Offline → Baixar para usar offline.",
+  "pdfLocalReadFailedMessage": "Não foi possível ler o arquivo. Tente novamente.",
+  "@pdfLocalReadFailedMessage": {
+    "description": "PDF local existe mas a leitura falhou sem evidência de corrupção (B3) — arquivo é preservado, usuário pode tentar novamente"
   },
-  "offlineClearCacheConfirm": "Limpar",
-  "offlineClearCacheCancel": "Cancelar",
-  "offlineClearCacheSuccess": "Cache offline limpo",
-  "offlineClearCacheSuccessPartial": "Cache de {categories} limpo",
-  "@offlineClearCacheSuccessPartial": {
-    "placeholders": {
-      "categories": { "type": "String" }
-    }
+  "pdfExternallyDeleted": "O PDF foi removido do dispositivo. Conecte-se ou baixe o tipo dele de novo em Offline → Baixar para usar offline.",
+  "@pdfExternallyDeleted": {
+    "description": "PDF indexado cujo arquivo sumiu do disco e não deu para rebaixar (D.6)"
   },
-  "offlineMissingProgress": "Baixando faltantes: {done}/{total}",
-  "@offlineMissingProgress": {
-    "placeholders": {
-      "done": { "type": "int" },
-      "total": { "type": "int" }
-    }
+  "pdfLocalCorrupted": "O PDF salvo no dispositivo está corrompido. Baixe de novo para continuar.",
+  "@pdfLocalCorrupted": {
+    "description": "PDF em cache passou na validação de disco mas não abre no leitor (D.6)"
   },
-  "offlineMissingCompleted": "Download concluído: {downloaded} baixados, {failed} falhas",
-  "@offlineMissingCompleted": {
-    "placeholders": {
-      "downloaded": { "type": "int" },
-      "failed": { "type": "int" }
-    }
-  },
-  "offlineMissingError": "Não foi possível baixar os PDFs faltantes",
-  "pdfOfflineUnavailableMessage": "Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.",
   "pdfOfflineGoToSettings": "Baixar",
   "pdfOfflinePersistentTooltip": "Disponível offline (download garantido)",
   "pdfOfflineCachedLruTooltip": "Cache temporário — pode ser removido para liberar espaço",
   "carouselClear": "Limpar seleção",
   "carouselClearConfirmTitle": "Limpar seleção?",
-  "carouselClearConfirmMessage": "Todos os louvores serão removidos da seleção.",
+  "carouselClearConfirmMessage": "Nova Lista esvazia a seleção e mantém a lista atual. Apagar lista remove o rascunho permanentemente.",
+  "carouselClearCancel": "Cancelar",
+  "carouselClearNewList": "Nova Lista",
+  "carouselClearDeleteList": "Apagar lista",
   "carouselAdded": "Adicionado à seleção",
   "carouselAlreadyAdded": "Já está na seleção",
+  "materialRemoveTooltip": "Remover da lista",
+  "@materialRemoveTooltip": {
+    "description": "Tooltip do × no trailing do sheet de materiais quando o material já está na lista ativa"
+  },
+  "materialRemoveConfirmTitle": "Remover da lista?",
+  "materialRemoveConfirmMessage": "«{name}» sai da lista ativa.",
+  "@materialRemoveConfirmMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "materialRemoved": "Removido da lista",
   "carouselRemoveTooltip": "Remover",
   "carouselAddTooltip": "Adicionar à seleção",
-  "carouselSavePlaylist": "Salvar como lista",
   "carouselSharePlaylist": "Compartilhar",
   "@carouselSharePlaylist": {
-    "description": "Menu overflow e tooltip do botão compartilhar na barra do carousel (UC-07/UC-08)."
+    "description": "Tooltip do botão compartilhar na barra do carousel (UC-07/UC-08)."
   },
   "carouselGenerateLeaflet": "Gerar folheto",
-  "carouselOverflowMenu": "Mais ações",
-  "carouselOpenList": "Ver seleção",
+  "carouselOpen": "Abrir",
+  "carouselMaterial": "Material",
+  "carouselList": "Lista",
+  "carouselClearShort": "Limpar",
   "carouselListTitle": "Seleção temporária",
   "carouselListClose": "Fechar",
   "readerCarouselPrevious": "Louvor anterior",
   "readerCarouselNext": "Próximo louvor",
+  "readerSwitchMaterial": "Trocar material",
+  "@readerSwitchMaterial": {
+    "description": "Tooltip do ícone de troca de material na barra do leitor PDF"
+  },
+  "readerSwitchPraiseSwipe": "Deslize para trocar de versão",
+  "@readerSwitchPraiseSwipe": {
+    "description": "Dica de swipe no botão de trocar material para alternar entre versões do mesmo louvor"
+  },
+  "relatedPraisesTitle": "Versões",
+  "@relatedPraisesTitle": {
+    "description": "Título da seção de versões/praises relacionados no sheet de materiais"
+  },
+  "relatedPraisesSwapped": "Versão trocada: {tag}",
+  "@relatedPraisesSwapped": {
+    "description": "Mensagem exibida ao alternar a versão do louvor na playlist ativa",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "cardAddedSwapMaterial": "Adicionado à lista",
+  "@cardAddedSwapMaterial": {
+    "description": "Snackbar do «+» sempre visível do card de louvor (C5) — o material preferido foi adicionado à lista ativa"
+  },
+  "cardSwapMaterialAction": "Trocar material",
+  "@cardSwapMaterialAction": {
+    "description": "Ação da snackbar de `cardAddedSwapMaterial` — reabre o sheet de materiais no fluxo de troca da entrada recém-adicionada"
+  },
   "readerCarouselPosition": "{current} de {total}",
   "@readerCarouselPosition": {
     "placeholders": {
-      "current": { "type": "int" },
-      "total": { "type": "int" }
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "leafletGenerating": "Gerando folheto…",
@@ -247,6 +318,7 @@
   "leafletColumnName": "NOME DO HINO",
   "leafletFooterPeace": "A PAZ DO SENHOR JESUS CRISTO",
   "leafletFooterGreeting": "Bom culto!",
+  "leafletShareQrCaption": "Abrir lista no PLPCG",
   "leafletWeekdayMonday": "SEGUNDA-FEIRA",
   "leafletWeekdayTuesday": "TERÇA-FEIRA",
   "leafletWeekdayWednesday": "QUARTA-FEIRA",
@@ -266,51 +338,347 @@
   "playlistRenameTitle": "Renomear lista",
   "playlistRenameConfirm": "Salvar",
   "playlistDelete": "Excluir",
-  "playlistDeleteConfirmTitle": "Excluir lista?",
-  "playlistDeleteConfirmMessage": "Esta lista será removida permanentemente.",
+  "playlistDeletedUndo": "Lista removida",
+  "@playlistDeletedUndo": {
+    "description": "Snackbar depois de apagar uma lista, com ação Desfazer (C11)"
+  },
+  "playlistDuplicate": "Duplicar",
+  "@playlistDuplicate": {
+    "description": "Item do menu do tile que cria uma cópia da lista (C11)"
+  },
+  "playlistCopyName": "{nome} (cópia)",
+  "@playlistCopyName": {
+    "description": "Nome default da cópia criada por «Duplicar» (C11)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDraftLabel": "Rascunho",
+  "@playlistDraftLabel": {
+    "description": "Rótulo da lista ativa não salva na barra do carousel (C11)"
+  },
   "playlistFavoriteOn": "Marcar como favorita",
   "playlistFavoriteOff": "Remover dos favoritos",
   "playlistPdfCount": "{count, plural, =1{1 louvor} other{{count} louvores}}",
   "@playlistPdfCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
+  "playlistSheetCount": "{count, plural, =1{1 partitura} other{{count} partituras}}",
+  "@playlistSheetCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistAudioOnlyCount": "{count, plural, =1{1 áudio} other{{count} áudios}}",
+  "@playlistAudioOnlyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistEmptyCount": "Vazia",
   "playlistDeleteLastPdfTitle": "Remover último louvor?",
   "playlistDeleteLastPdfMessage": "A lista ficará vazia e será excluída.",
-  "playlistLoadIntoCarousel": "Carregar no carousel",
+  "playlistActivate": "Editar por aqui",
   "playlistOpenInReader": "Abrir no leitor",
-  "playlistLoadConfirmTitle": "Substituir seleção?",
-  "playlistLoadConfirmMessage": "A seleção atual será substituída pelos louvores desta lista.",
-  "playlistLoaded": "Lista carregada no carousel",
+  "playlistOpenInAudioPlayer": "Abrir no reprodutor",
+  "playlistAudioEmpty": "Esta lista não tem áudios.",
+  "audioPlayerTitle": "Áudio",
+  "pdfMaterialSection": "Partituras",
+  "audioMaterialSection": "Áudio",
+  "youtubeMaterialSection": "YouTube",
+  "chordMaterialSection": "Cifras",
+  "chordUnavailableRetry": "Cifra indisponível · tentar de novo",
+  "materialNotDownloadedOffline": "Não baixado · sem ligação",
+  "materialNeedsConnection": "Precisa de ligação",
+  "materialSheetOfflineBanner": "Sem ligação · só o que está no aparelho abre",
+  "playlistStorageUnavailable": "Armazenamento local indisponível. Listas não podem ser salvas.",
+  "liveFollowingCannotEdit": "Você está seguindo a lista de outra pessoa — saia da sessão para editar a sua",
+  "@liveFollowingCannotEdit": {
+    "description": "Snackbar ao tentar editar a lista ativa enquanto ela é a projeção de um gestor ao vivo (spec lista-ao-vivo D4)"
+  },
+  "chordReaderUnavailable": "Cifra ainda não disponível",
+  "chordReaderToggleTheme": "Alternar tema do leitor",
+  "chordReaderIncreaseFont": "Aumentar letra",
+  "chordReaderDecreaseFont": "Diminuir letra",
+  "chordReaderTransposeUp": "Subir meio tom",
+  "chordReaderTransposeDown": "Descer meio tom",
+  "chordReaderResetTranspose": "Voltar ao tom original",
+  "gestureNotFound": "gesto não encontrado",
+  "gesturesMaterialLabel": "Gestos",
+  "gesturesMaterialSection": "Gestos",
+  "gesturesReaderTitle": "Leitor de gestos",
+  "gesturesReaderEmpty": "Este louvor ainda não tem gestos",
+  "gesturesReaderUnavailable": "Gestos indisponíveis · tentar de novo",
+  "gesturesReaderIncreaseFont": "Aumentar letra dos gestos",
+  "gesturesReaderDecreaseFont": "Diminuir letra dos gestos",
+  "gesturesReaderFullscreen": "Tela cheia",
+  "gesturesNewerSchemaWarning": "Documento em formato mais novo; atualize o app.",
+  "gestureInstructionInstruments": "Instrumentos",
+  "gestureInstructionRepeatPraise": "Repetir o louvor",
+  "gestureInstructionBackToChorus": "Voltar ao coro",
+  "gestureInstructionBackToChorusAndFinish": "Voltar ao coro e finalizar",
+  "gestureContextRepeat": "{count}x",
+  "@gestureContextRepeat": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gestureContextChorus": "CORO",
+  "gestureContextFinal": "FINAL",
+  "gestureContextLink": "ligação",
+  "gestureFocusNext": "próximo:",
+  "gestureFocusEnd": "fim",
+  "gestureFocusClose": "Fechar",
+  "gestureSectionChorus": "coro",
+  "gestureSectionVerse": "estrofe",
+  "gestureSectionPass": "{n}ª vez",
+  "@gestureSectionPass": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "gesturesReaderToggleTheme": "Alternar tema do leitor",
+  "gesturesReaderLinear": "Mudar para leitura linear",
+  "gesturesReaderStructured": "Mudar para leitura estruturada",
+  "gesturesAutoscrollPlay": "Iniciar rolagem automática",
+  "gesturesAutoscrollPause": "Pausar rolagem automática",
+  "gesturesAutoscrollSpeed": "Velocidade da rolagem: {speed}",
+  "@gesturesAutoscrollSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "int"
+      }
+    }
+  },
+  "chordAutoscrollPlay": "Iniciar rolagem automática",
+  "chordAutoscrollPause": "Pausar rolagem automática",
+  "chordAutoscrollSpeed": "Velocidade da rolagem: {speed}",
+  "@chordAutoscrollSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "int"
+      }
+    }
+  },
+  "lyricsAutoscrollPlay": "Iniciar rolagem automática",
+  "lyricsAutoscrollPause": "Pausar rolagem automática",
+  "lyricsAutoscrollSpeed": "Velocidade da rolagem: {speed}",
+  "@lyricsAutoscrollSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "int"
+      }
+    }
+  },
+  "autoscrollSpeedTooltip": "Velocidade da rolagem",
+  "autoscrollSlow": "Lento",
+  "autoscrollFast": "Rápido",
+  "autoscrollClose": "Fechar ajuste de velocidade",
+  "coldigomMetaTonality": "Tom",
+  "coldigomMetaAuthor": "Autor",
+  "coldigomMetaRhythm": "Ritmo",
+  "coldigomMetaBiblical": "Iluminação Bíblica",
+  "coldigomMetaTags": "Tags",
+  "coldigomMetaMoreDetails": "Mais detalhes",
+  "coldigomMetaLessDetails": "Menos detalhes",
+  "youtubeOpenError": "Não foi possível abrir o YouTube",
+  "audioPlay": "Reproduzir",
+  "audioPause": "Pausar",
+  "audioPrevious": "Anterior",
+  "audioNext": "Próximo",
+  "audioSeekBack10": "Voltar 10 s",
+  "@audioSeekBack10": {
+    "description": "Tooltip do botão que volta 10 s no áudio (C12)"
+  },
+  "audioSeekForward10": "Avançar 10 s",
+  "@audioSeekForward10": {
+    "description": "Tooltip do botão que avança 10 s no áudio (C12)"
+  },
+  "audioSpeed": "Velocidade de reprodução",
+  "@audioSpeed": {
+    "description": "Tooltip do menu de velocidade de reprodução (C12)"
+  },
+  "audioSpeedValue": "{value}×",
+  "@audioSpeedValue": {
+    "description": "Rótulo de uma velocidade de reprodução no menu, ex.: 1,25× (C12)",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "miniPlayerPrevious": "Faixa anterior",
+  "@miniPlayerPrevious": {
+    "description": "Tooltip do botão de faixa anterior no mini-player persistente (D5)"
+  },
+  "miniPlayerNext": "Próxima faixa",
+  "@miniPlayerNext": {
+    "description": "Tooltip do botão de próxima faixa no mini-player persistente (D5)"
+  },
+  "miniPlayerOpenScreen": "Abrir tela do áudio",
+  "@miniPlayerOpenScreen": {
+    "description": "Tooltip do botão que abre a tela cheia do áudio (/audio) a partir do mini-player persistente — única forma de voltar a ela depois que a barra sem faces (D5) parou de expor essa ação"
+  },
+  "miniPlayerBackToReading": "Voltar à leitura",
+  "@miniPlayerBackToReading": {
+    "description": "Tooltip do botão do mini-player que, na tela de áudio (/audio), substitui «abrir» e volta à partitura/cifra do louvor da faixa (troca a rota, não empilha)"
+  },
+  "miniPlayerClose": "Fechar áudio",
+  "@miniPlayerClose": {
+    "description": "Tooltip do botão do mini-player que encerra a reprodução e fecha a barra de áudio"
+  },
+  "audioClosePlayer": "Encerrar e voltar à busca",
+  "audioOpenSheetMusic": "Partitura/cifra deste louvor",
+  "@audioOpenSheetMusic": {
+    "description": "Tooltip do botão que abre no leitor o material do louvor da faixa tocando"
+  },
+  "audioFollowReader": "Seguir o áudio",
+  "@audioFollowReader": {
+    "description": "Tooltip do toggle que troca o material do leitor quando a faixa muda"
+  },
+  "audioFlagAdd": "Adicionar marcador",
+  "audioFlagAddTitle": "Novo marcador",
+  "audioFlagLabelHint": "Rótulo opcional",
+  "audioFlagCancel": "Cancelar",
+  "audioFlagSave": "Salvar",
+  "audioFlagListTitle": "Marcadores",
+  "audioFlagListEmpty": "Nenhum marcador. Pause e toque no botão de bandeira.",
+  "audioFlagDelete": "Remover marcador",
+  "audioFlagsSyncFailed": "Marcadores não sincronizados",
+  "@audioFlagsSyncFailed": {
+    "description": "Título da linha de erro de sync de marcadores no player de áudio"
+  },
+  "audioPlaybackError": "Não foi possível reproduzir este áudio.",
+  "audioNotDownloaded": "Este áudio não foi baixado — sem ligação, só o que está no aparelho toca",
+  "audioWebBackgroundNotice": "Na Web, a reprodução em segundo plano e os controles do sistema dependem do navegador — isso não é um bug do app.",
+  "audioWebPlatformHintTooltip": "Sobre reprodução na Web",
+  "@audioWebPlatformHintTooltip": {
+    "description": "Tooltip do ícone no player que revela o aviso de segundo plano na Web"
+  },
+  "audioWebIosPwaNotice": "No iPhone com o app instalado na tela inicial, o áudio pode pausar ao bloquear a tela ou trocar de app. Mantenha o app aberto para ouvir.",
+  "playlistActivated": "Lista «{nome}» ativa",
+  "@playlistActivated": {
+    "description": "Snackbar depois de tornar uma lista a lista ativa",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "undo": "Desfazer",
+  "@undo": {
+    "description": "Ação de desfazer em snackbars"
+  },
   "playlistEmptyPdfList": "Esta lista não tem louvores.",
+  "playlistGoLive": "Iniciar ao vivo",
+  "@playlistGoLive": {
+    "description": "Item do menu da lista salva: começa a transmitir a lista ao vivo (spec lista-ao-vivo)"
+  },
   "playlistShare": "Compartilhar",
   "playlistImport": "Importar lista",
+  "liveJoinRoom": "Entrar na sala",
+  "@liveJoinRoom": {
+    "description": "FAB da tela de listas: abre o diálogo para colar o link/código de uma sala ao vivo"
+  },
+  "liveJoinRoomTitle": "Entrar numa sala ao vivo",
+  "liveJoinRoomInputLabel": "Link ou código da sala",
+  "liveJoinRoomInvalid": "Link ou código de sala inválido",
+  "liveJoinRoomConfirm": "Entrar",
   "playlistImportTitle": "Importar lista compartilhada",
   "playlistImportUrlLabel": "URL ou link compartilhado",
   "playlistImportPaste": "Colar",
   "playlistImportConfirm": "Importar",
+  "playlistSyncFailed": "Não foi possível sincronizar suas listas",
+  "playlistSyncConflicts": "{count, plural, one{1 lista em conflito} other{{count} listas em conflito}}",
+  "@playlistSyncConflicts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistConflictCopySaved": "Edições locais de «{nome}» guardadas em «{copia}»",
+  "@playlistConflictCopySaved": {
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      },
+      "copia": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistsRemovedRemotely": "{count, plural, one{1 lista removida em outro aparelho} other{{count} listas removidas em outro aparelho}}",
+  "@playlistsRemovedRemotely": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "playlistImported": "Lista importada",
-  "playlistImportInvalidUrl": "Link inválido. Use uma URL com sharepdfs e sharename.",
+  "playlistImportedWithSkipped": "Lista importada — {count, plural, one{1 louvor ficou de fora} other{{count} louvores ficaram de fora}}",
+  "@playlistImportedWithSkipped": {
+    "description": "Snackbar do import de link quando louvores do link não entraram (fora do catálogo local ou sem material adicionável)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistImportAlreadySaved": "Lista já estava salva: {nome}",
+  "@playlistImportAlreadySaved": {
+    "description": "Snackbar ao importar um link de share cujo conteúdo já é uma lista salva (dedupe, D7)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistImportInvalidUrl": "Link inválido.",
+  "deepLinkImportFailed": "Não foi possível importar a lista compartilhada.",
+  "playlistShareLegacyLinkUnsupported": "Este link é de uma versão antiga e já não abre. Peça um link novo à pessoa.",
+  "@playlistShareLegacyLinkUnsupported": {
+    "description": "Snackbar ao abrir ou colar um link de lista antigo (?s=, sharepdfs, shareitems…) — spec fim-fonte-plpcg §4.4"
+  },
   "playlistShareError": "Não foi possível compartilhar a lista.",
+  "playlistShareSkippedEntries": "{count, plural, one{1 item da lista ficou fora do link} other{{count} itens da lista ficaram fora do link}}",
+  "@playlistShareSkippedEntries": {
+    "description": "Snackbar depois de partilhar o link quando entradas legadas (fora do acervo Coldigom) ficaram fora dele",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "playlistShareSheetTitle": "Compartilhar",
   "playlistShareOptionLink": "Só o link",
   "playlistShareOptionLinkSubtitle": "Quem receber importa a lista no PLPCG",
-  "playlistShareOptionLeaflet": "Só o folheto",
-  "playlistShareOptionLeafletSubtitle": "Imagem com a lista de louvores",
-  "playlistShareOptionLinkWithLeaflet": "Link com folheto",
-  "playlistShareOptionLinkWithLeafletSubtitle": "Imagem e link na mesma mensagem",
-  "playlistShareOptionWhatsApp": "Link + folheto",
-  "playlistShareOptionWhatsAppSubtitle": "Para WhatsApp — envia foto e depois o link",
-  "playlistShareWhatsAppStepTitle": "Envie o link",
-  "playlistShareWhatsAppStepMessage": "Envie o link no mesmo chat em que você mandou o folheto.",
-  "playlistShareWhatsAppStepContinue": "Enviar link",
-  "playlistShareWhatsAppStepCancel": "Agora não",
+  "playlistShareOptionLinkWithLeaflet": "Folheto",
+  "playlistShareOptionLinkWithLeafletSubtitle": "Imagem da lista com o link e QR code",
   "playlistShareLinkWithLeafletMessage": "{name}\n\n{url}",
   "@playlistShareLinkWithLeafletMessage": {
     "placeholders": {
-      "name": { "type": "String" },
-      "url": { "type": "String" }
+      "name": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
     }
   },
   "playlistTabUnsaved": "Não Salvas",
@@ -324,11 +692,23 @@
   "playlistDeleteAllUnsavedTitle": "Apagar todas as listas não salvas?",
   "playlistDeleteAllUnsavedMessage": "Todas as listas da aba Não Salvas serão removidas permanentemente.",
   "playlistDeleteAllUnsavedDone": "Listas não salvas apagadas",
+  "playlistPublish": "Publicar",
+  "playlistPublishTitle": "Publicar lista?",
+  "playlistPublishMessage": "Publicar é irreversível. Para remover a publicação, exclua a lista.",
+  "playlistPublishConfirm": "Publicar",
+  "playlistPublishCancel": "Cancelar",
+  "playlistPublishCategoryLabel": "Categoria",
+  "playlistPublishReachLabel": "Alcance",
+  "playlistPublishReachUsual": "Usual",
+  "playlistPublishReachPontual": "Pontual",
+  "playlistPublishCategoryRequired": "Escolha uma categoria para publicar.",
+  "playlistPublished": "Lista publicada",
+  "playlistPublicBadge": "Pública",
+  "playlistCategoryEvangelizacao": "Evangelização",
+  "playlistCategoryAprendizado": "Aprendizado",
+  "playlistCategoryMedleys": "Medleys",
+  "playlistCategoryCultoEspecial": "Culto especial",
   "playlistClearSavedBlocked": "Listas salvas não podem ser limpas pela barra. Use o menu da lista.",
-  "playlistOpenLouvorChoiceTitle": "Como adicionar à lista?",
-  "playlistOpenLouvorChoiceMessage": "Este louvor não está na lista atual. Como deseja continuar?\n\nAo criar uma nova lista, a lista atual não será perdida — ela permanecerá em Listas não salvas.",
-  "playlistOpenLouvorChoiceAddToCurrent": "Adicionar à lista atual",
-  "playlistOpenLouvorChoiceCreateNew": "Criar nova lista",
   "louvorGroupMetadataSummary": "{entryCount, plural, one{1 entrada} other{{entryCount} entradas}} com {arrangementCount, plural, one{1 arranjo} other{{arrangementCount} arranjos}}",
   "@louvorGroupMetadataSummary": {
     "description": "Subtítulo do card quando o louvor agrupa vários PDFs (Home/Biblioteca)",
@@ -340,5 +720,1163 @@
         "type": "int"
       }
     }
-  }
+  },
+  "usernameCreateButton": "Criar nome de usuário",
+  "usernameCreateTitle": "Criar nome de usuário",
+  "usernameCreateMessage": "Escolha um nome de usuário único no app. Ele identifica você e suas listas públicas. Use 3 a 30 caracteres: letras minúsculas, números ou _.",
+  "usernameCreatePrompt": "Cadastre um nome de usuário para publicar listas.",
+  "usernameFieldLabel": "Nome de usuário",
+  "usernameFieldHint": "ex.: maria_silva",
+  "usernameCreateCancel": "Cancelar",
+  "usernameCreateConfirm": "Salvar",
+  "usernameErrorInvalid": "Use 3–30 caracteres: a-z, 0-9 ou _.",
+  "usernameErrorTaken": "Esse nome de usuário já está em uso.",
+  "usernameErrorAlreadySet": "Você já tem um nome de usuário.",
+  "usernameErrorGeneric": "Não foi possível salvar. Tente novamente.",
+  "usernameRequiredToPublish": "Cadastrar Nome de Usuário",
+  "socialSearchHint": "Buscar pessoa por nome de usuário",
+  "socialSearchEmptyHint": "Digite um nome de usuário para encontrar pessoas.",
+  "socialSearchNoResults": "Nenhuma pessoa encontrada.",
+  "socialSearchError": "Não foi possível buscar. Tente novamente.",
+  "publicPlaylistsTitle": "Listas públicas",
+  "socialSignInRequired": "Entre com o Google para explorar as listas públicas.",
+  "socialPlaylistCount": "{count, plural, one{1 lista} other{{count} listas}}",
+  "@socialPlaylistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "socialPlaylistsError": "Não foi possível carregar as listas.",
+  "socialPlaylistsEmpty": "Este perfil ainda não tem listas públicas.",
+  "socialCategoryOther": "Outras",
+  "socialPlaylistImported": "{count, plural, one{1 louvor adicionado à sua lista} other{{count} louvores adicionados à sua lista}}",
+  "@socialPlaylistImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "socialPlaylistImportNone": "Nenhum louvor novo para adicionar.",
+  "deferredLoaderLoading": "Carregando…",
+  "deferredLoaderError": "Não foi possível carregar esta seção.",
+  "deferredLoaderRetry": "Tentar novamente",
+  "authSignInUnavailable": "Login indisponível no momento.",
+  "authSignInRetry": "Tentar novamente",
+  "authSignInWithGoogle": "Entrar com o Google",
+  "authSignInContextMismatchTitle": "Não conseguimos concluir o login",
+  "authSignInContextMismatchBody": "O Google respondeu em outra janela. Toque para tentar novamente.",
+  "authSignInOpenInBrowserHint": "Se continuar, abra v2.plpcg.com no Safari.",
+  "errorNoConnection": "Sem conexão com a internet. Verifique sua rede e tente de novo.",
+  "@errorNoConnection": {
+    "description": "userMessageFor: DioException de conexão (C.5)"
+  },
+  "errorTimeout": "A conexão demorou demais. Tente de novo.",
+  "@errorTimeout": {
+    "description": "userMessageFor: DioException de timeout (C.5)"
+  },
+  "errorServer": "O servidor está indisponível no momento. Tente de novo em instantes.",
+  "@errorServer": {
+    "description": "userMessageFor: resposta 5xx do Worker (C.5)"
+  },
+  "errorSessionExpired": "Sua sessão expirou. Entre novamente para continuar.",
+  "@errorSessionExpired": {
+    "description": "userMessageFor: 401/403 ou AuthUnauthorizedException (C.5)"
+  },
+  "errorGeneric": "Não foi possível concluir a ação. Tente de novo.",
+  "@errorGeneric": {
+    "description": "userMessageFor: fallback para erro não classificado (C.5)"
+  },
+  "failureNetwork": "Sem conexão com a internet. Verifique sua rede e tente de novo.",
+  "@failureNetwork": {
+    "description": "failureMessage (E8): NetworkFailure — DioException sem resposta, SocketException"
+  },
+  "failureOffline": "Este PDF não foi baixado para uso offline. Conecte-se à internet ou baixe o tipo dele em Offline → Baixar para usar offline.",
+  "@failureOffline": {
+    "description": "failureMessage (E8): OfflineFailure — PdfOfflineUnavailableException"
+  },
+  "failureNotFound": "Não foi possível encontrar. O item pode ter sido removido.",
+  "@failureNotFound": {
+    "description": "failureMessage (E8): NotFoundFailure — HTTP 404, PlaylistNotFoundException, PdfExternallyDeletedException"
+  },
+  "failureStorage": "Armazenamento local indisponível. Recarregue a página ou libere espaço.",
+  "@failureStorage": {
+    "description": "failureMessage (E8): StorageFailure — StorageUnavailableException, PdfStorageWriteException, InsufficientDiskSpaceException, PdfLocalCorruptedException"
+  },
+  "failureAuth": "Sua sessão expirou. Entre novamente para continuar.",
+  "@failureAuth": {
+    "description": "failureMessage (E8): AuthFailure — HTTP 401/403"
+  },
+  "failureConflict": "Conflito de sincronização. Tente novamente.",
+  "@failureConflict": {
+    "description": "failureMessage (E8): ConflictFailure — HTTP 409, PlaylistConflictException, AudioFlagConflictException"
+  },
+  "failureUnknown": "Não foi possível concluir a ação. Tente de novo.",
+  "@failureUnknown": {
+    "description": "failureMessage (E8): UnknownFailure — fallback para erro não classificado"
+  },
+  "homeEmptyHint": "Busque por título ou número",
+  "@homeEmptyHint": {
+    "description": "Hint da Home sem consulta nem lista ativa/recentes (C4)"
+  },
+  "homeEmptyRecent": "Abertos recentemente",
+  "@homeEmptyRecent": {
+    "description": "Título das chips de materiais recentes na Home sem consulta (C4)"
+  },
+  "homeNoResults": "Nenhum louvor para «{query}»",
+  "@homeNoResults": {
+    "description": "Título da Home quando a busca não encontrou nada (C4)",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "homeNoResultsTips": "Tente outro termo, ou confira o número e a grafia.",
+  "@homeNoResultsTips": {
+    "description": "Dicas da Home quando a busca não encontrou nada (C4)"
+  },
+  "homeClearFilters": "Limpar filtros",
+  "@homeClearFilters": {
+    "description": "Botão da Home sem resultado, visível só com filtro fora do padrão (C4)"
+  },
+  "homeColdigomOffline": "Sem conexão — o catálogo pode estar incompleto nesta busca.",
+  "@homeColdigomOffline": {
+    "description": "Aviso da página inicial sem resultado quando a busca remota não foi chamada por falta de rede e o catálogo local está vazio (spec fim-fonte §9.2)"
+  },
+  "favoriteMaterialKindsTitle": "Materiais favoritos",
+  "favoriteMaterialKindsHelp": "Escolha até {max} tipos de material. Eles aparecem primeiro ao abrir um louvor.",
+  "@favoriteMaterialKindsHelp": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "favoriteMaterialKindsYours": "Seus favoritos ({count} de {max})",
+  "@favoriteMaterialKindsYours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "favoriteMaterialKindsEmpty": "Nenhum favorito ainda",
+  "favoriteMaterialKindsAdd": "Adicionar",
+  "favoriteMaterialKindsSearchHint": "Buscar tipo de material",
+  "favoriteMaterialKindsLimitReached": "Limite de {max} — remova um para trocar",
+  "@favoriteMaterialKindsLimitReached": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "favoriteMaterialKindsSignInPrompt": "Entre com Google para escolher seus materiais favoritos.",
+  "favoriteMaterialKindsSyncPending": "Sincronização pendente",
+  "favoriteMaterialKindsRemoveTooltip": "Remover dos favoritos",
+  "favoriteMaterialKindsAddTooltip": "Adicionar aos favoritos",
+  "favoriteMaterialKindsUnknownKind": "Desconhecido",
+  "favoriteMaterialKindsLoadError": "Não foi possível carregar os tipos de material",
+  "favoriteMaterialKindsRetry": "Tentar de novo",
+  "favoriteMaterialKindsNoMatch": "Nenhum tipo com esse nome",
+  "favoriteMaterialKindsTypePreferenceTooltip": "Escolher formato preferido",
+  "favoriteMaterialKindsTypePreferenceTitle": "Formato preferido de {kind}",
+  "@favoriteMaterialKindsTypePreferenceTitle": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "favoriteMaterialKindsTypePreferenceHelp": "Arraste para ordenar — o primeiro da lista é o formato preferido.",
+  "liveFollowing": "Seguindo {owner} · {list}",
+  "@liveFollowing": {
+    "description": "Banner do consumidor numa sessão ao vivo",
+    "placeholders": {
+      "owner": {
+        "type": "String"
+      },
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "liveLeaderAway": "gestor ausente",
+  "@liveLeaderAway": {
+    "description": "Sufixo do banner do consumidor quando o gestor está ausente"
+  },
+  "liveWaitingFor": "Aguardando {owner}",
+  "@liveWaitingFor": {
+    "description": "Banner do consumidor numa sala ainda sem transmissão",
+    "placeholders": {
+      "owner": {
+        "type": "String"
+      }
+    }
+  },
+  "liveReconnecting": "Reconectando…",
+  "@liveReconnecting": {
+    "description": "Banner de sessão ao vivo tentando reconectar"
+  },
+  "liveReturnToLeader": "Voltar ao gestor",
+  "@liveReturnToLeader": {
+    "description": "Ação do banner do consumidor para voltar a seguir o foco do gestor (D3)"
+  },
+  "liveLeave": "Sair",
+  "@liveLeave": {
+    "description": "Ação do banner de sessão ao vivo para sair da sala"
+  },
+  "liveOnAir": "AO VIVO · {viewers}",
+  "@liveOnAir": {
+    "description": "Banner do gestor; viewers = pessoas conectadas",
+    "placeholders": {
+      "viewers": {
+        "type": "int"
+      }
+    }
+  },
+  "liveRoom": "Sala",
+  "@liveRoom": {
+    "description": "Ação do banner do gestor para abrir a tela da sala ao vivo"
+  },
+  "liveEnd": "Encerrar",
+  "@liveEnd": {
+    "description": "Ação do banner de sessão ao vivo para encerrar a transmissão"
+  },
+  "liveEndConfirmTitle": "Encerrar a sessão ao vivo?",
+  "@liveEndConfirmTitle": {
+    "description": "Título da confirmação de encerramento da sessão ao vivo"
+  },
+  "liveEndConfirmBody": "Todos os que estão seguindo vão parar de receber a lista.",
+  "@liveEndConfirmBody": {
+    "description": "Corpo da confirmação de encerramento da sessão ao vivo"
+  },
+  "liveReplacedElsewhere": "Sessão assumida em outro dispositivo",
+  "@liveReplacedElsewhere": {
+    "description": "Banner do gestor quando outro dispositivo assumiu a sessão ao vivo"
+  },
+  "liveOk": "OK",
+  "@liveOk": {
+    "description": "Ação genérica de confirmação do banner de sessão ao vivo"
+  },
+  "liveWasLive": "Você estava ao vivo com «{list}»",
+  "@liveWasLive": {
+    "description": "Banner de sessão de gestor pendente encontrada no boot (§7)",
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "liveResume": "Retomar",
+  "@liveResume": {
+    "description": "Ação do banner de sessão de gestor pendente para retomar a transmissão"
+  },
+  "liveJoining": "Entrando…",
+  "@liveJoining": {
+    "description": "Tela da sala ao vivo: estado enquanto conecta"
+  },
+  "liveUnavailableTitle": "Não foi possível conectar à sessão",
+  "@liveUnavailableTitle": {
+    "description": "Tela da sala ao vivo: título quando a conexão falha de vez"
+  },
+  "liveUnavailableBody": "Esta rede pode bloquear conexões ao vivo. Tente outra rede ou peça o link da lista pública.",
+  "@liveUnavailableBody": {
+    "description": "Tela da sala ao vivo: corpo quando a conexão falha de vez"
+  },
+  "liveRetry": "Tentar de novo",
+  "@liveRetry": {
+    "description": "Tela da sala ao vivo: ação para tentar conectar de novo"
+  },
+  "liveNotFound": "Este link não existe ou foi substituído por um novo.",
+  "@liveNotFound": {
+    "description": "Tela da sala ao vivo: sala inexistente ou substituída"
+  },
+  "liveIdleTitle": "{owner} não está ao vivo agora",
+  "@liveIdleTitle": {
+    "description": "Tela da sala ao vivo: consumidor numa sala ainda sem transmissão",
+    "placeholders": {
+      "owner": {
+        "type": "String"
+      }
+    }
+  },
+  "liveIdleBody": "Fique por aqui — quando começar, você entra sozinho.",
+  "@liveIdleBody": {
+    "description": "Tela da sala ao vivo: corpo do estado idle do consumidor"
+  },
+  "liveFollowingTitle": "Você está seguindo {owner}",
+  "@liveFollowingTitle": {
+    "description": "Tela da sala ao vivo: consumidor seguindo a transmissão",
+    "placeholders": {
+      "owner": {
+        "type": "String"
+      }
+    }
+  },
+  "liveGoToList": "Ir para a lista",
+  "@liveGoToList": {
+    "description": "Tela da sala ao vivo: ação do consumidor para ir para a lista ativa"
+  },
+  "liveEndedTitle": "Sessão encerrada",
+  "@liveEndedTitle": {
+    "description": "Tela da sala ao vivo: título quando a sessão terminou"
+  },
+  "liveSaveCopy": "Guardar cópia",
+  "@liveSaveCopy": {
+    "description": "Tela da sala ao vivo: ação para guardar uma cópia da lista do gestor (D4)"
+  },
+  "liveCopyName": "{list} (ao vivo com {owner})",
+  "@liveCopyName": {
+    "description": "Nome dado à cópia salva de uma lista ao vivo",
+    "placeholders": {
+      "list": {
+        "type": "String"
+      },
+      "owner": {
+        "type": "String"
+      }
+    }
+  },
+  "liveCopySaved": "Cópia guardada em Listas",
+  "@liveCopySaved": {
+    "description": "Confirmação depois de guardar a cópia da lista ao vivo"
+  },
+  "liveLeftTitle": "Você saiu da sessão",
+  "@liveLeftTitle": {
+    "description": "Tela da sala ao vivo: título depois de sair da sala"
+  },
+  "liveJoinAgain": "Entrar de novo",
+  "@liveJoinAgain": {
+    "description": "Tela da sala ao vivo: ação para voltar a entrar depois de sair"
+  },
+  "liveYourRoom": "Sua sala ao vivo",
+  "@liveYourRoom": {
+    "description": "Tela da sala ao vivo: título para o gestor"
+  },
+  "liveShareHint": "Quem abrir este link vê a sua lista em tempo real.",
+  "@liveShareHint": {
+    "description": "Tela da sala ao vivo: explicação do link para o gestor"
+  },
+  "liveCopyLink": "Copiar link",
+  "@liveCopyLink": {
+    "description": "Tela da sala ao vivo: ação para copiar o link da sala"
+  },
+  "liveLinkCopied": "Link copiado",
+  "@liveLinkCopied": {
+    "description": "Confirmação depois de copiar o link da sala ao vivo"
+  },
+  "liveShareLink": "Compartilhar",
+  "@liveShareLink": {
+    "description": "Tela da sala ao vivo: ação para compartilhar o link da sala"
+  },
+  "liveRegenerateLink": "Gerar novo link",
+  "@liveRegenerateLink": {
+    "description": "Tela da sala ao vivo: ação para gerar um novo link de sala"
+  },
+  "liveRegenerateConfirmTitle": "Gerar um novo link?",
+  "@liveRegenerateConfirmTitle": {
+    "description": "Título da confirmação para gerar um novo link de sala"
+  },
+  "liveRegenerateConfirmBody": "O link atual deixa de funcionar para todos.",
+  "@liveRegenerateConfirmBody": {
+    "description": "Corpo da confirmação para gerar um novo link de sala"
+  },
+  "liveViewers": "{count, plural, =0{Ninguém conectado} =1{1 pessoa conectada} other{{count} pessoas conectadas}}",
+  "@liveViewers": {
+    "description": "Tela da sala ao vivo: contagem de pessoas conectadas",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "liveRoomError": "Não foi possível carregar a sua sala",
+  "@liveRoomError": {
+    "description": "Erro genérico ao carregar/regenerar a sala ao vivo do gestor"
+  },
+  "liveLoginRequired": "Entre com o Google para transmitir ao vivo",
+  "@liveLoginRequired": {
+    "description": "Snackbar ao tentar «Iniciar ao vivo» sem estar logado"
+  },
+  "liveRoomMenu": "Sala ao Vivo",
+  "@liveRoomMenu": {
+    "description": "FAB da tela de listas que expande em «Abrir Sala» e «Entrar na sala»"
+  },
+  "liveOpenRoom": "Abrir Sala",
+  "@liveOpenRoom": {
+    "description": "Sub-botão do FAB «Sala ao Vivo» que abre a sala ao vivo do usuário logado"
+  },
+  "lyricsTitle": "Letra",
+  "lyricsTab": "Letra",
+  "lyricsReaderEmpty": "Este louvor não tem letra guardada",
+  "lyricsReaderIncreaseFont": "Aumentar letra",
+  "lyricsReaderDecreaseFont": "Diminuir letra",
+  "offlineSectionTitle": "Baixar para usar offline",
+  "offlineKindsAll": "Tipos",
+  "offlineColdigomCatalogStatus": "Catálogo: {count} louvores · atualizado {ago}",
+  "@offlineColdigomCatalogStatus": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineColdigomCatalogMissing": "Ligue-se à internet para baixar o catálogo",
+  "offlineColdigomAgoJustNow": "agora mesmo",
+  "offlineColdigomAgoMinutes": "há {n} min",
+  "@offlineColdigomAgoMinutes": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineColdigomAgoHours": "há {n} h",
+  "@offlineColdigomAgoHours": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineColdigomAgoDays": "há {n} d",
+  "@offlineColdigomAgoDays": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineColdigomSignInPrompt": "Entre com Google para ver os seus tipos favoritos primeiro",
+  "offlineColdigomFavoriteKinds": "Seus tipos favoritos",
+  "offlineColdigomNoFavorites": "Sem favoritos — escolha em Materiais favoritos ou abra «Outros tipos»",
+  "offlineColdigomOtherKinds": "Outros tipos",
+  "offlineColdigomKindSummary": "{count} materiais · {size}",
+  "@offlineColdigomKindSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineColdigomDownloadSelected": "Baixar selecionados ({size})",
+  "@offlineColdigomDownloadSelected": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineColdigomStop": "Parar",
+  "offlineColdigomProgress": "{kind} · {done}/{total}",
+  "@offlineColdigomProgress": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineColdigomDone": "{count, plural, =0{Nada novo para baixar} one{1 material baixado} other{{count} materiais baixados}}",
+  "@offlineColdigomDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineColdigomFailures": "{count, plural, one{1 não baixado} other{{count} não baixados}}",
+  "@offlineColdigomFailures": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineColdigomStopped": "{n, plural, one{Parado — 1 restante} other{Parado — {n} restantes}}",
+  "@offlineColdigomStopped": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineColdigomOutOfSpace": "Sem espaço no aparelho",
+  "offlineColdigomRetry": "Tentar de novo",
+  "offlineColdigomRemove": "Remover todos os baixados",
+  "offlineColdigomRemoveConfirmBody": "Todos os PDFs e áudios guardados no aparelho saem, incluindo os abertos recentemente. Cifras, gestos e letras ficam.",
+  "offlineColdigomRemoveConfirmTitle": "Remover todos os baixados?",
+  "offlineColdigomRemoved": "{pdfs} PDFs e {audios} áudios removidos",
+  "@offlineColdigomRemoved": {
+    "placeholders": {
+      "pdfs": {
+        "type": "int"
+      },
+      "audios": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineColdigomSpaceWarning": "Estimativa de {size} acima do espaço livre ({free}) — o download pode parar a meio.",
+  "@offlineColdigomSpaceWarning": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "free": {
+        "type": "String"
+      }
+    }
+  },
+  "contributeTitle": "Ajude a melhorar o PLPCG",
+  "contributeSignInPrompt": "Entre com Google para contribuir.",
+  "contributeKindLabel": "O que você quer contar?",
+  "contributeKindBug": "Bug na app",
+  "contributeKindWrongInfo": "Informação errada",
+  "contributeKindContent": "Conteúdo",
+  "contributeKindImprovement": "Melhoria",
+  "contributeKindOther": "Outro",
+  "contributeSubkindLabel": "Sobre o quê?",
+  "contributeSubkindBugScreen": "Uma tela",
+  "contributeSubkindBugReader": "Leitor",
+  "contributeSubkindBugAudio": "Áudio",
+  "contributeSubkindBugSearch": "Busca",
+  "contributeSubkindBugOffline": "Offline",
+  "contributeSubkindBugLogin": "Login",
+  "contributeSubkindBugPlaylistLive": "Listas / ao vivo",
+  "contributeSubkindBugOther": "Outro",
+  "contributeSubkindWrongMetadata": "Título, número, tom…",
+  "contributeSubkindWrongLyrics": "Letra",
+  "contributeSubkindWrongMaterial": "Material de outro louvor",
+  "contributeSubkindWrongKind": "Tipo de material errado",
+  "contributeSubkindDuplicate": "Louvor duplicado",
+  "contributeSubkindAddMaterial": "Adicionar material",
+  "contributeSubkindAddPraise": "Adicionar louvor",
+  "contributeSubkindReplaceMaterial": "Substituir material",
+  "contributeSubkindRemove": "Remover",
+  "contributeSubkindFeature": "Funcionalidade nova",
+  "contributeSubkindBehavior": "Mudar um comportamento",
+  "contributeMaterialLabel": "Sobre qual material?",
+  "contributeMaterialWhole": "O louvor em geral",
+  "contributeMetadataField": "Campo",
+  "contributeMetadataCurrent": "Valor atual",
+  "contributeMetadataProposed": "Valor correto",
+  "contributeMetadataTitle": "Título",
+  "contributeMetadataNumber": "Número",
+  "contributeMetadataAuthor": "Autor",
+  "contributeMetadataTonality": "Tom",
+  "contributeMetadataRhythm": "Ritmo",
+  "contributeMetadataTags": "Tags",
+  "contributeDuplicateOf": "É o mesmo que (número ou título)",
+  "contributeSuggestedKind": "Tipo de material (opcional)",
+  "contributeTitleField": "Título",
+  "contributeBodyField": "Descrição",
+  "contributeBodyHintBug": "O que você fez, o que esperava e o que aconteceu",
+  "contributeAttachments": "Anexos",
+  "contributeAddFile": "Anexar arquivo",
+  "contributeAttachmentTooLarge": "Acima de 32 MB, envie pelo link do Drive.",
+  "contributeAttachmentTypeNotAllowed": "Tipo de arquivo não aceito.",
+  "contributeAttachmentTooMany": "No máximo 5 arquivos.",
+  "contributeAttachmentTotalTooLarge": "No total, os anexos não podem passar de 96 MB.",
+  "contributeLinks": "Links (YouTube / Drive)",
+  "contributeAddLink": "Adicionar link",
+  "contributeLinkNotAllowed": "Só links do YouTube ou do Google Drive.",
+  "contributeTooManyLinks": "No máximo 5 links.",
+  "contributeDeviceTitle": "Isto será enviado",
+  "contributeDeviceLineApp": "App",
+  "contributeDeviceLinePlatform": "Plataforma",
+  "contributeDeviceLineDevice": "Dispositivo",
+  "contributeDeviceLineSystem": "Sistema",
+  "contributeDeviceLineBrowser": "Navegador",
+  "contributeDeviceLineScreen": "Tela",
+  "contributeDeviceLineLocale": "Idioma",
+  "contributeDeviceLineOnline": "Online",
+  "contributeDeviceLinePwa": "PWA instalada",
+  "commonYes": "sim",
+  "commonNo": "não",
+  "contributeSameDeviceQuestion": "O bug aconteceu neste dispositivo?",
+  "contributeSameDeviceYes": "Sim",
+  "contributeSameDeviceNo": "Não",
+  "contributeOtherDevice": "Em qual dispositivo?",
+  "contributeSend": "Enviar",
+  "contributeSent": "Recebido, obrigado!",
+  "contributeErrorOffline": "Sem ligação. Tente de novo.",
+  "contributeErrorQuota": "Limite diário atingido; volta às {time}.",
+  "@contributeErrorQuota": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "contributeErrorRejected": "O envio foi recusado: {error}",
+  "@contributeErrorRejected": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "contributeErrorUnknown": "Não foi possível enviar. Tente de novo.",
+  "contributeReportTooltip": "Reportar",
+  "myContributionsTitle": "Minhas contribuições",
+  "myContributionsEmpty": "Você ainda não enviou nenhuma contribuição.",
+  "contributionStatusRecebida": "Enviada · verificando anexos",
+  "contributionStatusPendente": "Aguardando análise",
+  "contributionStatusEmAnalise": "Em análise",
+  "contributionStatusAceita": "Aceita",
+  "contributionStatusRecusada": "Recusada",
+  "contributionStatusAplicada": "Aplicada",
+  "contributionStatusBloqueada": "Não pôde ser analisada: anexo recusado pela verificação de segurança",
+  "contributionDecisionNote": "Nota da equipe",
+  "contributionFilesTitle": "Anexos",
+  "contributionFileScanPending": "verificando",
+  "contributionFileScanClean": "ok",
+  "contributionFileScanBlocked": "recusado",
+  "contributeClearForm": "Limpar formulário",
+  "contributeClearFormConfirmTitle": "Limpar formulário?",
+  "contributeClearFormConfirmMessage": "Tem certeza de que deseja limpar todos os campos preenchidos? Esta ação não pode ser desfeita.",
+  "contributeClearFormCancel": "Cancelar",
+  "contributeClearFormConfirm": "Limpar",
+  "contributeSendDeviceData": "Enviar dados do aparelho para ajudar no diagnóstico",
+  "contributeBodyHint": "Descreva aqui o problema, erro ou sugestão que você encontrou...",
+  "contributeLinkedPraise": "Relato vinculado ao louvor",
+  "contributeEditorTitle": "Sugerir melhoria no material",
+  "contributeEditorRawTab": "Editor",
+  "contributeEditorPreviewTab": "Pré-visualização",
+  "contributeEditorAddLine": "Adicionar linha",
+  "contributeEditorRemoveLine": "Remover linha",
+  "contributeEditorChangeGesture": "Trocar gesto",
+  "contributeEditorSearchGesture": "Buscar gesto por nome ou gatilho...",
+  "contributeEditorRestore": "Restaurar original",
+  "contributeEditorNotesLabel": "Observações sobre a sugestão (opcional)",
+  "contributeEditorNotesHint": "Descreva brevemente o que você ajustou ou por que...",
+  "contributeEditorTriggerLabel": "Gatilho",
+  "contributeEditorLyricsLabel": "Texto cantado",
+  "contributeEditorAddGestureLine": "Adicionar gesto",
+  "contributeEditorAddTextLine": "Adicionar texto livre",
+  "contributeEditorAddChorus": "Adicionar coro",
+  "contributeEditorAddRepeat": "Adicionar repetição",
+  "contributeEditorMoveUp": "Mover para cima",
+  "contributeEditorMoveDown": "Mover para baixo",
+  "contributeEditorInsertChord": "Inserir acorde [ ]",
+  "contributeEditorInsertComment": "Inserir comentário (coro)",
+  "contributeEditorSwitchToGeneral": "Alternar para formulário comum",
+  "contributeEditorSwitchToExtracted": "Editar material extraído",
+  "contributeEditorLoading": "Carregando material...",
+  "contributeEditorNoGestureFound": "Nenhum gesto encontrado",
+  "contributeEditorSelectGesture": "Escolher gesto",
+  "contributeEditorLyricsKind": "Letra",
+  "contributeEditorChordKind": "Cifra",
+  "contributeEditorGestureKind": "Gestos",
+  "contributeEditorGeneralKind": "Geral",
+  "contributeEditorGeneralHint": "Para sugerir ajustes em Letras, Cifras ou Gestos, abra o louvor desejado no app e toque no ícone 🤝 na barra superior.",
+  "praiseOpenDetailsTooltip": "Ver página completa",
+  "praiseShareTooltip": "Compartilhar louvor",
+  "praiseShareLinkCopied": "Link do louvor copiado!",
+  "praiseNotFound": "Louvor não encontrado",
+  "praiseBackToSearch": "Voltar para o início",
+  "praiseLyricsSectionTitle": "Letra",
+  "praiseMaterialsSectionTitle": "Materiais",
+  "praiseLyricsCopyTooltip": "Copiar letra",
+  "praiseLyricsCopied": "Letra copiada!",
+  "praiseOpenLyricsReader": "Abrir no leitor de letra",
+  "praiseNoLyricsAvailable": "Letra não disponível para este louvor",
+  "praiseIncreaseFontSizeTooltip": "Aumentar fonte",
+  "praiseDecreaseFontSizeTooltip": "Diminuir fonte",
+  "confirm": "Confirmar",
+  "cancel": "Cancelar",
+  "close": "Fechar",
+  "back": "Voltar",
+  "backTooltip": "Voltar",
+  "homeTooltip": "Início",
+  "placeholderComingSoon": "Em breve",
+  "degradedStorageBannerMessage": "Armazenamento local indisponível. O catálogo online continua funcionando; listas e offline ficam desativados.",
+  "tabEvents": "Eventos",
+  "tabPlaylists": "Listas",
+  "tabSearch": "Pesquisar",
+  "tabProfile": "Perfil",
+  "tabAbout": "Sobre",
+  "tabPraise": "Louvor",
+  "tabPublicPlaylists": "Listas públicas",
+  "aboutTitle": "Sobre",
+  "profileResetTutorials": "Redefinir Tutoriais",
+  "profileResetTutorialsDialogTitle": "Redefinir Tutoriais",
+  "profileResetTutorialsDialogContent": "Deseja redefinir todos os tutoriais? Os guias de introdução voltarão a ser exibidos automaticamente ao acessar as telas do aplicativo.",
+  "profileResetTutorialsConfirm": "Redefinir",
+  "profileResetTutorialsSuccess": "Tutoriais redefinidos com sucesso!",
+  "profileSyncPromptTitle": "Entrar para sincronizar seus dados",
+  "profileSyncPromptBody": "Use sua conta Google para sincronizar listas e outras features.",
+  "profileSignOut": "Sair",
+  "shortcutsTitle": "Atalhos de Teclado",
+  "shortcutsSubtitle": "Comandos rápidos de produtividade para Desktop e Web",
+  "shortcutsAboutDescription": "Consulte os comandos rápidos de alta produtividade para Desktop e Web.",
+  "welcomeTourAboutTitle": "Tour de Boas-Vindas",
+  "welcomeTourAboutDescription": "Faça o tour guiado de 4 passos conhecendo o fluxo do acervo ao culto.",
+  "shortcutsTabAll": "Todos",
+  "shortcutsTabNavigation": "Navegação",
+  "shortcutsTabRepertoireAudio": "Repertório & Áudio",
+  "shortcutsTabSheetMusic": "Partituras",
+  "shortcutsTabChordsGestures": "Cifras & Gestos",
+  "shortcutsFooterTip": "Pressione ? em qualquer tela para abrir este painel a qualquer momento.",
+  "shortcutsGotIt": "Entendi",
+  "shortcutsEmpty": "Nenhum atalho encontrado.",
+  "shortcutsOr": "ou",
+  "shortcutCatNavigation": "Navegação & Busca",
+  "shortcutCatRepertoireAudio": "Repertório & Áudio",
+  "shortcutCatSheetMusic": "Partituras (PDF)",
+  "shortcutCatChordsGestures": "Cifras & Gestos",
+  "shortcutActionHomeSearch": "Ir para a Home e focar campo de busca",
+  "shortcutActionOpenShortcuts": "Abrir esta Central de Atalhos de Teclado",
+  "shortcutActionEscape": "Sair de tela cheia, limpar busca ou fechar janelas",
+  "shortcutActionNextPraise": "Avançar para o próximo louvor do repertório",
+  "shortcutActionPreviousPraise": "Voltar para o louvor anterior do repertório",
+  "shortcutActionCarouselQueue": "Navegar pela fila do carrossel de louvores",
+  "shortcutActionToggleAudio": "Tocar ou pausar o áudio do louvor",
+  "shortcutActionToggleAudioPdf": "Tocar ou pausar áudio mesmo com partitura aberta",
+  "shortcutActionSeekAudioBack": "Voltar 10 segundos no áudio",
+  "shortcutActionSeekAudioForward": "Avançar 10 segundos no áudio",
+  "shortcutActionToggleFullscreen": "Alternar modo de tela cheia",
+  "shortcutActionNextPagePdf": "Avançar página ou rolar partitura",
+  "shortcutActionPrevPagePdf": "Voltar página da partitura",
+  "shortcutActionFirstPagePdf": "Ir para a primeira página",
+  "shortcutActionLastPagePdf": "Ir para a última página",
+  "shortcutActionFitModePdf": "Alternar modo de ajuste (largura / altura)",
+  "shortcutActionPageGridPdf": "Abrir seletor rápido de páginas em grade",
+  "shortcutActionToggleAutoscroll": "Ligar ou desligar rolagem automática (autoscroll)",
+  "shortcutActionAdjustAutoscrollSpeed": "Diminuir ou aumentar velocidade de rolagem",
+  "shortcutActionTransposePitch": "Transpor tom do louvor (+1 / -1 semitom)",
+  "shortcutActionNextGesture": "Próximo gesto ou gesto anterior na regência",
+  "shortcutBadgeReader": "Leitor",
+  "shortcutBadgeGeneral": "Geral",
+  "shortcutBadgeReaderPdf": "Leitor PDF",
+  "shortcutBadgeChordsLyrics": "Cifras/Letras",
+  "shortcutBadgeAutoscroll": "Autoscroll",
+  "shortcutBadgeChords": "Cifras",
+  "shortcutBadgeFocusModeCias": "Modo Foco CIAs",
+  "materialKindChordExtracted": "Extraídos (chords)",
+  "materialKindGestureExtracted": "Extraídos (gestos)",
+  "offlineKindVariantsCount": "{count} var.",
+  "@offlineKindVariantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineKindVariantsTitle": "Variantes de {name} ({count}):",
+  "@offlineKindVariantsTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineSearchMaterialTypeHint": "Pesquisar tipo de material...",
+  "offlineClearSearchTooltip": "Limpar pesquisa",
+  "offlineFilterButton": "Filtrar",
+  "offlineSearchNoResults": "Nenhum tipo de material encontrado para \"{query}\"",
+  "@offlineSearchNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "tutorialTooltipHowToShare": "Como compartilhar",
+  "tutorialTooltipHowToPublish": "Como publicar",
+  "tutorialTooltipHowToUseFilters": "Como usar os filtros",
+  "tutorialTooltipHowToUseMaterialSheet": "Como usar este seletor",
+  "tutorialTooltipHowToManageList": "Como gerenciar a lista",
+  "tutorialTooltipHowToUseFocusMode": "Como usar o Modo Foco",
+  "tutorialTooltipHowToJoinLive": "Como ingressar",
+  "tutorialTooltipHowToUseShortcuts": "Como usar os atalhos",
+  "contributeNeedHelp": "Precisa de ajuda?",
+  "contributeHelpIntro": "Esta página permite que você envie contribuições e nos ajude a aprimorar o aplicativo e o acervo do PLPCG. Escolha a opção que melhor descreve o seu caso:",
+  "contributeHelpDescBug": "Problemas no app (travamento, tela preta, botões sem resposta ou falha no áudio/leitor). Se puder, anexe uma captura de tela.",
+  "contributeHelpDescWrongInfo": "Dados incorretos em um louvor existente (número, tom, título, autor, ritmo ou louvor duplicado).",
+  "contributeHelpDescContent": "Envio ou sugestão de novos materiais (cifras, partituras, áudios ou letras) ou melhoria em arquivo existente.",
+  "contributeHelpDescImprovement": "Sugestões de novos recursos, mudanças no visual ou ideias para deixar o app mais prático nos ensaios e cultos.",
+  "contributeHelpDescOther": "Dúvidas gerais, recados para a equipe ou qualquer outro assunto não listado acima.",
+  "contributeHelpTipAttachments": "Você também pode anexar arquivos (até 32 MB) ou colar links do Google Drive e YouTube para enriquecer seu envio.",
+  "contributeEditorChordProExampleHint": "[G]Exemplo de [D]cifra ChordPro...",
+  "contributeEditorLinesCount": "{count, plural, one{1 linha} other{{count} linhas}}",
+  "@contributeEditorLinesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "contributeEditorGestureEmptyDocument": "Nenhum item no documento. Adicione uma linha acima.",
+  "contributeEditorGestureBlocksCount": "{count, plural, one{1 bloco/linha} other{{count} blocos/linhas}}",
+  "@contributeEditorGestureBlocksCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "contributeEditorGestureInstructionLabel": "Instrução: {kind}",
+  "@contributeEditorGestureInstructionLabel": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "authGoogleSignInError": "Falha ao entrar: {error}",
+  "@authGoogleSignInError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "tutorialStepCounter": "Passo {current} de {total}",
+  "@tutorialStepCounter": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "tutorialDismissForever": "Não mostrar novamente",
+  "tutorialSkip": "Pular",
+  "tutorialPrevious": "Voltar",
+  "tutorialNext": "Próximo",
+  "tutorialFinish": "Concluir",
+  "tutorialHowToUseScreen": "Como usar esta tela",
+  "welcomeHeroTitle": "Bem-vindo ao PLPCG!",
+  "welcomeHeroSubtitle": "O hinário digital e organizador de louvores para músicos, instrumentistas e ministérios.",
+  "welcomeHeroFeatureSearch": "Busca rápida por número, título, ritmo e tags.",
+  "welcomeHeroFeaturePlaylists": "Criação de listas e repertórios para o culto.",
+  "welcomeHeroFeatureReader": "Leitor de partituras e cifras com pedais Bluetooth.",
+  "welcomeHeroPrompt": "Deseja fazer um tour rápido de 1 minuto para conhecer as principais funcionalidades?",
+  "welcomeHeroStartTour": "Fazer Tour Rápido (1 min)",
+  "welcomeHeroDismiss": "Explorar por Conta Própria",
+  "authSigningIn": "Entrando…",
+  "aboutWhoWeAreTitle": "Quem somos",
+  "aboutWhoWeAreBody": "A Paz do Senhor Jesus. Somos irmãos da Igreja Cristã Maranata da Região do Triângulo Mineiro e servimos no Maanaim de Uberlândia-MG. Esta aplicação não é oficial da ICM, mas o objetivo é ajudar a todos que estão no louvor ajudando na Obra. Seguindo as orientações da Igreja. De forma 100% gratuita.",
+  "aboutObjectiveTitle": "Objetivo",
+  "aboutObjectiveParagraph1": "O objetivo da aplicação - chamada Pesquisador de Louvores em Partitura, Cifra em Geral - é ajudar aos irmãos da equipe de louvor com os materiais mais básicos pro louvor. Que seja fácil de pesquisar, consumir e que funcione offline, pois muita igrejas não tem internet ou é muito difícil o acesso em ESFs.",
+  "aboutObjectiveParagraph2": "Portanto, estejamos em oração por todos os irmãos que estão envolvidos nesse projeto. Quer seja diretamente no desenvolvimento da aplicação, quer seja na produção dos materiais, no uso/teste da aplicação e afins.",
+  "tutorialAboutStep1Title": "Quem Somos",
+  "tutorialAboutStep1Message": "Conheça a história e a equipe por trás da aplicação. Uma iniciativa **100% gratuita** e colaborativa desenvolvida para auxiliar equipes de louvor.",
+  "tutorialAboutStep2Title": "Nosso Objetivo",
+  "tutorialAboutStep2Message": "O propósito central é facilitar o acesso a **partituras, cifras, gestos e áudios**, com funcionamento **offline** garantido mesmo em locais sem internet.",
+  "tutorialAboutStep3Title": "Ajuda & Tutoriais",
+  "tutorialAboutStep3Message": "Toque no **ícone (i)** sempre que quiser rever este guia ou conferir instruções detalhadas em qualquer tela do aplicativo!",
+  "tutorialAppShortcutsStep1Title": "Categorias de Atalhos",
+  "tutorialAppShortcutsStep1Message": "Navegue entre as abas para explorar comandos agrupados por contexto: **Navegação & Busca**, **Repertório & Áudio**, **Partituras** e **Cifras & Gestos**.",
+  "tutorialAppShortcutsStep2Title": "Comandos de Alta Produtividade",
+  "tutorialAppShortcutsStep2Message": "Consulte as teclas de atalho e suas ações correspondentes. Os selos laterais destacam os **contextos e leitores em que cada comando atua**.",
+  "tutorialAppShortcutsStep3Title": "Acesso Rápido com a Tecla ?",
+  "tutorialAppShortcutsStep3Message": "Pressione **?** (ou **Shift + /**) em qualquer tela do app para abrir esta **central de atalhos instantaneamente** no Desktop e Web.",
+  "tutorialAppShortcutsStep4Title": "Ajuda da Central de Atalhos",
+  "tutorialAppShortcutsStep4Message": "Toque neste ícone para rever as instruções sobre os **comandos e atalhos rápidos** do PLPCG.",
+  "tutorialAudioStep1Title": "Informações da Faixa",
+  "tutorialAudioStep1Message": "Visualize o **título**, **número**, **autor** e a **classificação** do louvor ou áudio em reprodução.",
+  "tutorialAudioStep2Title": "Ações e Sincronização",
+  "tutorialAudioStep2Message": "Acesse a **partitura vinculada**, adicione **marcadores de áudio**, ative o modo **seguir o áudio** no leitor e ajuste a **velocidade de reprodução**.",
+  "tutorialAudioStep3Title": "Barra de Progresso",
+  "tutorialAudioStep3Message": "Acompanhe o **tempo atual**, a **duração total** e arraste a barra para avançar ou retroceder. Os **marcadores** cadastrados aparecem destacados na linha do tempo.",
+  "tutorialAudioStep4Title": "Controles de Reprodução",
+  "tutorialAudioStep4Message": "Controle o áudio com **Play/Pause**, pule para a **faixa anterior ou seguinte** e avance ou retroceder rapidamente em **10 segundos**.",
+  "tutorialAudioStep5Title": "Marcadores de Estudo",
+  "tutorialAudioStep5Message": "Veja todos os **marcadores com marcação de tempo** adicionados à faixa. Toque em qualquer marcador para ir direto àquele ponto do ensaio.",
+  "tutorialAudioStep6Title": "Ajuda & Tutoriais",
+  "tutorialAudioStep6Message": "Sempre que tiver dúvidas sobre o reprodutor de áudio, toque neste **ícone (i)** para rever este tutorial passo a passo!",
+  "tutorialCarouselSelectionStep1Title": "Reordenar Repertório",
+  "tutorialCarouselSelectionStep1Message": "Segure e arraste o ícone de **alça de ordenação** para mudar a sequência dos louvores em tempo real durante o culto ou ensaio.",
+  "tutorialCarouselSelectionStep2Title": "Navegação Rápida",
+  "tutorialCarouselSelectionStep2Message": "Toque no **corpo do louvor** para saltar imediatamente para ele no leitor de partituras ou cifras ativo.",
+  "tutorialCarouselSelectionStep3Title": "Remover da Seleção",
+  "tutorialCarouselSelectionStep3Message": "Toque no botão **×** para retirar o louvor da lista temporária de culto sem apagar suas playlists salvas.",
+  "tutorialCarouselSelectionStep4Title": "Limpar ou Reiniciar Lista",
+  "tutorialCarouselSelectionStep4Message": "Use esta ação para **limpar a lista ativa** e iniciar uma nova seleção do zero ou descartar o rascunho atual.",
+  "tutorialCarouselSelectionStep5Title": "Ajuda da Lista Ativa",
+  "tutorialCarouselSelectionStep5Message": "Consulte este **guia rápido** sempre que tiver dúvidas sobre como reorganizar e operar seu repertório.",
+  "tutorialChordsStep1Title": "Transposição de Tom",
+  "tutorialChordsStep1Message": "Suba ou desça o tom da música em **semitons** usando os botões **+** e **-** (ou pelo teclado). Toque no número do tom para **restaurar o tom original**.",
+  "tutorialChordsStep2Title": "Tamanho da Fonte",
+  "tutorialChordsStep2Message": "Ajuste o **tamanho do texto** e das cifras para melhor leitura na sua tela através dos botões de **diminuir** e **aumentar fonte**.",
+  "tutorialChordsStep3Title": "Rolagem Automática",
+  "tutorialChordsStep3Message": "Inicie a **rolagem automática** (tecla **S**) para acompanhar a música sem usar as mãos. Ajuste a **velocidade** no ícone de velocímetro ou pelas teclas **[** e **]**.",
+  "tutorialChordsStep4Title": "Tema e Tela Cheia",
+  "tutorialChordsStep4Message": "Alterne entre o **modo claro e escuro** para melhor visibilidade no ambiente, e use **tela cheia** (tecla **F**) para focar exclusivamente na cifra.",
+  "tutorialChordsStep5Title": "Leitura e Diagramação",
+  "tutorialChordsStep5Message": "Em telas largas a **cifra** é diagramada automaticamente em **duas colunas**. Ao tocar ou rolar manualmente na tela, o autoscroll é **pausado automaticamente**.",
+  "tutorialChordsStep6Title": "Ajuda & Tutoriais",
+  "tutorialChordsStep6Message": "Sempre que quiser rever este guia ou tirar dúvidas sobre o uso do Leitor de Cifras, toque neste **ícone (i)**!",
+  "tutorialCollaborationDialogsStep1Title": "Folheto Ilustrado",
+  "tutorialCollaborationDialogsStep1Message": "Gera e compartilha uma **imagem visual com a lista dos louvores** acompanhada do link direto para visualização.",
+  "tutorialCollaborationDialogsStep2Title": "Link Direto",
+  "tutorialCollaborationDialogsStep2Message": "Copia ou envia apenas o **link encurtado**, ideal para envio rápido em aplicativos de mensagens.",
+  "tutorialCollaborationDialogsStep3Title": "Ajuda de Compartilhamento",
+  "tutorialCollaborationDialogsStep3Message": "Toque neste ícone para rever as opções de **compartilhamento de repertórios**.",
+  "tutorialCollaborationDialogsStep4Title": "Categoria da Lista",
+  "tutorialCollaborationDialogsStep4Message": "Classifique o repertório como **Evangelização**, **Aprendizado**, **Medleys** ou **Culto Especial** para facilitar a busca por outros irmãos.",
+  "tutorialCollaborationDialogsStep5Title": "Alcance do Repertório",
+  "tutorialCollaborationDialogsStep5Message": "Marque como **pontual** para eventos esporádicos ou mantenha desmarcado se for uma seleção **usual para cultos regulares**.",
+  "tutorialCollaborationDialogsStep6Title": "Publicação na Comunidade",
+  "tutorialCollaborationDialogsStep6Message": "Toque em **Publicar** para disponibilizar a lista na aba pública. A lista poderá ser acessada e importada por toda a igreja.",
+  "tutorialCollaborationDialogsStep7Title": "Ajuda de Publicação",
+  "tutorialCollaborationDialogsStep7Message": "Toque neste ícone para rever as instruções sobre a **publicação de repertórios** na comunidade.",
+  "tutorialCollaborationDialogsStep8Title": "Código ou Link da Sala",
+  "tutorialCollaborationDialogsStep8Message": "Digite ou cole o **código de 7 caracteres** ou a **URL completa** fornecida pelo dirigente da sala ao vivo.",
+  "tutorialCollaborationDialogsStep9Title": "Colar da Área de Transferência",
+  "tutorialCollaborationDialogsStep9Message": "Toque em **Colar** para preencher instantaneamente com o link que você acabou de copiar no WhatsApp ou mensagem.",
+  "tutorialCollaborationDialogsStep10Title": "Conectar à Sala",
+  "tutorialCollaborationDialogsStep10Message": "Toque em **Entrar** para ingressar na transmissão e acompanhar as **mudanças de louvor em tempo real**.",
+  "tutorialCollaborationDialogsStep11Title": "Ajuda da Sala ao Vivo",
+  "tutorialCollaborationDialogsStep11Message": "Toque neste ícone para rever as instruções de **sincronização como seguidor** de uma sala ao vivo.",
+  "tutorialContributeStep1Title": "Contexto do Envio",
+  "tutorialContributeStep1Message": "Identifique se sua colaboração está **vinculada a um louvor específico** ou se é uma **sugestão geral** para o aplicativo.",
+  "tutorialContributeStep2Title": "Descrição da Sugestão",
+  "tutorialContributeStep2Message": "Descreva detalhadamente o **problema encontrado**, **correção de letra ou tom**, ou a **melhoria** que você gostaria de propor.",
+  "tutorialContributeStep3Title": "Diagnóstico do Aparelho",
+  "tutorialContributeStep3Message": "Mantenha ativado para enviar **dados técnicos anônimos** (sistema, navegador, resolução), acelerando a resolução de bugs.",
+  "tutorialContributeStep4Title": "Anexos e Links",
+  "tutorialContributeStep4Message": "Adicione **arquivos de apoio** (áudios, partituras ou capturas até 32 MB) e **links** do YouTube ou Google Drive.",
+  "tutorialContributeStep5Title": "Envio da Contribuição",
+  "tutorialContributeStep5Message": "Toque em **Enviar** para submeter seu relato. Se não estiver conectado, entre com sua **conta Google** para enviar.",
+  "tutorialContributeStep6Title": "Ajuda & Tutoriais",
+  "tutorialContributeStep6Message": "Toque neste ícone a qualquer momento para rever este **guia passo a passo** da tela de envio de sugestões.",
+  "tutorialContributionDetailStep1Title": "Título e Estado do Envio",
+  "tutorialContributionDetailStep1Message": "Acompanhe o **título da contribuição** e seu status atual (**Em análise**, **Aprovada** ou **Recusada**).",
+  "tutorialContributionDetailStep2Title": "Tipo de Contribuição",
+  "tutorialContributionDetailStep2Message": "Indica a categoria da colaboração enviada, como **Cifra**, **Letra**, **Partitura** ou **Correção de informações**.",
+  "tutorialContributionDetailStep3Title": "Descrição e Observações",
+  "tutorialContributionDetailStep3Message": "Aqui você confere o **texto descritivo**, justificativas e links externos adicionados na submissão da proposta.",
+  "tutorialContributionDetailStep4Title": "Campos Alterados",
+  "tutorialContributionDetailStep4Message": "Quando a contribuição propõe corrigir dados, veja a comparação direta entre o valor **atual** e o **proposto**.",
+  "tutorialContributionDetailStep5Title": "Arquivos e Verificação Antivírus",
+  "tutorialContributionDetailStep5Message": "Consulte a lista de **anexos enviados** e o status da verificação de segurança em tempo real (**Limpa**, **Verificando** ou **Bloqueada**).",
+  "tutorialContributionDetailStep6Title": "Parecer da Moderação",
+  "tutorialContributionDetailStep6Message": "Quando a equipe do PLPCG avaliar o envio, o **parecer e justificativa dos revisores** serão exibidos nesta área.",
+  "tutorialContributionDetailStep7Title": "Ajuda & Tutoriais",
+  "tutorialContributionDetailStep7Message": "Sempre que tiver dúvidas sobre os detalhes da contribuição, toque neste **ícone (i)** para rever este tutorial passo a passo!",
+  "tutorialExtractedMaterialEditorStep1Title": "Barra de Ferramentas & Atalhos",
+  "tutorialExtractedMaterialEditorStep1Message": "Utilize os atalhos rápidos para **adicionar versos**, **remover linhas**, **inserir acordes ou anotações** e restaurar o texto original.",
+  "tutorialExtractedMaterialEditorStep2Title": "Área de Edição",
+  "tutorialExtractedMaterialEditorStep2Message": "Edite o conteúdo diretamente. Na cifra, use a sintaxe **[Acorde]** imediatamente antes da sílaba para sincronizar a posição com a letra.",
+  "tutorialExtractedMaterialEditorStep3Title": "Seletor de Gestos CIAs",
+  "tutorialExtractedMaterialEditorStep3Message": "Toque em **Trocar Gesto** para abrir o dicionário oficial e vincular o movimento e a frase disparadora correspondente.",
+  "tutorialExtractedMaterialEditorStep4Title": "Pré-visualização ao Vivo",
+  "tutorialExtractedMaterialEditorStep4Message": "Acompanhe as mudanças **em tempo real** com a renderização idêntica à que os usuários verão no leitor de louvores.",
+  "tutorialExtractedMaterialEditorStep5Title": "Submissão da Proposta",
+  "tutorialExtractedMaterialEditorStep5Message": "Adicione observações se desejar e toque em **Enviar** para disponibilizar sua sugestão para revisão pela comunidade.",
+  "tutorialExtractedMaterialEditorStep6Title": "Ajuda & Tutoriais",
+  "tutorialExtractedMaterialEditorStep6Message": "Toque neste ícone a qualquer momento para rever este **guia passo a passo** do editor de materiais.",
+  "tutorialFavoriteMaterialKindsStep1Title": "Prioridade de Materiais",
+  "tutorialFavoriteMaterialKindsStep1Message": "Defina até **4 materiais favoritos** para priorizar seus instrumentos e vozes no topo dos resultados de busca e no leitor.",
+  "tutorialFavoriteMaterialKindsStep2Title": "Seus Favoritos e Ordem",
+  "tutorialFavoriteMaterialKindsStep2Message": "Acompanhe seus materiais selecionados. Arraste pela **alça lateral** para definir a prioridade, alterne o **formato preferido** ou toque no **(X)** para remover.",
+  "tutorialFavoriteMaterialKindsStep3Title": "Adicionar Novos Materiais",
+  "tutorialFavoriteMaterialKindsStep3Message": "Busque por instrumentos (ex: **violão**, **baixo**, **órgão**) ou vozes e toque no ícone **(+)** para adicioná-los à sua lista de prioridades.",
+  "tutorialFavoriteMaterialKindsStep4Title": "Sincronização na Nuvem",
+  "tutorialFavoriteMaterialKindsStep4Message": "Entre com sua **conta Google** para salvar e sincronizar suas preferências de materiais em qualquer aparelho.",
+  "tutorialFavoriteMaterialKindsStep5Title": "Ajuda & Tutoriais",
+  "tutorialFavoriteMaterialKindsStep5Message": "Toque no **ícone (i)** a qualquer momento para rever este guia ou aprender mais sobre os recursos do aplicativo!",
+  "tutorialFiltersStep1Title": "Filtro por Tonalidade",
+  "tutorialFiltersStep1Message": "Filtre o acervo pela **tonalidade musical** (Dó, Ré, Mi...) e seus acidentes para encontrar louvores no tom exato da sua equipe.",
+  "tutorialFiltersStep2Title": "Filtro por Ritmo",
+  "tutorialFiltersStep2Message": "Selecione compassos e ritmos específicos como **Valsa**, **Marcha**, **Básico** ou **Toada** para adequar o repertório ao culto.",
+  "tutorialFiltersStep3Title": "Categorias e Tags de Culto",
+  "tutorialFiltersStep3Message": "Refine os hinos por **ocasião de culto**, como **Comunhão**, **Ceia**, **Crianças** ou momentos devocionais.",
+  "tutorialFiltersStep4Title": "Tipos de Materiais",
+  "tutorialFiltersStep4Message": "Restrinja os resultados para exibir apenas louvores que possuam **Cifras**, **Partituras**, **Gestos CIAs** ou **Áudios** disponíveis.",
+  "tutorialFiltersStep5Title": "Limpar Filtros",
+  "tutorialFiltersStep5Message": "Toque em **Limpar** para redefinir instantaneamente todos os filtros aplicados e visualizar o acervo completo.",
+  "tutorialFiltersStep6Title": "Ajuda de Filtros",
+  "tutorialFiltersStep6Message": "Toque neste ícone sempre que desejar rever as orientações sobre como **combinar filtros avançados**.",
+  "tutorialGestureFocusStep1Title": "Cartão do Gesto em Destaque",
+  "tutorialGestureFocusStep1Message": "Visualize o movimento do gesto em **tamanho ampliado**, com animação ou ilustração para fácil acompanhamento pelo regente.",
+  "tutorialGestureFocusStep2Title": "Frase & Letra Disparadora",
+  "tutorialGestureFocusStep2Message": "Acompanhe a letra associada, com destaque em **vermelho no gatilho** em que o gesto deve ser executado pelo grupo de louvor.",
+  "tutorialGestureFocusStep3Title": "Navegação entre Gestos",
+  "tutorialGestureFocusStep3Message": "Toque nas **laterais da tela**, **arraste para os lados** ou use as **setas do teclado (← e →)** para avançar ou retroceder os passos.",
+  "tutorialGestureFocusStep4Title": "Próximo Gatilho",
+  "tutorialGestureFocusStep4Message": "Consulte no rodapé a **palavra ou frase do próximo gesto**, preparando a transição antes que ela aconteça.",
+  "tutorialGestureFocusStep5Title": "Ajuda do Modo Foco",
+  "tutorialGestureFocusStep5Message": "Toque neste ícone para rever este **guia passo a passo** ou pressione **Esc** para fechar e retornar ao leitor a qualquer momento.",
+  "tutorialGesturesStep1Title": "Tamanho da Letra",
+  "tutorialGesturesStep1Message": "Aumente ou diminua o **tamanho do texto** dos louvores para uma leitura mais confortável durante o ensaio ou culto.",
+  "tutorialGesturesStep2Title": "Rolagem Automática",
+  "tutorialGesturesStep2Message": "Ative a **rolagem automática** (tecla **S**) para acompanhar os gestos sem tocar na tela. Ajuste a **velocidade** no velocímetro ou pelas teclas **[** e **]**.",
+  "tutorialGesturesStep3Title": "Modo Linear vs. Estruturado",
+  "tutorialGesturesStep3Message": "Alterne entre a exibição **estruturada** (agrupada por estrofes e refrões) e a leitura **linear** (sequência contínua com todas as repetições completas).",
+  "tutorialGesturesStep4Title": "Tema e Tela Cheia",
+  "tutorialGesturesStep4Message": "Alterne entre o **modo claro e escuro** para melhor visibilidade, e use o modo **tela cheia** (tecla **F**) para ocultar barras e focar na execução dos gestos.",
+  "tutorialGesturesStep5Title": "Cartões de Gestos",
+  "tutorialGesturesStep5Message": "Os gestos aparecem sincronizados com as palavras correspondentes. Toque em qualquer **cartão de gesto** para abrir a **visão em foco** com imagem ampliada e descrição detalhada.",
+  "tutorialGesturesStep6Title": "Ajuda & Tutoriais",
+  "tutorialGesturesStep6Message": "Sempre que tiver dúvidas sobre como usar o leitor de gestos, toque neste **ícone (i)** para rever este tutorial passo a passo!",
+  "tutorialHomeStep1Title": "Pesquisa Inteligente",
+  "tutorialHomeStep1Message": "Digite o **número** do louvor, o **título** ou um **trecho da letra** para localizá-lo instantaneamente no catálogo.",
+  "tutorialHomeStep2Title": "Filtros Ativos",
+  "tutorialHomeStep2Message": "Quando **ativo**, o botão do filtro selecionado ganha **destaque dourado**. O cabeçalho exibe a contagem de **filtros ativos** e você pode tocar em **\"Limpar filtros\"** para desmarcar tudo.",
+  "tutorialHomeStep3Title": "Filtros Inativos",
+  "tutorialHomeStep3Message": "Com os filtros **inativos** (desmarcados), a busca abrange **todo o catálogo**. Toque em qualquer botão para **ativá-lo** ou recolha o painel para ganhar espaço.",
+  "tutorialHomeStep4Title": "Navegação Principal",
+  "tutorialHomeStep4Message": "Alterne facilmente entre o **Pesquisador** de Louvores, suas **Listas** salvas e o seu **Perfil** de usuário.",
+  "tutorialHomeStep5Title": "Ajuda & Tutoriais",
+  "tutorialHomeStep5Message": "Sempre que tiver dúvidas sobre como usar qualquer tela, toque neste **ícone (i)** para rever as explicações passo a passo!",
+  "tutorialLibraryStep1Title": "Filtros do Catálogo",
+  "tutorialLibraryStep1Message": "Refine a biblioteca completa por **tom musical**, **ritmo**, **categorias/tags** ou **tipo de material** (partituras, cifras, áudio). Toque no cabeçalho para **expandir ou recolher** os filtros.",
+  "tutorialLibraryStep2Title": "Ordenação do Acervo",
+  "tutorialLibraryStep2Message": "Alterne rapidamente a ordem dos louvores entre **\"Por número\"** (código oficial no hinário) ou **\"Por nome\"** (ordem alfabética dos títulos).",
+  "tutorialLibraryStep3Title": "Paginação e Exibição",
+  "tutorialLibraryStep3Message": "Consulte o **total de louvores** encontrados, selecione a **quantidade de itens por página** (10, 20, 50...) e use as **setas de navegação** para folhear o catálogo.",
+  "tutorialLibraryStep4Title": "Cards de Louvor",
+  "tutorialLibraryStep4Message": "Cada card apresenta o número, título e detalhes do louvor. Toque nele para acessar diretamente suas **partituras**, **cifras**, **áudios** e **informações completas**.",
+  "tutorialLibraryStep5Title": "Ajuda & Tutoriais",
+  "tutorialLibraryStep5Message": "Sempre que tiver dúvidas sobre como navegar ou usar a Biblioteca, toque neste **ícone (i)** para rever este guia passo a passo!",
+  "tutorialLiveRoomStep1Title": "Código e QR Code da Sala",
+  "tutorialLiveRoomStep1Message": "Os participantes podem ler este **código QR** com a câmera do celular ou acessar o **link direto** para acompanhar o culto.",
+  "tutorialLiveRoomStep2Title": "Compartilhar e Gerenciar",
+  "tutorialLiveRoomStep2Message": "Copie ou **compartilhe o link** da transmissão com o grupo ou toque em **gerar novo link** caso precise redefinir o acesso.",
+  "tutorialLiveRoomStep3Title": "Participantes Conectados",
+  "tutorialLiveRoomStep3Message": "Acompanhe em tempo real o **número de irmãos** que estão sintonizados e seguindo as cifras e letras na sua sala.",
+  "tutorialLiveRoomStep4Title": "Finalizar Transmissão",
+  "tutorialLiveRoomStep4Message": "Toque em **Encerrar** para concluir a sessão ao vivo com os participantes e retornar para as suas listas.",
+  "tutorialLiveRoomStep5Title": "Status da Transmissão",
+  "tutorialLiveRoomStep5Message": "Acompanhe o andamento da sessão: veja se o líder está **ao vivo**, aguardando o culto ou se a conexão está **sincronizando**.",
+  "tutorialLiveRoomStep6Title": "Guardar Cópia",
+  "tutorialLiveRoomStep6Message": "Ao fim do culto, toque em **Guardar cópia** para salvar a lista de louvores executada diretamente nas suas listas pessoais.",
+  "tutorialLiveRoomStep7Title": "Ajuda & Tutoriais",
+  "tutorialLiveRoomStep7Message": "Toque neste ícone a qualquer momento para rever este **guia passo a passo** da sala ao vivo.",
+  "tutorialLyricsStep1Title": "Tamanho da Letra",
+  "tutorialLyricsStep1Message": "Aumente ou diminua o **tamanho da fonte** da letra para uma leitura mais confortável durante o ensaio ou culto. Também é possível usar **Ctrl + ↑ / ↓** (ou **Cmd + ↑ / ↓**).",
+  "tutorialLyricsStep2Title": "Rolagem Automática",
+  "tutorialLyricsStep2Message": "Ative a **rolagem automática** (tecla **S**) para ler a letra sem tocar na tela. Toque no **velocímetro** para ajustar a velocidade (ou pelas teclas **[** e **]**).",
+  "tutorialLyricsStep3Title": "Modo Tela Cheia",
+  "tutorialLyricsStep3Message": "Toque no botão de **tela cheia** (ou tecla **F**) para ocultar todas as barras e focar inteiramente na leitura da letra.",
+  "tutorialLyricsStep4Title": "Leitura e Seleção de Texto",
+  "tutorialLyricsStep4Message": "A letra do louvor fica disponível **completamente offline**. O texto é selecionável para copiar trechos e a rolagem é pausada suavemente ao tocar na tela.",
+  "tutorialLyricsStep5Title": "Ajuda & Tutoriais",
+  "tutorialLyricsStep5Message": "Sempre que tiver dúvidas sobre como usar o leitor de letras, toque neste **ícone (i)** para rever este tutorial passo a passo!",
+  "tutorialMaterialSheetStep1Title": "Formatos Disponíveis",
+  "tutorialMaterialSheetStep1Message": "Alterne entre **Partituras**, **Cifras**, **Gestos CIAs**, **Áudios** e vídeos do **YouTube** para escolher o formato ideal para o culto ou ensaio.",
+  "tutorialMaterialSheetStep2Title": "Adicionar ao Repertório",
+  "tutorialMaterialSheetStep2Message": "Toque no botão **+** para incluir este arranjo diretamente na sua lista ativa do **Carrossel de culto** ou em uma de suas **Playlists**.",
+  "tutorialMaterialSheetStep3Title": "Metadados e Letra",
+  "tutorialMaterialSheetStep3Message": "Consulte a **tonalidade original**, **ritmo**, **categorias de culto** e confira a prévia da letra do louvor.",
+  "tutorialMaterialSheetStep4Title": "Versões Relacionadas",
+  "tutorialMaterialSheetStep4Message": "Selecione rapidamente **arranjos alternativos**, versões com outras tonalidades ou hinos correlacionados ao louvor selecionado.",
+  "tutorialMaterialSheetStep5Title": "Sugerir Melhoria",
+  "tutorialMaterialSheetStep5Message": "Encontrou alguma divergência na cifra, letra ou partitura? Toque aqui para enviar uma **sugestão de correção** aos curadores.",
+  "tutorialMaterialSheetStep6Title": "Ajuda deste Seletor",
+  "tutorialMaterialSheetStep6Message": "Toque neste ícone sempre que precisar de orientação sobre como **escolher materiais** e **organizar o repertório**.",
+  "tutorialMyContributionsStep1Title": "Identificação Necessária",
+  "tutorialMyContributionsStep1Message": "Faça login com sua **conta Google** para acessar o histórico de sugestões, correções e materiais que você enviou.",
+  "tutorialMyContributionsStep2Title": "Nenhum Envio Ainda",
+  "tutorialMyContributionsStep2Message": "Todas as **sugestões de letras, partituras ou correções** enviadas por você através do botão **Contribuir** aparecerão listadas nesta tela.",
+  "tutorialMyContributionsStep3Title": "Histórico de Envios",
+  "tutorialMyContributionsStep3Message": "Visualize o título, tipo de material e data da sua colaboração. Toque em qualquer linha para abrir a **tela de detalhes** e ver anotações da equipe.",
+  "tutorialMyContributionsStep4Title": "Status da Análise",
+  "tutorialMyContributionsStep4Message": "Acompanhe o andamento da sua solicitação: **pendente**, **em análise**, **aprovada** ou **rejeitada**.",
+  "tutorialMyContributionsStep5Title": "Ajuda & Tutoriais",
+  "tutorialMyContributionsStep5Message": "Toque no **ícone (i)** a qualquer momento para rever este guia ou aprender mais sobre as telas do aplicativo!",
+  "tutorialOfflineStep1Title": "Status e Uso de Disco",
+  "tutorialOfflineStep1Message": "Acompanhe o total de louvores no **catálogo local**, a data da **última sincronização** e o **espaço ocupado e livre** no aparelho. Toque em **Atualizar** para recalcular os dados.",
+  "tutorialOfflineStep2Title": "Pesquisa de Materiais",
+  "tutorialOfflineStep2Message": "Use o campo de busca para encontrar rapidamente tipos específicos de partituras ou cifras (ex: **violão**, **coletânea**, **coral**) e ative **Filtrar** para exibir apenas os resultados correspondentes.",
+  "tutorialOfflineStep3Title": "Seleção de Formatos",
+  "tutorialOfflineStep3Message": "Selecione os **tipos de materiais** que você deseja manter disponíveis offline. Em cada item é possível alternar individualmente entre **partitura (PDF)**, **cifra** e **áudio**.",
+  "tutorialOfflineStep4Title": "Baixar e Gerenciar Espaço",
+  "tutorialOfflineStep4Message": "Toque em **Baixar selecionados** para salvar os arquivos no aparelho para uso sem internet. Quando precisar liberar espaço em disco, toque em **Remover downloads**.",
+  "tutorialOfflineStep5Title": "Ajuda & Tutoriais",
+  "tutorialOfflineStep5Message": "Sempre que tiver dúvidas sobre o armazenamento offline, toque neste **ícone (i)** para rever este tutorial passo a passo!",
+  "tutorialPlaylistsStep1Title": "Abas de Repertório",
+  "tutorialPlaylistsStep1Message": "Alterne entre suas listas **Não Salvas** (seleções rápidas de ensaio), listas **Salvas** (repertórios guardados e sincronizados) e **Favoritas** (para acesso rápido).",
+  "tutorialPlaylistsStep2Title": "Importar Lista",
+  "tutorialPlaylistsStep2Message": "Recebeu uma lista compartilhada? Toque em **Importar lista** e cole o link ou código recebido para carregar os louvores no seu aplicativo.",
+  "tutorialPlaylistsStep3Title": "Sala ao Vivo",
+  "tutorialPlaylistsStep3Message": "Abra uma sala ou conecte-se ao ensaio da igreja. Todos os músicos acompanham a **troca de louvores em tempo real** durante a ministração.",
+  "tutorialPlaylistsStep4Title": "Criar Novas Listas",
+  "tutorialPlaylistsStep4Message": "Para montar uma nova lista, vá ao **Pesquisador** e toque no botão **\"+\"** de qualquer louvor ou versão de partitura.",
+  "tutorialPlaylistsStep5Title": "Ajuda & Tutoriais",
+  "tutorialPlaylistsStep5Message": "Toque no ícone **(i)** sempre que tiver dúvidas sobre como utilizar qualquer tela do aplicativo!",
+  "tutorialPraiseStep1Title": "Informações do Louvor",
+  "tutorialPraiseStep1Message": "Veja o **número** e o **título** do louvor. Toque em **Compartilhar** para copiar o link direto ou em **Sugerir melhoria** para nos enviar correções.",
+  "tutorialPraiseStep2Title": "Versões Relacionadas",
+  "tutorialPraiseStep2Message": "Quando houver diferentes **arranjos, tonalidades ou variantes**, você pode alternar facilmente entre elas tocando nos botões de louvores relacionados.",
+  "tutorialPraiseStep3Title": "Materiais e Partituras",
+  "tutorialPraiseStep3Message": "Acesse todas as **partituras**, **cifras**, **gestos** e **áudios** disponíveis para este louvor. Toque em um item para abrir ou no **+** para adicioná-lo à sua lista ativa.",
+  "tutorialPraiseStep4Title": "Letra e Metadados",
+  "tutorialPraiseStep4Message": "Consulte a **letra completa** do louvor, ajuste o tamanho da fonte, copie o texto ou toque no botão de reprodução para abrir no **leitor dedicado** com rolagem automática.",
+  "tutorialPraiseStep5Title": "Ajuda & Tutoriais",
+  "tutorialPraiseStep5Message": "Sempre que tiver dúvidas sobre os detalhes do louvor, toque neste **ícone (i)** para rever este tutorial passo a passo!",
+  "tutorialProfileStep1Title": "Conta & Sincronização",
+  "tutorialProfileStep1Message": "Conecte sua conta **Google** para sincronizar suas **listas de louvores**, preferências e materiais favoritos automaticamente entre seus aparelhos.",
+  "tutorialProfileStep2Title": "Biblioteca Completa",
+  "tutorialProfileStep2Message": "Acesse a **Biblioteca** para explorar o catálogo completo em formato de **lista paginada**, com filtros detalhados de instrumentos e categorias.",
+  "tutorialProfileStep3Title": "Contribuir",
+  "tutorialProfileStep3Message": "Envie **novas partituras**, cifras, gestos ou correções de letras. A colaboração da irmandade mantém o acervo sempre atualizado e preciso!",
+  "tutorialProfileStep4Title": "Modo Offline",
+  "tutorialProfileStep4Message": "Baixe os arquivos de partituras e letras para usar o aplicativo **sem internet** durante cultos e ensaios com total rapidez.",
+  "tutorialProfileStep5Title": "Ajuda & Tutoriais",
+  "tutorialProfileStep5Message": "Toque no ícone **(i)** sempre que quiser rever as instruções e dicas desta tela!",
+  "tutorialPublicPlaylistsStep1Title": "Seu Nome de Usuário",
+  "tutorialPublicPlaylistsStep1Message": "Faça login com sua conta Google e crie seu **@usuário** para compartilhar suas próprias listas públicas com a igreja.",
+  "tutorialPublicPlaylistsStep2Title": "Buscar Irmãos e Equipes",
+  "tutorialPublicPlaylistsStep2Message": "Digite o **@usuário** de outros membros da equipe para localizar suas listas públicas e repertórios compartilhados.",
+  "tutorialPublicPlaylistsStep3Title": "Listas e Importação",
+  "tutorialPublicPlaylistsStep3Message": "Nos resultados, visualize as listas publicadas e toque em **importar** para adicionar os louvores à sua lista ativa.",
+  "tutorialPublicPlaylistsStep4Title": "Ajuda & Tutoriais",
+  "tutorialPublicPlaylistsStep4Message": "Toque no **ícone (i)** a qualquer momento para rever este guia passo a passo!",
+  "tutorialReaderStep1Title": "Ajuste de Tela",
+  "tutorialReaderStep1Message": "Alterne entre ajustar à **largura da tela** (ótimo para ampliar a partitura) ou à **página inteira**. Você também pode pressionar a tecla **Z**.",
+  "tutorialReaderStep2Title": "Modo Tela Cheia",
+  "tutorialReaderStep2Message": "Toque para ocultar todas as barras e **focar na partitura** durante o ensaio ou culto. Use a tecla **F** para entrar ou **Esc** para sair.",
+  "tutorialReaderStep3Title": "Indicador de Páginas",
+  "tutorialReaderStep3Message": "Exibe a **página atual** e o **total de páginas**. Toque para saltar de página ou **segure o toque** para voltar direto à **primeira página**!",
+  "tutorialReaderStep4Title": "Toque nas Bordas (Laterais)",
+  "tutorialReaderStep4Message": "Toque no **quinto lateral esquerdo** para voltar e no **quinto lateral direito** para avançar páginas instantaneamente, sem precisar arrastar a partitura.",
+  "tutorialReaderStep5Title": "Pedais Bluetooth & Teclado",
+  "tutorialReaderStep5Message": "Conecte qualquer **pedal virador de página Bluetooth** (AirTurn, PageFlip, Donner via PageUp/Down ou Setas) para avançar e trocar de louvor **sem tirar as mãos do instrumento**.",
+  "tutorialReaderStep6Title": "Ajuda & Tutoriais",
+  "tutorialReaderStep6Message": "Toque no ícone **(i)** sempre que tiver dúvidas sobre como utilizar as ferramentas do leitor!",
+  "tutorialWelcomeTourStep1Title": "1. Pesquise no Hinário",
+  "tutorialWelcomeTourStep1Message": "Digite o **número**, o **título** ou qualquer **trecho da letra** para localizar instantaneamente hinos e cânticos no acervo.",
+  "tutorialWelcomeTourStep2Title": "2. Formatos Especializados",
+  "tutorialWelcomeTourStep2Message": "Toque no louvor para selecionar entre **Partitura**, **Cifra**, **Gestos para Crianças** ou **Letra**, com transposição de tom e autoscroll.",
+  "tutorialWelcomeTourStep3Title": "3. Monte seu Repertório de Culto",
+  "tutorialWelcomeTourStep3Message": "Toque no botão **(+)** para incluir louvores no **Carrossel Ativo**, permitindo alternar rapidamente entre partituras durante a ministração.",
+  "tutorialWelcomeTourStep4Title": "4. Repertório Sempre com Você",
+  "tutorialWelcomeTourStep4Message": "Acesse a aba **Listas** para organizar playlists de ensaio e abra o **Armazenamento Offline** no Perfil para louvar **sem internet** em qualquer lugar!",
+  "privacyPolicyTitle": "Política de Privacidade",
+  "privacyPolicyAboutDescription": "Saiba como protegemos seus dados e sua privacidade.",
+  "profileDeleteAccount": "Excluir conta",
+  "profileDeleteAccountDialogTitle": "Excluir conta e dados?",
+  "profileDeleteAccountDialogContent": "Esta ação é irreversível. Sua conta, playlists sincronizadas, marcações e preferências serão permanentemente excluídas dos servidores do PLPCG.",
+  "profileDeleteAccountConfirm": "Excluir definitivamente",
+  "profileDeleteAccountSuccess": "Sua conta e todos os dados foram excluídos com sucesso.",
+  "profileDeleteAccountError": "Não foi possível excluir sua conta. Verifique sua conexão e tente novamente."
 }

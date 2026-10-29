@@ -1,0 +1,20 @@
+{
+  "schema": "coldigom.gesture-dictionary/1",
+  "version": 3,
+  "generatedAt": "2026-09-10T12:00:00Z",
+  "gestures": [
+    { "id": "c687580e7682", "name": "Mão ao peito", "description": "Mão direita sobre o peito.", "exampleTriggers": ["Quero", "Vou"], "image": "assets/cia/gestures/c687580e7682.png", "gif": null, "status": "active", "replacedBy": null, "updatedAt": "2026-09-01T00:00:00Z" },
+    { "id": "e7b821c9041a", "name": "Apontar para cima", "description": "Indicador direito para o alto.", "exampleTriggers": ["com", "Jesus"], "image": "assets/cia/gestures/e7b821c9041a.png", "gif": "assets/cia/gestures/e7b821c9041a.gif", "status": "active", "replacedBy": null, "updatedAt": "2026-09-01T00:00:00Z" },
+    { "id": "6d88501c6888", "name": "Beber", "description": "Mão em concha à boca.", "exampleTriggers": ["beber"], "image": "assets/cia/gestures/6d88501c6888.png", "gif": null, "status": "active", "replacedBy": null, "updatedAt": "2026-09-01T00:00:00Z" },
+    { "id": "dd4ba6562f45", "name": "Comer", "description": "Mão à boca.", "exampleTriggers": ["comer"], "image": "assets/cia/gestures/dd4ba6562f45.png", "gif": null, "status": "active", "replacedBy": null, "updatedAt": "2026-09-01T00:00:00Z" },
+    { "id": "a6a5eb350ad4", "name": "Passear", "description": "Dedos caminhando.", "exampleTriggers": ["Passear"], "image": "assets/cia/gestures/a6a5eb350ad4.png", "gif": null, "status": "active", "replacedBy": null, "updatedAt": "2026-09-01T00:00:00Z" },
+    { "id": "fa2878588e54", "name": "Árvore", "description": "Braços abertos como copa.", "exampleTriggers": ["A árvore"], "image": "assets/cia/gestures/fa2878588e54.png", "gif": null, "status": "active", "replacedBy": null, "updatedAt": "2026-09-01T00:00:00Z" },
+    { "id": "5ef0073c9723", "name": "Meio", "description": "Mãos ao centro.", "exampleTriggers": ["no meio"], "image": "assets/cia/gestures/5ef0073c9723.png", "gif": null, "status": "active", "replacedBy": null, "updatedAt": "2026-09-01T00:00:00Z" },
+    { "id": "121dceda600f", "name": "Certeza", "description": "Punho fechado firme.", "exampleTriggers": ["É certeza"], "image": "assets/cia/gestures/121dceda600f.png", "gif": null, "status": "active", "replacedBy": null, "updatedAt": "2026-09-01T00:00:00Z" },
+    { "id": "fff2698cc966", "name": "Para trás", "description": "Mão jogando para trás.", "exampleTriggers": ["Para"], "image": "assets/cia/gestures/fff2698cc966.png", "gif": null, "status": "active", "replacedBy": null, "updatedAt": "2026-09-01T00:00:00Z" },
+    { "id": "81338f2f401e", "name": "Domínio", "description": "Mão espalmada para baixo.", "exampleTriggers": ["Seu"], "image": "assets/cia/gestures/81338f2f401e.png", "gif": null, "status": "active", "replacedBy": null, "updatedAt": "2026-09-01T00:00:00Z" },
+    { "id": "a1b2c3d4e5f6", "name": "Mão ao peito (antigo)", "description": "Fundido.", "exampleTriggers": [], "image": "assets/cia/gestures/a1b2c3d4e5f6.png", "gif": null, "status": "deprecated", "replacedBy": "c687580e7682", "updatedAt": "2026-09-05T00:00:00Z" },
+    { "id": "b2c3d4e5f6a7", "name": "Ciclo X", "description": "", "exampleTriggers": [], "image": "assets/cia/gestures/b2c3d4e5f6a7.png", "gif": null, "status": "deprecated", "replacedBy": "c3d4e5f6a7b8", "updatedAt": "2026-09-05T00:00:00Z" },
+    { "id": "c3d4e5f6a7b8", "name": "Ciclo Y", "description": "", "exampleTriggers": [], "image": "assets/cia/gestures/c3d4e5f6a7b8.png", "gif": null, "status": "deprecated", "replacedBy": "b2c3d4e5f6a7", "updatedAt": "2026-09-05T00:00:00Z" }
+  ]
+}

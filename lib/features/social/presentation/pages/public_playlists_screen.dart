@@ -1,0 +1,228 @@
+import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
+import 'package:coldigui/features/auth/presentation/widgets/create_username_dialog.dart';
+import 'package:coldigui/features/auth/presentation/widgets/google_sign_in_button.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart'
+    as plpcg;
+import 'package:coldigui/features/social/presentation/providers/social_search_provider.dart';
+import 'package:coldigui/features/social/presentation/widgets/social_user_card.dart';
+import 'package:coldigui/l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
+
+/// Listas públicas (antiga aba Social) — busca de pessoas por @usuário e
+/// importação das listas públicas delas. Sub-rota de Listas
+/// (`/listas/publicas`), aberta pelo `PublicPlaylistsEntryButton`.
+class PublicPlaylistsScreen extends ConsumerWidget {
+  const PublicPlaylistsScreen({super.key});
+
+  static const double _maxContentWidth = 896;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final auth = ref.watch(authStateProvider);
+    final signedIn = auth.asData?.value != null;
+
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: _maxContentWidth),
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              sliver: SliverToBoxAdapter(
+                child: auth.when(
+                  data: (user) {
+                    if (user == null) {
+                      return const SpotlightGuideTarget(
+                        id: 'public-playlists-auth-banner',
+                        child: _AuthRequiredBanner(),
+                      );
+                    }
+                    if (user.username == null || user.username!.isEmpty) {
+                      return SpotlightGuideTarget(
+                        id: 'public-playlists-auth-banner',
+                        child: _UsernameBanner(
+                          username: user.username,
+                          onCreate: () => showCreateUsernameDialog(context),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                  loading: () => const SizedBox(
+                    height: 48,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (_, _) => const SpotlightGuideTarget(
+                    id: 'public-playlists-auth-banner',
+                    child: _AuthRequiredBanner(),
+                  ),
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              sliver: SliverToBoxAdapter(
+                child: SpotlightGuideTarget(
+                  id: 'public-playlists-search-bar',
+                  child: plpcg.SearchBar(
+                    hintText: l10n.socialSearchHint,
+                    onQueryChanged: (value) {
+                      ref.read(socialSearchRawQueryProvider.notifier).state =
+                          value;
+                    },
+                  ),
+                ),
+              ),
+            ),
+            ..._resultsSlivers(context, ref, signedIn),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _resultsSlivers(
+    BuildContext context,
+    WidgetRef ref,
+    bool signedIn,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    if (!signedIn) {
+      return [_centeredMessage(l10n.socialSignInRequired)];
+    }
+
+    final query = ref.watch(socialSearchDebouncedQueryProvider);
+    if (query.isEmpty) {
+      return [_centeredMessage(l10n.socialSearchEmptyHint)];
+    }
+
+    final results = ref.watch(socialSearchResultsProvider);
+    return [
+      results.when(
+        loading: () => const SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.gold),
+          ),
+        ),
+        error: (_, _) => _centeredMessage(l10n.socialSearchError),
+        data: (users) {
+          if (users.isEmpty) {
+            return _centeredMessage(l10n.socialSearchNoResults);
+          }
+          return SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final card = SocialUserCard(user: users[index]);
+                if (index == 0) {
+                  return SpotlightGuideTarget(
+                    id: 'public-playlists-results',
+                    child: card,
+                  );
+                }
+                return card;
+              },
+              childCount: users.length,
+            ),
+          );
+        },
+      ),
+      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+    ];
+  }
+
+  static Widget _centeredMessage(String message) {
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textLight.withValues(alpha: 0.85),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UsernameBanner extends StatelessWidget {
+  const _UsernameBanner({required this.username, required this.onCreate});
+
+  final String? username;
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    if (username != null && username!.isNotEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.btnBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gold, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.person_add_alt_1, color: AppColors.gold),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l10n.usernameCreatePrompt,
+              style: TextStyle(
+                color: AppColors.textLight.withValues(alpha: 0.7),
+                fontSize: 13,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onCreate,
+            style: TextButton.styleFrom(foregroundColor: AppColors.textLight),
+            child: Text(l10n.usernameCreateButton),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuthRequiredBanner extends StatelessWidget {
+  const _AuthRequiredBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      decoration: BoxDecoration(
+        color: AppColors.btnBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gold, width: 1.5),
+      ),
+      child: Column(
+        children: [
+          Text(
+            l10n.socialSignInRequired,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textLight, fontSize: 14),
+          ),
+          const SizedBox(height: 12),
+          const GoogleSignInButton(),
+        ],
+      ),
+    );
+  }
+}

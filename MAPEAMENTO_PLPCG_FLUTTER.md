@@ -139,6 +139,8 @@ flowchart TB
 
 ### 2.3 Endpoints API e assets dinâmicos
 
+> **set/2026:** estes endpoints do site `plpcg.com` foram desligados. O app usa `GET /api/plpcg/manifest`, `GET /api/plpcg/manifest/checksum` e `GET /assets/praises/**` do Worker `coldigom-api`; `/offline-manifest.json` e `/packages/**` não têm substituto (offline PDF a PDF).
+
 | Endpoint | Arquivo | Função |
 |----------|---------|--------|
 | `GET /louvores-manifest.json` | `src/routes/louvores-manifest.json/+server.js` | Catálogo de louvores (R2 → fallback static) |
@@ -175,6 +177,8 @@ Parâmetros sincronizados com stores:
 | `pagina` | Página atual | `1` |
 | `sharepdfs` | IDs de playlist compartilhada (CSV) | — |
 | `sharename` | Nome da playlist compartilhada | — |
+
+> **Nota (23/09/2026):** esta tabela é do PWA plpcjf de origem (`src/lib/utils/urlSync.js`). No app v2 (`coldigui`), os params `arranjoEspecial` e `fonte` já não existem — o fim da fonte PLPCG (spec `docs/superpowers/specs/2026-09-23-fim-fonte-plpcg-design.md`) tirou o seletor de fonte e o filtro de arranjo especial; `materiais`/`arranjo` viraram `tonality`/`rhythm`/`category`/`tags`/`materialKinds`, e `sharepdfs`/`sharename` viraram `p`/`n` (link por praise, §4).
 
 ---
 
@@ -1146,6 +1150,8 @@ flowchart TB
 ## 11. Anexos
 
 ### 11.1 Endpoints API completos
+
+> **set/2026:** estes endpoints do site `plpcg.com` foram desligados. O app usa `GET /api/plpcg/manifest`, `GET /api/plpcg/manifest/checksum` e `GET /assets/praises/**` do Worker `coldigom-api`; `/offline-manifest.json` e `/packages/**` não têm substituto (offline PDF a PDF).
 
 | Método | Endpoint | Auth | Resposta |
 |--------|----------|------|----------|

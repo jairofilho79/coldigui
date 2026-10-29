@@ -1,0 +1,8 @@
+{
+  "schema": "coldigom.gestures/2",
+  "title": "SCHEMA NOVO",
+  "dictionaryVersion": 9,
+  "items": [
+    { "type": "gesture", "gestureId": "c687580e7682", "lyrics": [{ "trigger": "Ainda", "text": "renderiza" }] }
+  ]
+}

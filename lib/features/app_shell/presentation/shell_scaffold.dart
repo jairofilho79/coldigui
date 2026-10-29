@@ -2,92 +2,314 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/app_tabs.dart';
+import '../../../core/constants/feature_flags.dart';
+import '../../../core/layout/breakpoints.dart';
+import '../../../core/providers/feature_flags_provider.dart';
 import '../../../core/routing/route_paths.dart';
+import '../../../core/widgets/degraded_storage_banner.dart';
 import '../../../core/widgets/plpcg_primary_app_bar.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../audio_player/domain/entities/audio_track.dart';
+import '../../audio_player/presentation/providers/audio_player_session_provider.dart';
+import '../../audio_player/presentation/widgets/mini_player_bar.dart';
+import '../../audio_player/presentation/widgets/mini_player_bar_metrics.dart';
+import '../../auth/presentation/providers/auth_state_provider.dart';
+import '../../catalog/presentation/providers/legacy_material_ids_normalizer_provider.dart';
+import '../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
+import '../../live/presentation/widgets/live_lifecycle_listener.dart';
+import '../../live/presentation/widgets/live_session_banner.dart';
+import '../../material_kind_prefs/presentation/providers/material_kind_prefs_sync_provider.dart';
+import '../../playlists/presentation/providers/playlist_sync_provider.dart';
 import '../../carousel/presentation/widgets/carousel_chips.dart';
 import '../../offline/presentation/widgets/offline_lifecycle_listener.dart';
 import '../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
-import 'widgets/plpcg_bottom_nav_bar.dart';
+import '../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
-/// UC-14 — Shell com bottom bar customizada de 5 destinos.
+import '../../../core/tutorial/presentation/providers/tutorial_provider.dart';
+import 'utils/browser_title.dart';
+import 'widgets/app_shortcuts.dart';
+import 'widgets/plpcg_bottom_nav_bar.dart';
+import 'widgets/plpcg_navigation_rail.dart';
+import 'widgets/stage_wakelock.dart';
+
+/// UC-14 — Shell com navegação (bottom bar ou rail) para as abas de
+/// [appTabsFor] (E6).
 ///
 /// Header compartilhado: [PlpcgPrimaryAppBar] + [CarouselChips] em todas as
 /// rotas do shell, inclusive `/leitor` (barra 3 do PDF fica no [PdfReaderScreen]).
+/// Banner da sessão ao vivo ([LiveSessionBanner]) entre o banner de storage e as chips.
 /// Em fullscreen ([readerFullscreenProvider]), oculta barras 1–2 mantendo
 /// `Expanded(child)` para o PDF não perder constraints.
 ///
-/// Bottom bar: [PlpcgBottomNavBar] com fundo marrom, aba ativa ampliada e
-/// feixe dourado; oculta em `/leitor`. Destino central: rótulo **Pesquisar**
-/// (logo PLPCG, rota [RoutePaths.home]).
+/// Navegação: Eventos (se [FeatureFlags.events]), Listas, Pesquisar, Perfil
+/// — mesma lista de [appTabsFor] usada pelo router, então os índices de
+/// [StatefulNavigationShell] sempre batem com a posição na lista. Em largura
+/// ≥ [kRailBreakpoint] (C6), usa [PlpcgNavigationRail] à esquerda do corpo em
+/// vez de [PlpcgBottomNavBar]. Ambas ocultas em `/leitor`, `/audio` e
+/// `/cifra`. Destino central: **Pesquisar** (logo PLPCG, [RoutePaths.home]).
+/// Aba Perfil: avatar + nome quando autenticado.
 ///
 /// [navigationShell] mantém o estado de cada aba via [StatefulShellRoute].
+///
+/// Mini-player persistente (D5, [MiniPlayerBar]): entre a barra de chips e o
+/// corpo sempre que há faixa corrente — sem faces (spec 2026-09-12, D1), o
+/// áudio vive só no mini-player; em fullscreen, sobrevive como faixa escura
+/// discreta no topo (abaixo da safe area), com o `navigationShell` abaixo
+/// dela — nunca no rodapé, que é a área do gesto de sistema. No layout com
+/// rail, mini-player e chips ficam na coluna à direita do rail.
+///
+/// Título da aba (C14, [browserTitle]): o corpo do `Scaffold` fica dentro de
+/// um [Title] — mecanismo do Flutter para o `<title>` da aba no web
+/// (inofensivo no nativo).
 class ShellScaffold extends ConsumerWidget {
   const ShellScaffold({required this.navigationShell, super.key});
 
   /// Pilha indexada das branches do shell — preserva estado ao trocar aba.
   final StatefulNavigationShell navigationShell;
 
-  bool _isReaderRoute(BuildContext context) {
-    return GoRouterState.of(context).uri.path == RoutePaths.reader;
+  bool _isImmersiveMediaRoute(String path) {
+    return path == RoutePaths.reader ||
+        path == RoutePaths.audio ||
+        path == RoutePaths.chords ||
+        path == RoutePaths.gestos ||
+        path == RoutePaths.lyrics;
+  }
+
+  /// Destinos na mesma ordem/índices de [tabs] (por sua vez, [appTabsFor]) —
+  /// consumidos tanto por [PlpcgBottomNavBar] quanto por
+  /// [PlpcgNavigationRail].
+  List<PlpcgBottomNavDestination> _destinations(
+    WidgetRef ref,
+    List<AppTab> tabs,
+    AppLocalizations l10n,
+  ) {
+    final user = ref.watch(authStateProvider).asData?.value;
+    final profileLabel = user?.displayFirstName ?? l10n.tabProfile;
+    final profileAvatar = user?.pictureUrl != null
+        ? NetworkImage(user!.pictureUrl!)
+        : null;
+
+    return [
+      for (final tab in tabs)
+        switch (tab) {
+          AppTab.events => PlpcgBottomNavDestination(
+            icon: Icons.event,
+            label: l10n.tabEvents,
+          ),
+          AppTab.playlists => PlpcgBottomNavDestination(
+            icon: Icons.playlist_play,
+            label: l10n.tabPlaylists,
+          ),
+          AppTab.home => PlpcgBottomNavDestination(
+            svgAsset: 'assets/branding/logo_colorido_no_bg_logo_only.svg',
+            label: l10n.tabSearch,
+          ),
+          AppTab.profile => PlpcgBottomNavDestination(
+            icon: profileAvatar == null ? Icons.person : null,
+            avatarImage: profileAvatar,
+            label: profileLabel,
+          ),
+        },
+    ];
+  }
+
+  /// Rótulo da aba corrente para [browserTitle] — mesmos nomes de
+  /// [_destinations] fora do leitor/cifra/áudio (que têm rótulo próprio).
+  String _tabLabel(String path, AppLocalizations l10n) {
+    return switch (path) {
+      RoutePaths.events => l10n.tabEvents,
+      RoutePaths.library => l10n.libraryTitle,
+      RoutePaths.home => l10n.tabSearch,
+      RoutePaths.profile => l10n.tabProfile,
+      RoutePaths.about => l10n.tabAbout,
+      RoutePaths.offline => l10n.offlineTitle,
+      RoutePaths.favoriteMaterialKinds => l10n.favoriteMaterialKindsTitle,
+      RoutePaths.playlists => l10n.tabPlaylists,
+      RoutePaths.publicPlaylists => l10n.tabPublicPlaylists,
+      RoutePaths.audio => l10n.audioMaterialSection,
+      String p when p.startsWith('/louvor/') => l10n.tabPraise,
+      _ => 'PLPCG',
+    };
+  }
+
+  /// Params do leitor/cifra para [browserTitle] — URL primeiro (atualização
+  /// imediata após `context.replace`), [readerRouteParamsProvider] como
+  /// fallback (mesma prioridade de [CarouselChips]).
+  Map<String, String> _readerParams(
+    BuildContext context,
+    WidgetRef ref,
+    bool isReaderRoute,
+  ) {
+    if (!isReaderRoute) return const {};
+    final fromRouter = GoRouterState.of(context).uri.queryParameters;
+    if (fromRouter.isNotEmpty) return fromRouter;
+    return ref.watch(readerRouteParamsProvider);
+  }
+
+  String? _trackTitleLabel(AudioTrack? track) {
+    if (track == null) return null;
+    return track.numero.isNotEmpty
+        ? '${track.numero} — ${track.nome}'
+        : track.nome;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isReader = _isReaderRoute(context);
+    ref.watch(playlistSyncProvider);
+    ref.watch(materialKindPrefsSyncProvider);
+    // Catálogo local (O4/O5, C6): hidrata (Isar ou memória) e sincroniza no
+    // boot sem bloquear o shell — a página inicial e a /biblioteca mostram
+    // carregamento até o índice chegar.
+    // `listen` (não `watch`): mantém os providers vivos sem re-renderizar o
+    // shell inteiro a cada hidratação/sync (a Home lê o resultado por conta
+    // própria via `coldigomSearchIndexProvider`/`coldigomCatalogSyncProvider`).
+    ref.listen(coldigomCatalogHydrationProvider, (_, _) {});
+    ref.listen(coldigomCatalogSyncProvider, (_, _) {});
+    // Vivo para escutar a volta da rede (offline → online) e normalizar os
+    // ids legados que ficaram pendentes (spec fim-fonte-plpcg §6.2).
+    ref.listen(legacyMaterialIdsNormalizerProvider, (_, _) {});
+    final path = GoRouterState.of(context).uri.path;
+    final isImmersive = _isImmersiveMediaRoute(path);
     final isFullscreen = ref.watch(readerFullscreenProvider);
 
-    if (!isReader && ref.read(readerFullscreenProvider)) {
+    if (!isImmersive && ref.read(readerFullscreenProvider)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(readerFullscreenProvider.notifier).exit();
       });
     }
 
-    final hideChrome = isReader && isFullscreen;
+    final hideChrome = isImmersive && isFullscreen;
 
-    return OfflineLifecycleListener(
-      child: Scaffold(
-        appBar: hideChrome ? null : const PlpcgPrimaryAppBar(),
-        body: hideChrome
-            ? navigationShell
-            : SafeArea(
-                top: false,
-                bottom: false,
-                child: Column(
-                  children: [
-                    const CarouselChips(),
-                    Expanded(child: navigationShell),
-                  ],
+    final currentTrack = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.currentTrack),
+    );
+
+    final isReaderRoute =
+        path == RoutePaths.reader || path == RoutePaths.chords;
+    final l10n = AppLocalizations.of(context)!;
+    final title = browserTitle(
+      l10n: l10n,
+      readerParams: _readerParams(context, ref, isReaderRoute),
+      trackTitle: path == RoutePaths.audio
+          ? _trackTitleLabel(currentTrack)
+          : null,
+      tabLabel: _tabLabel(path, l10n),
+    );
+
+    final showMiniPlayer = !hideChrome && currentTrack != null;
+
+    final tabs = appTabsFor(ref.read(featureFlagsProvider));
+    final destinations = _destinations(ref, tabs, l10n);
+    // C6: rail substitui a bottom bar ≥ kRailBreakpoint; nenhuma das duas em
+    // rotas imersivas (leitor/áudio/cifra têm navegação própria).
+    final showRail =
+        !isImmersive && MediaQuery.sizeOf(context).width >= kRailBreakpoint;
+
+    final bodyColumn = Column(
+      children: [
+        const DegradedStorageBanner(),
+        const LiveSessionBanner(),
+        const CarouselChips(),
+        if (showMiniPlayer) const MiniPlayerBar(),
+        Expanded(child: navigationShell),
+      ],
+    );
+
+    final tutorialNotifier = ref.watch(tutorialControllerProvider);
+
+    return LiveLifecycleListener(
+      child: OfflineLifecycleListener(
+        child: StageWakelockListener(
+          path: path,
+          child: AppShortcuts(
+            path: path,
+            child: Title(
+              color: Theme.of(context).colorScheme.primary,
+              title: title,
+              child: SpotlightGuidePortal(
+                controller: tutorialNotifier.portalController,
+                autoStart: false,
+                missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
+                barrier: const SpotlightGuideBarrierStyle(
+                  color: Color(0x99000000),
+                  blurSigma: 0,
+                ),
+                barrierDismissBehavior: SpotlightGuideDismissBehavior.anytime,
+                onBarrierTap: (c) => tutorialNotifier.hide(),
+                onFinish: () => tutorialNotifier.resetTutorialState(),
+                child: Scaffold(
+                  appBar: hideChrome ? null : const PlpcgPrimaryAppBar(),
+                  body: hideChrome
+                      ? Column(
+                          children: [
+                            // No topo, e não em `bottom: 0`: o rodapé da tela é
+                            // a área do gesto de sistema (Android e iOS), onde
+                            // um toque na barra virava «ir para o início».
+                            // `SafeArea` tira a barra de baixo do notch/status
+                            // bar; a faixa preta cobre esse recuo.
+                            if (currentTrack != null)
+                              const ColoredBox(
+                                color: Colors.black,
+                                child: SafeArea(
+                                  bottom: false,
+                                  child: SizedBox(
+                                    height: kMiniPlayerBarHeight,
+                                    child: MiniPlayerBar(overlay: true),
+                                  ),
+                                ),
+                              ),
+                            // Espaço reservado em vez de sobreposição: o leitor
+                            // começa abaixo da barra e não perde a parte de cima
+                            // do PDF. Sem o recuo de cima (já consumido pela
+                            // barra), o `SafeArea` das telas não o soma de novo.
+                            Expanded(
+                              child: MediaQuery.removePadding(
+                                context: context,
+                                removeTop: currentTrack != null,
+                                child: navigationShell,
+                              ),
+                            ),
+                          ],
+                        )
+                      : SafeArea(
+                          top: false,
+                          bottom: false,
+                          child: showRail
+                              ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    SpotlightGuideTarget(
+                                      id: 'home-bottom-nav',
+                                      child: PlpcgNavigationRail(
+                                        selectedIndex:
+                                            navigationShell.currentIndex,
+                                        onDestinationSelected:
+                                            navigationShell.goBranch,
+                                        destinations: destinations,
+                                      ),
+                                    ),
+                                    Expanded(child: bodyColumn),
+                                  ],
+                                )
+                              : bodyColumn,
+                        ),
+                  bottomNavigationBar: (isImmersive || showRail)
+                      ? null
+                      : SpotlightGuideTarget(
+                          id: 'home-bottom-nav',
+                          child: PlpcgBottomNavBar(
+                            selectedIndex: navigationShell.currentIndex,
+                            onDestinationSelected: navigationShell.goBranch,
+                            destinations: destinations,
+                          ),
+                        ),
                 ),
               ),
-        bottomNavigationBar: isReader
-            ? null
-            : PlpcgBottomNavBar(
-                selectedIndex: navigationShell.currentIndex,
-                onDestinationSelected: navigationShell.goBranch,
-                destinations: const [
-                  PlpcgBottomNavDestination(
-                    icon: Icons.info_outline,
-                    label: 'Sobre',
-                  ),
-                  PlpcgBottomNavDestination(
-                    icon: Icons.library_books,
-                    label: 'Biblioteca',
-                  ),
-                  PlpcgBottomNavDestination(
-                    svgAsset:
-                        'assets/branding/logo_colorido_no_bg_logo_only.svg',
-                    label: 'Pesquisar',
-                  ),
-                  PlpcgBottomNavDestination(
-                    icon: Icons.cloud_download,
-                    label: 'Offline',
-                  ),
-                  PlpcgBottomNavDestination(
-                    icon: Icons.playlist_play,
-                    label: 'Listas',
-                  ),
-                ],
-              ),
+            ),
+          ),
+        ),
       ),
     );
   }

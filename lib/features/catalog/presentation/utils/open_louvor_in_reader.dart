@@ -1,60 +1,55 @@
 import 'dart:async';
 
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
-import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
-import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../domain/entities/louvor.dart';
+import '../../../../core/errors/user_message_for.dart';
+import '../../../../core/routing/reading_navigation.dart';
+import '../../../../l10n/app_localizations.dart';
+import '../../../coldigom/data/coldigom_praise_cache_warmup.dart';
 import '../providers/louvor_pdf_download_provider.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
-import '../../../playlists/presentation/providers/playlists_provider.dart';
-import '../../../playlists/presentation/widgets/open_louvor_playlist_choice_dialog.dart';
 
 /// Abre [louvor] no leitor interno (`/leitor`) com resolve local-first.
+///
+/// Caminho `PdfMaterial` do `openMaterialProvider`, que traduz por
+/// `presentMaterialOpenError` as exceções tipadas que escapam daqui. Quem chama
+/// esta função direto (card do grupo, troca de material no carrossel) trata o
+/// erro por conta própria — normalmente com [louvorPdfErrorMessage].
+///
+/// Resolve o PDF e adiciona à playlist ativa **em paralelo** (A3): a rede
+/// nunca deve travar a abertura do leitor. O warmup Coldigom roda
+/// best-effort em segundo plano — nunca atrasa nem impede a navegação —, e
+/// uma falha ao adicionar à playlist ativa (ex.: Isar indisponível) também
+/// não impede abrir o PDF, que é a prioridade.
 Future<void> openLouvorInReader({
   required WidgetRef ref,
   required BuildContext context,
   required Louvor louvor,
 }) async {
-  final playlists = ref.read(playlistsProvider.notifier);
-
-  if (await playlists.activePlaylistNeedsChoiceForLouvor(louvor.pdfId)) {
-    if (!context.mounted) return;
-
-    final choice = await showOpenLouvorPlaylistChoiceDialog(context);
-    if (!context.mounted) return;
-
-    switch (choice) {
-      case OpenLouvorPlaylistChoice.addToCurrent:
-        await playlists.addLouvorToActivePlaylist(louvor.pdfId);
-      case OpenLouvorPlaylistChoice.createNew:
-        await playlists.ensurePlaylistForLouvor(louvor.pdfId);
-      case null:
-        return;
-    }
-  } else {
-    await playlists.ensurePlaylistForLouvor(louvor.pdfId);
-  }
+  warmupColdigomInBackground(
+    ref.read(ensureColdigomPraiseMaterialsCachedProvider),
+    louvor,
+  );
 
   final remotePath = LouvorPdfPath.fromLouvor(louvor);
-  final source =
-      await ref.read(louvorPdfDownloadProvider.notifier).resolveLouvorPdf(
-            pdfId: louvor.pdfId,
-            remotePath: remotePath,
-          );
+  final source = await ref
+      .read(louvorPdfDownloadProvider.notifier)
+      .resolveLouvorPdf(pdfId: louvor.pdfId, remotePath: remotePath);
 
   if (!context.mounted) return;
 
-  final location = ref.read(openPdfInReaderProvider).call(
+  final location = ref
+      .read(openPdfInReaderProvider)
+      .call(
         pdfPath: source.absolutePath,
         pdfId: louvor.pdfId,
         titulo: louvor.nome,
       );
-  unawaited(context.push(location));
+  openReadingLocation(context, location);
 }
 
 /// Resolve PDF do louvor — expõe erros tipados para UI.
@@ -63,19 +58,19 @@ Future<LocalPdfSource> resolveLouvorPdf({
   required Louvor louvor,
 }) {
   final remotePath = LouvorPdfPath.fromLouvor(louvor);
-  return ref.read(louvorPdfDownloadProvider.notifier).resolveLouvorPdf(
-        pdfId: louvor.pdfId,
-        remotePath: remotePath,
-      );
+  return ref
+      .read(louvorPdfDownloadProvider.notifier)
+      .resolveLouvorPdf(pdfId: louvor.pdfId, remotePath: remotePath);
 }
 
 /// Mensagem amigável para falhas de abertura/compartilhamento.
-String louvorPdfErrorMessage(Object error, String genericMessage) {
-  return switch (error) {
-    InvalidPdfPathException() => genericMessage,
-    PdfOfflineUnavailableException(:final message) => message,
-    PdfExternallyDeletedException(:final message) => message,
-    PdfFetchFailedException(:final message) => message,
-    _ => genericMessage,
-  };
-}
+///
+/// Ponto único para quem chama [openLouvorInReader] direto e mostra o erro
+/// numa snackbar (hoje o card do grupo): o mesmo texto para o mesmo erro.
+///
+/// Recebe o [l10n] em vez de um genérico já resolvido porque as exceções de PDF
+/// não carregam mais o texto em português — quem traduz é [userMessageFor], que
+/// conhece as chaves (`pdfExternallyDeleted`, `pdfLocalCorrupted`, …), desembrulha
+/// causa de rede e só então cai em `errorGeneric` (spec D.6).
+String louvorPdfErrorMessage(AppLocalizations l10n, Object error) =>
+    userMessageFor(l10n, error);

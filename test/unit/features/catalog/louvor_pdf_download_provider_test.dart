@@ -56,6 +56,7 @@ class _UnusedPdfBytesDatasource extends PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) {
     throw StateError('não deve chamar fetchBytes');
   }
@@ -97,9 +98,12 @@ class _UnusedRepository implements OfflinePdfRepository {
   Future<void> remove(String pdfId) => throw UnimplementedError();
 
   @override
-  Future<void> remapPdfId({
-    required String fromPdfId,
-    required String toPdfId,
+  Future<void> removeMany(Set<String> pdfIds) => throw UnimplementedError();
+
+  @override
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
   }) => throw UnimplementedError();
 
   @override
@@ -112,10 +116,6 @@ class _UnusedRepository implements OfflinePdfRepository {
     required String category,
     bool isPersistent = false,
   }) => throw UnimplementedError();
-
-  @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) =>
-      throw UnimplementedError();
 
   @override
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items) =>

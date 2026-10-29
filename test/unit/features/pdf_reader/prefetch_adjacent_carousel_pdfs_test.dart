@@ -86,6 +86,7 @@ class _TrackingFetchAndStore extends FetchAndStorePdf {
     String? category,
     ProgressCallback? onProgress,
     bool persistentDownload = false,
+    CancelToken? cancelToken,
   }) async {
     resolvedPdfIds.add(pdfId);
     return LocalPdfSource(
@@ -135,6 +136,10 @@ Louvor _louvor(String relPath, {String nome = 'Louvor'}) {
   );
 }
 
+PrefetchLouvorResolver _resolverFor(List<Louvor> catalog) {
+  return (pdfId) => catalog.where((l) => l.pdfId == pdfId).firstOrNull;
+}
+
 void main() {
   final prevId = _pdfIdForPath('assets/ColAdultos/prev.pdf');
   final currentId = _pdfIdForPath('assets/ColAdultos/current.pdf');
@@ -154,13 +159,13 @@ void main() {
       );
 
       await useCase(
-        catalog: [
+        resolveLouvor: _resolverFor([
           _louvor('assets/ColAdultos/prev.pdf'),
           _louvor('assets/ColAdultos/current.pdf'),
           _louvor('assets/ColAdultos/next.pdf'),
-        ],
-        previousPdfId: prevId,
-        nextPdfId: nextId,
+        ]),
+        previousMaterialId: prevId,
+        nextMaterialId: nextId,
       );
 
       expect(resolved, [prevId, nextId]);
@@ -181,13 +186,13 @@ void main() {
       );
 
       await useCase(
-        catalog: [
+        resolveLouvor: _resolverFor([
           _louvor('assets/ColAdultos/prev.pdf'),
           _louvor('assets/ColAdultos/current.pdf'),
           _louvor('assets/ColAdultos/next.pdf'),
-        ],
-        previousPdfId: prevId,
-        nextPdfId: nextId,
+        ]),
+        previousMaterialId: prevId,
+        nextMaterialId: nextId,
       );
 
       expect(resolved, [nextId]);
@@ -206,13 +211,13 @@ void main() {
       );
 
       await useCase(
-        catalog: [
+        resolveLouvor: _resolverFor([
           _louvor('assets/ColAdultos/prev.pdf'),
           _louvor('assets/ColAdultos/current.pdf'),
           _louvor('assets/ColAdultos/next.pdf'),
-        ],
-        previousPdfId: prevId,
-        nextPdfId: nextId,
+        ]),
+        previousMaterialId: prevId,
+        nextMaterialId: nextId,
       );
 
       expect(resolved, isEmpty);
@@ -231,9 +236,9 @@ void main() {
       );
 
       await useCase(
-        catalog: [_louvor('assets/ColAdultos/current.pdf')],
-        previousPdfId: _pdfIdForPath('assets/ColAdultos/missing.pdf'),
-        nextPdfId: null,
+        resolveLouvor: _resolverFor([_louvor('assets/ColAdultos/current.pdf')]),
+        previousMaterialId: _pdfIdForPath('assets/ColAdultos/missing.pdf'),
+        nextMaterialId: null,
       );
 
       expect(resolved, isEmpty);

@@ -1,0 +1,165 @@
+import '../entities/gesture_document.dart';
+
+/// Leitura linear: expande as marcações de salto do documento para que a
+/// regente só precise descer a página.
+///
+/// - `Nx` → filhos N vezes, com [SectionLabel.pass] antes de cada passagem a
+///   partir da 2ª. Quando `Nx` envolve diretamente um `CORO`, trata-se como a
+///   repetição do próprio coro (rótulo «CORO» na 1ª passagem, «kª vez» nas
+///   seguintes), e todo o trecho repetido é registrado para «Voltar ao coro».
+/// - `CORO` → [SectionLabel.chorus] + filhos; vira o "último coro visto".
+/// - Ao terminar o coro e seguir uma estrofe (cartões soltos ou repetições),
+///   insere [SectionLabel.verse] («ESTROFE»).
+/// - «Voltar ao coro» (e «… e finalizar») → rótulo + cartões do último coro
+///   (incluindo suas repetições); sem coro anterior, a instrução fica como está.
+/// - «Repetir o louvor» → rótulo «2ª vez» + cópia de tudo que a **raiz** já
+///   emitiu até ali; sem nada antes, a instrução fica.
+/// - `link` e `final` continuam blocos, com os filhos linearizados.
+///
+/// Puro e idempotente: o documento de saída não tem `RepeatBlock` nem
+/// `ChorusBlock`, e linearizá-lo de novo devolve a mesma estrutura.
+GestureDocument linearizeGestureDocument(GestureDocument document) {
+  final root = <GestureItem>[];
+  final state = _LinearizeState(root);
+  _linearize(document.items, root, state);
+  return GestureDocument(
+    schemaMajor: document.schemaMajor,
+    title: document.title,
+    dictionaryVersion: document.dictionaryVersion,
+    items: root,
+  );
+}
+
+class _LinearizeState {
+  _LinearizeState(this.root);
+
+  /// Saída da raiz — «repetir o louvor» copia daqui, em qualquer profundidade.
+  final List<GestureItem> root;
+
+  /// Filhos já linearizados do último `CORO` visto, em qualquer profundidade.
+  List<GestureItem>? lastChorus;
+
+  /// `true` logo após emitir um coro (seja `ChorusBlock` ou «voltar ao coro»),
+  /// indicando que o próximo trecho com gestos fora do coro é uma estrofe.
+  bool afterChorus = false;
+}
+
+void _linearize(
+  List<GestureItem> items,
+  List<GestureItem> out,
+  _LinearizeState state,
+) {
+  for (final item in items) {
+    switch (item) {
+      case GestureCard():
+        if (state.afterChorus) {
+          out.add(const SectionLabel.verse());
+          state.afterChorus = false;
+        }
+        out.add(item);
+      case TextLine():
+        out.add(item);
+      case SectionLabel():
+        if (item.isVerse || item.isChorus) {
+          state.afterChorus = false;
+        }
+        out.add(item);
+      case InstructionCard(:final kind):
+        _instruction(kind, item, out, state);
+      case RepeatBlock(:final count, :final children):
+        final nonText = children.where((c) => c is! TextLine).toList();
+        if (nonText.length == 1 && nonText.first is ChorusBlock) {
+          final chorus = nonText.first as ChorusBlock;
+          final leadText = children.takeWhile((c) => c is TextLine).toList();
+          final trailText = children.reversed
+              .takeWhile((c) => c is TextLine)
+              .toList()
+              .reversed
+              .toList();
+
+          out.addAll(leadText);
+          _linearize(
+            [
+              ChorusBlock(
+                children: [
+                  RepeatBlock(count: count, children: chorus.children),
+                ],
+              ),
+            ],
+            out,
+            state,
+          );
+          out.addAll(trailText);
+          break;
+        }
+
+        if (state.afterChorus) {
+          out.add(const SectionLabel.verse());
+          state.afterChorus = false;
+        }
+
+        final pass = <GestureItem>[];
+        _linearize(children, pass, state);
+        for (var k = 1; k <= count; k++) {
+          if (k >= 2) out.add(SectionLabel.pass(k));
+          out.addAll(pass);
+        }
+      case ChorusBlock(:final children):
+        state.afterChorus = false;
+        final body = <GestureItem>[];
+        _linearize(children, body, state);
+        state.lastChorus = body;
+        out
+          ..add(const SectionLabel.chorus())
+          ..addAll(body);
+        state.afterChorus = true;
+      case LinkBlock(:final children):
+        if (state.afterChorus) {
+          out.add(const SectionLabel.verse());
+          state.afterChorus = false;
+        }
+        final body = <GestureItem>[];
+        _linearize(children, body, state);
+        out.add(LinkBlock(children: body));
+      case FinalBlock(:final children):
+        state.afterChorus = false;
+        final body = <GestureItem>[];
+        _linearize(children, body, state);
+        out.add(FinalBlock(children: body));
+    }
+  }
+}
+
+void _instruction(
+  InstructionKind kind,
+  InstructionCard card,
+  List<GestureItem> out,
+  _LinearizeState state,
+) {
+  switch (kind) {
+    case InstructionKind.instruments:
+      out.add(card);
+    case InstructionKind.backToChorus || InstructionKind.backToChorusAndFinish:
+      final chorus = state.lastChorus;
+      if (chorus == null) {
+        out.add(card);
+        return;
+      }
+      out
+        ..add(const SectionLabel.chorus())
+        ..addAll(chorus);
+      state.afterChorus = true;
+    case InstructionKind.repeatPraise:
+      state.afterChorus = false;
+      if (state.root.isEmpty) {
+        out.add(card);
+        return;
+      }
+      // Cópia antes de emitir: quando `out` é a própria raiz, `addAll(root)`
+      // iteraria a lista enquanto cresce.
+      final copy = List<GestureItem>.of(state.root);
+      out
+        ..add(const SectionLabel.pass(2))
+        ..addAll(copy);
+  }
+}

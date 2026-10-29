@@ -1,26 +1,43 @@
-import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../l10n/app_localizations.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
+import '../../../leaflet/domain/exceptions/empty_leaflet_exception.dart';
 import '../../../leaflet/presentation/providers/leaflet_actions_provider.dart';
 import '../../../leaflet/presentation/utils/leaflet_capture.dart';
 import '../../../leaflet/presentation/utils/leaflet_debug_log.dart';
 import '../../../leaflet/presentation/widgets/leaflet_content_labels.dart';
-import 'package:path_provider/path_provider.dart' as path_provider;
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_share_option.dart';
-import '../../domain/exceptions/empty_carousel_exception.dart';
 import '../../domain/exceptions/empty_playlist_share_exception.dart';
 import '../../domain/exceptions/playlist_not_found_exception.dart';
+import '../../domain/exceptions/praise_short_id_unavailable_exception.dart';
 import '../providers/playlists_provider.dart';
 import '../utils/playlist_share_debug_log.dart';
-import '../widgets/playlist_share_whatsapp_step_dialog.dart';
 
-/// Orquestra os 4 modos de compartilhamento (UC-07/UC-08).
+/// Callback injetável para testes — espelha [captureLeafletPngBytes].
+typedef CaptureWidgetToPngFn = Future<List<int>> Function(
+  GlobalKey boundaryKey,
+);
+
+/// Callback injetável para testes — espelha `Share.shareXFiles`.
+typedef ShareXFilesFn = Future<void> Function(
+  List<XFile> files, {
+  String? subject,
+  String? text,
+  Rect? sharePositionOrigin,
+});
+
+/// Orquestra os 3 modos: link, folheto, folheto+link.
+///
+/// O link é sempre por praise (`?p=…&n=…`, spec fim-fonte-plpcg §4) e serve
+/// a qualquer lista, com qualquer material. Entrada cujo praise não tem
+/// `shortId` no catálogo local falha o share com o snackbar de erro e pede um
+/// sync do catálogo (§4.2).
 class PlaylistShareActionsNotifier extends Notifier<void> {
   @override
   void build() {}
@@ -28,7 +45,11 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   /// Executa [option] para [shareContext].
   ///
   /// [sharePositionOrigin] deve ser capturado antes de qualquer `await`.
-  /// Retorna `false` em falha ou cancelamento antes do segundo passo WhatsApp.
+  /// Retorna `false` em falha — o próprio provider mostra o snackbar
+  /// (mensagem específica para [EmptyLeafletException], genérica para as
+  /// demais exceções) antes de retornar; quem chama **não deve** mostrar
+  /// outro snackbar em cima do retorno `false`. Em sucesso com entradas
+  /// legadas fora do link, mostra `playlistShareSkippedEntries`.
   Future<bool> share(
     BuildContext context,
     PlaylistShareContext shareContext,
@@ -37,66 +58,85 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     ShareFn? share,
     ShareXFilesFn? shareXFiles,
     CaptureWidgetToPngFn? capture,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
-    Future<bool> Function(BuildContext context)? showWhatsAppStepDialog,
   }) async {
     playlistShareDebugClearLastFailure();
     final l10n = AppLocalizations.of(context)!;
     final shareTextFn = share ?? _defaultShare;
     final shareFilesFn = shareXFiles ?? _defaultShareXFiles;
-    final whatsAppDialogFn =
-        showWhatsAppStepDialog ?? showPlaylistShareWhatsAppStepDialog;
+
+    // Entradas legadas que o link gerado deixou de fora — o share segue e,
+    // no fim, um snackbar avisa quantas.
+    var skipped = 0;
+    Future<String> generateUrl() async {
+      final link = await ref
+          .read(generatePlaylistShareUrlProvider)
+          .generate(playlistId: shareContext.playlistId);
+      skipped = link.skippedCount;
+      return link.url;
+    }
 
     try {
+      final bool shared;
       switch (option) {
         case PlaylistShareOption.link:
-          return _shareLinkOnly(shareContext, shareTextFn, sharePositionOrigin);
+          shared = await _shareLinkOnly(
+            shareContext,
+            shareTextFn,
+            sharePositionOrigin,
+            generateUrl,
+          );
         case PlaylistShareOption.leaflet:
-          return _shareLeafletOnly(
+          shared = await _shareLeafletOnly(
             context,
             shareContext,
             l10n,
             shareFilesFn,
             sharePositionOrigin,
+            generateUrl,
             capture: capture,
-            getTemporaryDirectory: getTemporaryDirectory,
           );
         case PlaylistShareOption.linkWithLeaflet:
-          return _shareLinkWithLeaflet(
+          shared = await _shareLinkWithLeaflet(
             context,
             shareContext,
             l10n,
             shareFilesFn,
             sharePositionOrigin,
+            generateUrl,
             capture: capture,
-            getTemporaryDirectory: getTemporaryDirectory,
-          );
-        case PlaylistShareOption.linkAndLeafletWhatsApp:
-          return _shareWhatsAppTwoStep(
-            context,
-            shareContext,
-            l10n,
-            shareTextFn,
-            shareFilesFn,
-            sharePositionOrigin,
-            whatsAppDialogFn,
-            capture: capture,
-            getTemporaryDirectory: getTemporaryDirectory,
           );
       }
-    } on EmptyCarouselException catch (error, stackTrace) {
+      if (shared && skipped > 0 && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.playlistShareSkippedEntries(skipped))),
+        );
+      }
+      return shared;
+    } on EmptyLeafletException catch (error, stackTrace) {
       playlistShareDebugLogError('seleção vazia', error, stackTrace);
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.playlistEmptyCarousel)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l10n.playlistEmptyCarousel)));
       }
       return false;
     } on PlaylistNotFoundException catch (error, stackTrace) {
       playlistShareDebugLogError('playlist não encontrada', error, stackTrace);
+      if (context.mounted) {
+        showPlaylistShareErrorSnackbar(context, l10n);
+      }
       return false;
     } on EmptyPlaylistShareException catch (error, stackTrace) {
-      playlistShareDebugLogError('playlist sem pdfIds', error, stackTrace);
+      playlistShareDebugLogError('playlist sem entradas', error, stackTrace);
+      if (context.mounted) {
+        showPlaylistShareErrorSnackbar(context, l10n);
+      }
+      return false;
+    } on PraiseShortIdUnavailableException catch (error, stackTrace) {
+      playlistShareDebugLogError('praise sem shortId', error, stackTrace);
+      _requestCatalogSync();
+      if (context.mounted) {
+        showPlaylistShareErrorSnackbar(context, l10n);
+      }
       return false;
     } on Object catch (error, stackTrace) {
       playlistShareDebugLogError('share', error, stackTrace);
@@ -111,8 +151,9 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     PlaylistShareContext shareContext,
     ShareFn shareTextFn,
     Rect? sharePositionOrigin,
+    Future<String> Function() generateUrl,
   ) async {
-    final url = await _generateUrl(shareContext.playlistId);
+    final url = await generateUrl();
     await shareTextFn(
       url,
       subject: shareContext.nome,
@@ -126,23 +167,35 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     PlaylistShareContext shareContext,
     AppLocalizations l10n,
     ShareXFilesFn shareFilesFn,
-    Rect? sharePositionOrigin, {
+    Rect? sharePositionOrigin,
+    Future<String> Function() generateUrl, {
     CaptureWidgetToPngFn? capture,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
   }) async {
+    // O folheto sai com o QR do link (§4.5). Só fica sem QR quando não pode
+    // haver link: lista fora do repositório (ex.: web sem Isar), sem
+    // entradas ou só com ids legados fora do Coldigom. Praise sem `shortId`
+    // não cai aqui — falha o share (§4.2).
+    String? qrUrl;
+    try {
+      qrUrl = await generateUrl();
+    } on PlaylistNotFoundException catch (error, stackTrace) {
+      playlistShareDebugLogError('link para QR', error, stackTrace);
+    } on EmptyPlaylistShareException catch (error, stackTrace) {
+      playlistShareDebugLogError('link para QR', error, stackTrace);
+    }
     if (!context.mounted) return false;
     final overlay = Overlay.of(context);
-    final file = await _captureLeafletFile(
+    final xFile = await _captureLeafletXFile(
       overlay,
       shareContext,
       l10n,
       capture: capture,
-      getTemporaryDirectory: getTemporaryDirectory,
+      shareUrl: qrUrl,
     );
     if (!context.mounted) return false;
 
     await shareFilesFn(
-      [leafletXFileFromFile(file)],
+      [xFile],
       subject: l10n.leafletShareSubject,
       sharePositionOrigin: sharePositionOrigin,
     );
@@ -154,20 +207,20 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     PlaylistShareContext shareContext,
     AppLocalizations l10n,
     ShareXFilesFn shareFilesFn,
-    Rect? sharePositionOrigin, {
+    Rect? sharePositionOrigin,
+    Future<String> Function() generateUrl, {
     CaptureWidgetToPngFn? capture,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
   }) async {
-    final url = await _generateUrl(shareContext.playlistId);
+    final url = await generateUrl();
     if (!context.mounted) return false;
     final overlay = Overlay.of(context);
 
-    final file = await _captureLeafletFile(
+    final xFile = await _captureLeafletXFile(
       overlay,
       shareContext,
       l10n,
       capture: capture,
-      getTemporaryDirectory: getTemporaryDirectory,
+      shareUrl: url,
     );
     if (!context.mounted) return false;
 
@@ -176,7 +229,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       url,
     );
     await shareFilesFn(
-      [leafletXFileFromFile(file)],
+      [xFile],
       subject: shareContext.nome,
       text: message,
       sharePositionOrigin: sharePositionOrigin,
@@ -184,68 +237,31 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     return true;
   }
 
-  Future<bool> _shareWhatsAppTwoStep(
-    BuildContext context,
-    PlaylistShareContext shareContext,
-    AppLocalizations l10n,
-    ShareFn shareTextFn,
-    ShareXFilesFn shareFilesFn,
-    Rect? sharePositionOrigin,
-    Future<bool> Function(BuildContext context) whatsAppDialogFn, {
-    CaptureWidgetToPngFn? capture,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
-  }) async {
-    if (!context.mounted) return false;
-    final overlay = Overlay.of(context);
-    final file = await _captureLeafletFile(
-      overlay,
-      shareContext,
-      l10n,
-      capture: capture,
-      getTemporaryDirectory: getTemporaryDirectory,
+  /// Pedido quando um praise da lista não tem `shortId` no catálogo local
+  /// (§4.2). Não bloqueia o snackbar; falha vira log.
+  void _requestCatalogSync() {
+    final syncNotifier = ref.read(coldigomCatalogSyncProvider.notifier);
+    unawaited(
+      syncNotifier.sync().then<void>(
+        (_) {},
+        onError: (Object e) =>
+            debugPrint('[UC-07 playlist-share] sync do catálogo falhou: $e'),
+      ),
     );
-    if (!context.mounted) return false;
-
-    await shareFilesFn(
-      [leafletXFileFromFile(file)],
-      subject: l10n.leafletShareSubject,
-      sharePositionOrigin: sharePositionOrigin,
-    );
-    if (!context.mounted) return false;
-
-    final continueShare = await whatsAppDialogFn(context);
-    if (!continueShare || !context.mounted) return false;
-
-    final url = await _generateUrl(shareContext.playlistId);
-    if (!context.mounted) return false;
-
-    await shareTextFn(
-      url,
-      subject: shareContext.nome,
-      sharePositionOrigin: sharePositionOrigin,
-    );
-    return true;
   }
 
-  Future<String> _generateUrl(String playlistId) {
-    return ref.read(generatePlaylistShareUrlProvider)(playlistId: playlistId);
-  }
-
-  Future<File> _captureLeafletFile(
+  Future<XFile> _captureLeafletXFile(
     OverlayState overlay,
     PlaylistShareContext shareContext,
     AppLocalizations l10n, {
     CaptureWidgetToPngFn? capture,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
+    String? shareUrl,
   }) async {
-    final metadata = buildLouvorMetadataMap(
-      ref.read(louvoresManifestProvider).value?.louvores,
-    );
     final document = await resolveLeafletDocument(
       ref,
-      pdfIds: shareContext.pdfIds,
+      entries: shareContext.entries,
       fromCarousel: shareContext.fromCarousel,
-      metadata: metadata,
+      shareUrl: shareUrl,
     );
     final labels = LeafletContentLabels.fromL10n(l10n, document.generatedAt);
     leafletDebugLog(
@@ -258,11 +274,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       labels,
       capture: capture,
     );
-    return writeLeafletPngToTempFile(
-      pngBytes,
-      getTemporaryDirectory:
-          getTemporaryDirectory ?? path_provider.getTemporaryDirectory,
-    );
+    return leafletXFileFromBytes(pngBytes);
   }
 }
 

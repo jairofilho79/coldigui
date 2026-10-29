@@ -1,0 +1,26 @@
+{
+  "schema": "coldigom.gestures/1",
+  "title": "999 - SINTÉTICO",
+  "dictionaryVersion": 1,
+  "items": [
+    { "type": "instruction", "kind": "instruments" },
+    { "type": "repeat", "count": 3, "children": [
+      { "type": "gesture", "gestureId": "c687580e7682", "lyrics": [{ "trigger": "Um", "text": "gesto solto" }] },
+      { "type": "link", "children": [
+        { "type": "gesture", "gestureId": "e7b821c9041a", "lyrics": [{ "trigger": "Ligado", "text": "ao" }] },
+        { "type": "gesture", "gestureId": "6d88501c6888", "lyrics": [{ "trigger": "seguinte", "text": ", sem parar." }] }
+      ]}
+    ]},
+    { "type": "coro", "children": [
+      { "type": "repeat", "count": 2, "children": [
+        { "type": "gesture", "gestureId": "dd4ba6562f45", "lyrics": [{ "trigger": "Coro", "text": "repetido" }] }
+      ]}
+    ]},
+    { "type": "hologram", "foo": 1 },
+    { "type": "text", "text": "linha livre" },
+    { "type": "gesture", "gestureId": "000000000000", "lyrics": [{ "trigger": "Id", "text": "inexistente no dicionário" }] },
+    { "type": "final", "children": [
+      { "type": "gesture", "gestureId": "121dceda600f", "lyrics": [{ "trigger": "Fim", "text": "do louvor." }] }
+    ]}
+  ]
+}

@@ -82,6 +82,7 @@ node_modules/
 *.ipr
 *.iws
 .vscode/
+.claude/
 *.swp
 *.swo
 *~
@@ -144,7 +145,7 @@ migrate_working_dir/
 tmp/
 
 # --- Testes ------------------------------------------------------------------
-**/failures/
+test/**/failures/
 **/test-results/
 
 # --- FVM (se adotar version pinning do Flutter) ------------------------------

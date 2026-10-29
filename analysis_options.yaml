@@ -4,6 +4,13 @@ analyzer:
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    # Cópia com patch do pdfrx 2.6.1 (ver third_party/pdfrx/PATCH.md); tem
+    # análise própria, não a do app.
+    - third_party/**
 
 linter:
   rules:

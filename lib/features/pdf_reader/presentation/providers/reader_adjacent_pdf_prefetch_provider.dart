@@ -1,3 +1,4 @@
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -46,16 +47,16 @@ final readerAdjacentPdfPrefetchProvider = Provider.autoDispose
         final position = ref.read(readerCarouselPositionProvider(params.pdfId));
         if (position == null) return;
 
-        final catalog = ref.read(prefetchLouvorCatalogProvider);
+        final resolveLouvor = ref.read(prefetchLouvorResolverProvider);
         final prefetch = ref.read(prefetchAdjacentCarouselPdfsProvider);
 
         await Future<void>.delayed(Duration.zero);
         if (generation != prefetchGeneration) return;
 
         await prefetch.call(
-          catalog: catalog,
-          previousPdfId: position.previousPdfId,
-          nextPdfId: position.nextPdfId,
+          resolveLouvor: resolveLouvor,
+          previousMaterialId: _pdfIdOrNull(position.previousMaterialId),
+          nextMaterialId: _pdfIdOrNull(position.nextMaterialId),
         );
       }
 
@@ -70,8 +71,8 @@ final readerAdjacentPdfPrefetchProvider = Provider.autoDispose
         next,
       ) {
         if (next == null) return;
-        if (previous?.previousPdfId == next.previousPdfId &&
-            previous?.nextPdfId == next.nextPdfId) {
+        if (previous?.previousMaterialId == next.previousMaterialId &&
+            previous?.nextMaterialId == next.nextMaterialId) {
           return;
         }
         final session = ref.read(pdfReaderSessionProvider(params.filePath));
@@ -82,3 +83,9 @@ final readerAdjacentPdfPrefetchProvider = Provider.autoDispose
 
       ref.watch(pdfReaderSessionProvider(params.filePath));
     });
+
+/// Descarta ids que não são PDF — cifra no carousel não tem o que pré-buscar.
+String? _pdfIdOrNull(String? id) {
+  if (id == null) return null;
+  return materialIdKindOf(id) == MaterialKind.pdf ? id : null;
+}

@@ -1,0 +1,287 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../core/routing/route_paths.dart';
+import '../../../../core/routing/shell_navigation.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/color_extensions.dart';
+import '../../../../l10n/app_localizations.dart';
+import '../../../audio_flags/domain/entities/saved_audio_flag.dart';
+import '../../../audio_flags/presentation/providers/audio_flag_sync_provider.dart';
+import '../../../audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
+import '../providers/audio_follow_reader_provider.dart';
+import '../providers/audio_player_position_provider.dart';
+import '../providers/audio_player_session_provider.dart';
+import '../utils/open_audio_in_player.dart';
+import 'audio_seek_bar.dart';
+import 'mini_player_bar_metrics.dart';
+
+/// Mini-player persistente (D5) — 44 px: título, seek arrastável com
+/// marcadores e transporte.
+///
+/// Vive no `ShellScaffold`, único lugar com estes controles (sem faces — spec
+/// 2026-09-12, D1) e sobrevive ao fullscreen do leitor como faixa escura
+/// discreta ([overlay] = `true`) no topo da tela, acima do `navigationShell`.
+///
+/// Controles próprios (não reaproveita `AudioTransportControls`, que outra
+/// tarefa da onda edita em paralelo): faixa anterior / play-pausa / próxima,
+/// ligados a [AudioPlayerSessionNotifier.skipToPrevious]/`playPause`/
+/// `skipToNext`.
+///
+/// Sem faixa tocando ([AudioPlayerSessionState.currentTrack] nulo), não
+/// desenha nada (`SizedBox.shrink`).
+///
+/// Botão «abrir» (fix regressão D5): a `CarouselAudioFaceBar` removida junto
+/// com as faces levava consigo o único caminho de volta a `/audio` que não
+/// dependia do foco do carrossel de PDFs — sem ele, sair da tela com o áudio
+/// ainda tocando não deixava jeito de voltar além de iniciar uma faixa nova.
+/// Aqui o botão usa a faixa da própria sessão ([track]), não o item focado no
+/// carrossel. Em `/audio` ele vira «voltar à leitura»: abre a partitura/cifra
+/// do louvor da faixa ([openMaterialForGroupInReader], o mesmo do chip da
+/// barra e do botão de partitura do player). Ida e volta substituem a rota
+/// dentro da leitura ([openReadingLocation]) — não empilham.
+class MiniPlayerBar extends ConsumerWidget {
+  const MiniPlayerBar({this.overlay = false, super.key});
+
+  /// `true`: versão translúcida (fullscreen) — some no repouso e volta ao
+  /// normal no hover/toque, como o FAB de sair do leitor.
+  final bool overlay;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final track = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.currentTrack),
+    );
+    if (track == null) return const SizedBox.shrink();
+
+    final l10n = AppLocalizations.of(context)!;
+    final playing = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.playing),
+    );
+    final buffering = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.buffering),
+    );
+    final hasPrevious = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.hasPrevious),
+    );
+    final hasNext = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.hasNext),
+    );
+    final errorMessage = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.errorMessage),
+    );
+    final notDownloaded = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.notDownloaded),
+    );
+    ref.watch(audioFlagSyncProvider);
+    final positionState = ref.watch(audioPlayerPositionProvider);
+    final flags =
+        ref.watch(audioFlagsForTrackProvider(track.audioId)).asData?.value ??
+        const <SavedAudioFlag>[];
+
+    // `GoRouter.maybeOf` — alguns widget tests montam a barra sem router.
+    final isOnAudioScreen =
+        GoRouter.maybeOf(context) != null &&
+        GoRouterState.of(context).uri.path == RoutePaths.audio;
+    // Sem partitura/cifra resolvível para o louvor, «voltar» fica desabilitado.
+    final canBackToReading =
+        isOnAudioScreen && resolveMaterialForGroup(ref, track.groupId) != null;
+
+    final fg = overlay ? AppColors.textLight : AppColors.title;
+    final title = track.numero.isNotEmpty
+        ? '${track.numero} — ${track.nome}'
+        : track.nome;
+    final iconButtonStyle = IconButton.styleFrom(
+      foregroundColor: fg,
+      disabledForegroundColor: fg.withValues(alpha: 0.35),
+      visualDensity: VisualDensity.compact,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+
+    final bar = Material(
+      color: overlay ? Colors.black.withValues(alpha: 0.72) : AppColors.card,
+      child: SizedBox(
+        height: kMiniPlayerBarHeight,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Flexible(
+                flex: 2,
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.label.copyWith(
+                    color: fg,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 3,
+                child: AudioSeekBar(
+                  position: positionState.position,
+                  duration: positionState.duration,
+                  onLightBackground: !overlay,
+                  compact: true,
+                  flags: flags,
+                  onFlagTap: (flag) => ref
+                      .read(audioPlayerSessionProvider.notifier)
+                      .seek(flag.position),
+                  onSeek: (value) =>
+                      ref.read(audioPlayerSessionProvider.notifier).seek(value),
+                ),
+              ),
+              if (errorMessage != null)
+                Tooltip(
+                  message: notDownloaded
+                      ? l10n.audioNotDownloaded
+                      : l10n.audioPlaybackError,
+                  child: Icon(Icons.error_outline, color: fg, size: 18),
+                ),
+              IconButton(
+                tooltip: l10n.miniPlayerPrevious,
+                iconSize: 20,
+                style: iconButtonStyle,
+                icon: const Icon(Icons.skip_previous),
+                onPressed: hasPrevious
+                    ? () => ref
+                          .read(audioPlayerSessionProvider.notifier)
+                          .skipToPrevious()
+                    : null,
+              ),
+              IconButton(
+                tooltip: playing ? l10n.audioPause : l10n.audioPlay,
+                iconSize: 24,
+                style: iconButtonStyle,
+                icon: buffering
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: fg,
+                        ),
+                      )
+                    : Icon(playing ? Icons.pause : Icons.play_arrow),
+                onPressed: buffering
+                    ? null
+                    : () => ref
+                          .read(audioPlayerSessionProvider.notifier)
+                          .playPause(),
+              ),
+              IconButton(
+                tooltip: l10n.miniPlayerNext,
+                iconSize: 20,
+                style: iconButtonStyle,
+                icon: const Icon(Icons.skip_next),
+                onPressed: hasNext
+                    ? () => ref
+                          .read(audioPlayerSessionProvider.notifier)
+                          .skipToNext()
+                    : null,
+              ),
+              if (isOnAudioScreen)
+                IconButton(
+                  tooltip: l10n.miniPlayerBackToReading,
+                  iconSize: 20,
+                  style: iconButtonStyle,
+                  icon: const Icon(Icons.close_fullscreen),
+                  onPressed: canBackToReading
+                      ? () => unawaited(
+                          openMaterialForGroupInReader(
+                            ref: ref,
+                            context: context,
+                            groupId: track.groupId,
+                          ),
+                        )
+                      : null,
+                )
+              else
+                IconButton(
+                  tooltip: l10n.miniPlayerOpenScreen,
+                  iconSize: 20,
+                  style: iconButtonStyle,
+                  icon: const Icon(Icons.open_in_full),
+                  onPressed: () => pushAudioPlayerRoute(context, track),
+                ),
+              IconButton(
+                tooltip: l10n.miniPlayerClose,
+                iconSize: 20,
+                style: iconButtonStyle,
+                icon: const Icon(Icons.close),
+                onPressed: () async {
+                  await ref.read(audioPlayerSessionProvider.notifier).close();
+                  if (!context.mounted) return;
+                  if (isOnAudioScreen) {
+                    final router = GoRouter.maybeOf(context);
+                    if (router != null && router.canPop()) {
+                      router.pop();
+                    } else {
+                      goToShellDestination(context, RoutePaths.home);
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!overlay) return bar;
+    return _HoverFade(child: bar);
+  }
+}
+
+/// Opacidade 0.35 em repouso, 1 no hover (mouse) ou toque — mesmo padrão do
+/// FAB de sair do leitor (`pdf_reader_screen.dart`), para o overlay não
+/// atrapalhar a leitura da partitura por baixo.
+class _HoverFade extends StatefulWidget {
+  const _HoverFade({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_HoverFade> createState() => _HoverFadeState();
+}
+
+class _HoverFadeState extends State<_HoverFade> {
+  var _active = false;
+
+  void _setActive(bool value) {
+    if (_active == value) return;
+    setState(() => _active = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      // Fix wave onda 4 (Important 3): não-opaca — o padrão (`true`) fazia
+      // esta `MouseRegion` absorver qualquer toque dentro dos seus limites,
+      // mesmo em área em branco da faixa, e o leitor por baixo (no overlay
+      // de tela cheia do `shell_scaffold.dart`) nunca via o toque. Com
+      // `opaque: false` e o `Listener` abaixo em `translucent`, só uma área
+      // com controle de verdade (os botões) continua exclusiva; o resto
+      // passa pro que está por baixo.
+      opaque: false,
+      onEnter: (_) => _setActive(true),
+      onExit: (_) => _setActive(false),
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => _setActive(true),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 150),
+          opacity: _active ? 1 : 0.35,
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}

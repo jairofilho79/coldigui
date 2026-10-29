@@ -1,5 +1,7 @@
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
 import '../../../playlists/domain/exceptions/invalid_share_playlist_exception.dart';
+import '../../../playlists/domain/exceptions/legacy_share_link_exception.dart';
 import '../../../playlists/domain/usecases/import_shared_playlist_from_url.dart';
 
 /// Resultado tipado de [SyncDeepLinkState.call] (UC-14, Fase 4.5).
@@ -12,6 +14,15 @@ enum SyncDeepLinkOutcome {
 
   /// Params de share presentes porém inválidos.
   invalid,
+
+  /// Link de uma versão antiga (`?s=`, `sharepdfs`… — spec fim-fonte-plpcg
+  /// §4.4): nada importado; a UI avisa com `playlistShareLegacyLinkUnsupported`
+  /// e limpa a URL.
+  legacy,
+
+  /// Import falhou por [StorageUnavailableException] ou outra exceção —
+  /// ver [SyncDeepLinkResult.reason] (Tarefa 8, spec C.4).
+  failed,
 }
 
 /// Resultado tipado do sync de deep link (UC-14, Fase 4.5).
@@ -19,30 +30,65 @@ class SyncDeepLinkResult {
   const SyncDeepLinkResult({
     required this.outcome,
     this.playlistId,
+    this.reason,
+    this.alreadyExisted = false,
+    this.nome,
+    this.skippedCount = 0,
   });
 
   /// Desfecho do processamento da URI.
   final SyncDeepLinkOutcome outcome;
 
-  /// ID da playlist criada quando [outcome] é [SyncDeepLinkOutcome.success].
+  /// ID da playlist criada (ou reaproveitada) quando [outcome] é
+  /// [SyncDeepLinkOutcome.success].
   final String? playlistId;
 
-  static const skipped =
-      SyncDeepLinkResult(outcome: SyncDeepLinkOutcome.skipped);
-  static const invalid =
-      SyncDeepLinkResult(outcome: SyncDeepLinkOutcome.invalid);
+  /// Exceção capturada quando [outcome] é [SyncDeepLinkOutcome.failed].
+  final Object? reason;
 
-  static SyncDeepLinkResult success(String playlistId) => SyncDeepLinkResult(
-        outcome: SyncDeepLinkOutcome.success,
-        playlistId: playlistId,
-      );
+  /// `true` quando [outcome] é [SyncDeepLinkOutcome.success] e o import
+  /// reaproveitou uma lista salva já existente em vez de criar uma nova
+  /// (dedupe de conteúdo, spec C.2, Tarefa 8).
+  final bool alreadyExisted;
+
+  /// Nome da lista — só preenchido quando [alreadyExisted] (a UI usa para a
+  /// snackbar «Lista já estava salva: {nome}»).
+  final String? nome;
+
+  /// Louvores do link que ficaram de fora do import (fora do catálogo local
+  /// ou sem material adicionável) quando [outcome] é
+  /// [SyncDeepLinkOutcome.success]. A UI avisa quando é maior que zero.
+  final int skippedCount;
+
+  static const skipped = SyncDeepLinkResult(
+    outcome: SyncDeepLinkOutcome.skipped,
+  );
+  static const invalid = SyncDeepLinkResult(
+    outcome: SyncDeepLinkOutcome.invalid,
+  );
+  static const legacy = SyncDeepLinkResult(outcome: SyncDeepLinkOutcome.legacy);
+
+  static SyncDeepLinkResult success(
+    String playlistId, {
+    bool alreadyExisted = false,
+    String? nome,
+    int skippedCount = 0,
+  }) => SyncDeepLinkResult(
+    outcome: SyncDeepLinkOutcome.success,
+    playlistId: playlistId,
+    alreadyExisted: alreadyExisted,
+    nome: nome,
+    skippedCount: skippedCount,
+  );
+
+  static SyncDeepLinkResult failed(Object reason) =>
+      SyncDeepLinkResult(outcome: SyncDeepLinkOutcome.failed, reason: reason);
 }
 
-/// UC-14 — Sincronizar deep link de playlist com estado local (Fase 4.5).
+/// UC-14 — Sincronizar deep link de lista com o estado local (Fase 4.5).
 ///
-/// Detecta `sharepdfs` + `sharename` na URI e delega a
-/// [ImportSharedPlaylistFromUrl]. Sem UI — confirmação de carousel não se
-/// aplica (paridade PWA: import automático).
+/// Detecta `p` (link por praise) ou um param de link antigo na URI e delega a
+/// [ImportSharedPlaylistFromUrl]. Sem UI — import automático (paridade PWA).
 class SyncDeepLinkState {
   const SyncDeepLinkState(this._importSharedPlaylist);
 
@@ -60,13 +106,21 @@ class SyncDeepLinkState {
     }
 
     try {
-      final playlistId = await _importSharedPlaylist(
-        sharePdfs: params.sharePdfs,
-        shareName: params.shareName,
+      final result = await _importSharedPlaylist(params: params);
+      return SyncDeepLinkResult.success(
+        result.playlist.playlistId,
+        alreadyExisted: result.alreadyExisted,
+        nome: result.playlist.nome,
+        skippedCount: result.skippedCount,
       );
-      return SyncDeepLinkResult.success(playlistId);
     } on InvalidSharePlaylistException {
       return SyncDeepLinkResult.invalid;
+    } on LegacyShareLinkException {
+      return SyncDeepLinkResult.legacy;
+    } on StorageUnavailableException catch (e) {
+      return SyncDeepLinkResult.failed(e);
+    } on Object catch (e) {
+      return SyncDeepLinkResult.failed(e);
     }
   }
 }

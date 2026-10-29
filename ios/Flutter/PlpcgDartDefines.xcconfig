@@ -1,4 +1,7 @@
-// URL pública do backend PLPCG (não é secret).
+// URLs públicas dos backends e Client IDs Google (não são secret).
 // base64("PLPCG_API_BASE_URL=https://plpcg.com")
-// Garante o define em builds Xcode / flutter install sem flags no terminal.
-DART_DEFINES=$(DART_DEFINES),UExQQ0dfQVBJX0JBU0VfVVJMPWh0dHBzOi8vcGxwY2cuY29t
+// base64("COLDIGOM_API_BASE_URL=https://coldigom-api.jairofilho79.workers.dev")
+// base64("GOOGLE_CLIENT_ID_WEB=412580238221-qjjmpkc0d8v3b1aocgf5or1nukvrj4mq.apps.googleusercontent.com")
+// base64("GOOGLE_CLIENT_ID_IOS=412580238221-k6fofson87tujn5egrcgl6fak2j3f9t8.apps.googleusercontent.com")
+// Garante os defines em builds Xcode / flutter install sem flags no terminal.
+DART_DEFINES=$(DART_DEFINES),UExQQ0dfQVBJX0JBU0VfVVJMPWh0dHBzOi8vcGxwY2cuY29t,Q09MRElHT01fQVBJX0JBU0VfVVJMPWh0dHBzOi8vY29sZGlnb20tYXBpLmphaXJvZmlsaG83OS53b3JrZXJzLmRldg==,R09PR0xFX0NMSUVOVF9JRF9XRUI9NDEyNTgwMjM4MjIxLXFqam1wa2MwZDh2M2IxYW9jZ2Y1b3IxbnVrdnJqNG1xLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29t,R09PR0xFX0NMSUVOVF9JRF9JT1M9NDEyNTgwMjM4MjIxLWs2Zm9mc29uODd0dWpuNWVncmNnbDZmYWsyajNmOXQ4LmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29t

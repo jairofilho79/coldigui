@@ -4,7 +4,9 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/constants/offline_config.dart';
-import 'package:coldigui/core/database/collections/louvor_cache.dart';
+
+import 'offline_test_helpers.dart';
+
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
@@ -37,13 +39,16 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
   })
   onFetch;
   int callCount = 0;
+  CancelToken? lastCancelToken;
 
   @override
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) async {
     callCount++;
+    lastCancelToken = cancelToken;
     return onFetch(filePath, onReceiveProgress: onReceiveProgress);
   }
 }
@@ -72,7 +77,7 @@ void main() {
     await docsDir.create(recursive: true);
 
     isar = Isar.open(
-      schemas: [LouvorCacheSchema, OfflinePdfIndexSchema, PlaylistSchema],
+      schemas: [OfflinePdfIndexSchema, PlaylistSchema],
       directory: tempDir.path,
     );
 
@@ -80,7 +85,7 @@ void main() {
       getApplicationDocumentsDirectory: () async => docsDir,
     );
     repository = OfflinePdfRepositoryImpl(
-      store: store,
+      store: pdfStoragePortFor(store),
       local: OfflinePdfLocalDatasource(isar),
     );
     favoritePdfIdsResolver = FavoritePdfIdsResolver(
@@ -259,6 +264,36 @@ void main() {
     await expectLater(
       useCase(pdfId: pdfId, remotePath: remotePath),
       throwsA(isA<Exception>()),
+    );
+    expect(datasource.callCount, 1);
+  });
+
+  test('repassa cancelToken ao datasource remoto', () async {
+    final datasource = _FakePdfBytesDatasource(
+      onFetch: (_, {onReceiveProgress}) async => pdfBytes,
+    );
+    final useCase = createUseCase(datasource);
+    final token = CancelToken();
+
+    await useCase(pdfId: pdfId, remotePath: remotePath, cancelToken: token);
+
+    expect(datasource.lastCancelToken, same(token));
+  });
+
+  test('DioException de cancelamento não é retentada', () async {
+    final datasource = _FakePdfBytesDatasource(
+      onFetch: (_, {onReceiveProgress}) async {
+        throw DioException(
+          requestOptions: RequestOptions(path: remotePath),
+          type: DioExceptionType.cancel,
+        );
+      },
+    );
+    final useCase = createUseCase(datasource);
+
+    await expectLater(
+      useCase(pdfId: pdfId, remotePath: remotePath, cancelToken: CancelToken()),
+      throwsA(isA<DioException>()),
     );
     expect(datasource.callCount, 1);
   });

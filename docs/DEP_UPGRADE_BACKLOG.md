@@ -36,7 +36,7 @@
 | `connectivity_plus` | 7.2.x | 7.2.0 | Não | Onda 2 ✅ |
 | `wakelock_plus` | 1.5.x | 1.6.1 | Não | Bump minor futuro |
 | `flutter_svg` | 2.2.x | 2.3.0 | Não | Bump minor futuro |
-| `pdfrx` | 2.4.4 | 2.4.4 | Não | Fase C concluída ✅ |
+| `pdfrx` | 2.6.1 | 2.6.1 | Não | Fase C concluída ✅; 2.6.1 em set/2026 (fix de preview cancelado/evictado — Flutter ≥ 3.47) |
 
 ### Dev dependencies
 

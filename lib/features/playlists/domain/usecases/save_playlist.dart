@@ -7,16 +7,8 @@ class SavePlaylist {
   final PlaylistRepository _repository;
 
   /// Define [salva] e [savedAt] = agora. Opcionalmente renomeia.
-  Future<void> call({
-    required String playlistId,
-    String? nome,
-  }) async {
+  Future<void> call({required String playlistId, String? nome}) async {
     final now = DateTime.now();
-    await _repository.update(
-      playlistId,
-      salva: true,
-      savedAt: now,
-      nome: nome,
-    );
+    await _repository.update(playlistId, salva: true, savedAt: now, nome: nome);
   }
 }

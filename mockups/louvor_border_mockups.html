@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coldigui — Mockups de Redesign da Borda de Louvor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Alegreya:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --app-bg: #4B2D2B;
+    --app-card: #FFF8E1;
+    --app-title: #6A2F2F;
+    --app-gold: #D4AF37;
+    --app-gold-light: #F4D03F;
+    --app-placeholder: #F0E68C;
+    --app-btn-bg: #6A3B39;
+    --app-text-light: #FFFFFF;
+    --app-gold-glow: rgba(255, 220, 100, 0.45);
+    --app-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.15);
+    --app-shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #231514;
+    color: #F5EBE6;
+    padding: 32px 20px 80px;
+    line-height: 1.5;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--app-gold-light);
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  header p {
+    font-size: 15px;
+    color: #E2C4BA;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  /* Diagnostics banner */
+  .diagnostics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .diag-card {
+    background: rgba(106, 47, 47, 0.35);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .diag-card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--app-gold-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .diag-card p {
+    font-size: 13.5px;
+    color: #F0DCD6;
+    line-height: 1.45;
+  }
+
+  /* View switcher controls */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: rgba(0,0,0,0.3);
+    padding: 12px 18px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+  }
+  .seg-control {
+    display: inline-flex;
+    background: #1B100F;
+    border-radius: 8px;
+    padding: 3px;
+    border: 1px solid rgba(212, 175, 55, 0.25);
+  }
+  .seg-btn {
+    background: transparent;
+    border: none;
+    color: #E2C4BA;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .seg-btn.active {
+    background: var(--app-title);
+    color: var(--app-gold-light);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    border: 1px solid var(--app-gold);
+  }
+
+  /* Option sections */
+  .proposal-section {
+    background: #2D1A19;
+    border-radius: 16px;
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    margin-bottom: 40px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .proposal-header {
+    background: linear-gradient(90deg, #3B2120 0%, #4B2D2B 100%);
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .proposal-title-area h2 {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--app-gold-light);
+  }
+  .proposal-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(212, 175, 55, 0.2);
+    color: var(--app-gold-light);
+    border: 1px solid var(--app-gold);
+  }
+  .proposal-badge.recommended {
+    background: #D4AF37;
+    color: #2D1A19;
+    font-weight: 800;
+  }
+
+  .proposal-body {
+    padding: 24px;
+  }
+  .proposal-desc {
+    font-size: 14px;
+    color: #F0DCD6;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  /* Mockup Canvas Preview */
+  .mockup-canvas-wrapper {
+    background: #190F0E;
+    padding: 24px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  /* The Dialog Sheet Window */
+  .dialog-sheet {
+    background: var(--app-card);
+    color: var(--app-title);
+    border-radius: 24px;
+    padding: 24px 22px 18px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+    width: 100%;
+    transition: max-width 0.3s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .view-web .dialog-sheet { max-width: 860px; }
+  .view-ios .dialog-sheet { max-width: 375px; }
+
+  .dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 0 4px;
+  }
+  .dialog-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--app-title);
+  }
+  .dialog-info-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--app-title);
+    font-size: 18px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(106, 47, 47, 0.12);
+  }
+  .dialog-btn {
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--app-title);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Common Louvor Chip Core Styles */
+  .chip-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .base-chip {
+    background-color: var(--app-title);
+    color: var(--app-text-light);
+    border-radius: 20px;
+    padding: 8px 12px 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--app-shadow-md);
+    position: relative;
+    user-select: none;
+  }
+  .chip-drag-handle {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    letter-spacing: -2px;
+    display: flex;
+    align-items: center;
+    padding: 0 2px;
+    cursor: grab;
+  }
+  .chip-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .chip-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--app-text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+  .chip-meta {
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.75);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chip-remove-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
+    color: #FFFFFF;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* ====================================================
+     ESTADO ATUAL (OS PROBLEMAS)
+     ==================================================== */
+  /* Normal chip */
+  .current-normal .base-chip {
+    border: 2px solid var(--app-gold);
+  }
+
+  /* Web Problem: Double-border collision */
+  .current-focused-web {
+    border-radius: 24px;
+    border: 3px solid var(--app-gold-light);
+    box-shadow: 0 0 10px var(--app-gold-glow);
+    /* Note zero padding creates collision with inner chip! */
+  }
+  .current-focused-web .base-chip {
+    border: 2px solid var(--app-gold);
+  }
+
+  /* iOS Problem: Diagonal Hazard Zebrada stripes */
+  .current-zebrada-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .current-zebrada-tag {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--app-title);
+    letter-spacing: 0.8px;
+    padding-left: 14px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .current-zebrada-frame {
+    position: relative;
+    border-radius: 28px;
+    padding: 4px;
+    border: 2.5px solid var(--app-gold-light);
+    box-shadow: 0 0 12px 1.5px var(--app-gold-glow);
+    background: repeating-linear-gradient(
+      45deg,
+      var(--app-gold),
+      var(--app-gold) 8px,
+      var(--app-title) 8px,
+      var(--app-title) 16px
+    );
+  }
+  .current-zebrada-frame .base-chip {
+    border: 2px solid var(--app-gold);
+  }
+
+  /* ====================================================
+     OPÇÃO REFINADA FINAL (ETIQUETA INTEGRADA SEM TAPAR O CARD)
+     ==================================================== */
+  .opt1-refined-wrapper {
+    position: relative;
+    width: 100%;
+  }
+  .opt1-refined-wrapper .base-chip {
+    border: 2.5px solid var(--app-gold-light);
+    box-shadow: 0 0 16px 2px var(--app-gold-glow), var(--app-shadow-lg);
+    background: var(--app-title);
+  }
+  .opt1-refined-tag {
+    background: rgba(212, 175, 55, 0.22);
+    color: var(--app-gold-light);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    padding: 2px 7px;
+    border-radius: 8px; /* mesmo raio da ChipGroupLabel / _NewChip na tela de pesquisa */
+    border: 1px solid var(--app-gold-light);
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-right: 4px;
+  }
+
+  /* ====================================================
+     OPÇÃO 1: AURA DOURADA LITÚRGICA (ORIGINAL)
+     ==================================================== */
+  .opt1-now-playing {
+    position: relative;
+  }
+  .opt1-now-playing .base-chip {
+    border: 2.5px solid var(--app-gold-light);
+    box-shadow: 0 0 16px 2px var(--app-gold-glow), var(--app-shadow-lg);
+    background: linear-gradient(135deg, #7A3333 0%, #6A2F2F 100%);
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .opt1-badge {
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    background: var(--app-background);
+    color: var(--app-gold-light);
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    padding: 2px 9px;
+    border-radius: 12px;
+    border: 1.5px solid var(--app-gold);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 2;
+  }
+  .opt1-pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--app-gold-light);
+    box-shadow: 0 0 6px var(--app-gold-light);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+  }
+
+  /* Focused item in Opt 1 (clean, offset focus halo without double border) */
+  .opt1-focused .base-chip {
+    border: 2px solid var(--app-gold);
+    outline: 2.5px solid var(--app-gold-light);
+    outline-offset: 3px;
+  }
+
+  /* ====================================================
+     OPÇÃO 2: PÍLULA COM BADGE INTEGRADO & ACENTO LATERAL
+     ==================================================== */
+  .opt2-now-playing .base-chip {
+    border: 2px solid var(--app-gold-light);
+    box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
+    position: relative;
+    overflow: hidden;
+    padding-left: 14px;
+  }
+  /* Elegant Gold Accent Bar */
+  .opt2-now-playing .base-chip::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: linear-gradient(180deg, var(--app-gold-light), var(--app-gold));
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
+  }
+  .opt2-inline-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(244, 208, 63, 0.2);
+    color: var(--app-gold-light);
+    border: 1px solid var(--app-gold);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  /* ====================================================
+     OPÇÃO 3: PARIDADE GOLDEN TAGGED CONTAINER (§5.2)
+     ==================================================== */
+  .opt3-container {
+    position: relative;
+    padding-top: 10px;
+  }
+  .opt3-tag {
+    position: absolute;
+    top: 0;
+    left: 14px;
+    background: var(--app-background);
+    color: var(--app-gold-light);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 2px 10px;
+    border-radius: 4px;
+    border: 1.5px solid var(--app-gold);
+    z-index: 2;
+  }
+  .opt3-box {
+    background: rgba(106, 47, 47, 0.1);
+    border: 2px solid var(--app-gold);
+    border-radius: 24px;
+    padding: 6px;
+    box-shadow: 0 0 10px var(--app-gold-glow);
+  }
+  .opt3-box .base-chip {
+    border: none;
+    box-shadow: none;
+    background: var(--app-title);
+  }
+
+  /* Code block & Specs */
+  .spec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .spec-box {
+    background: rgba(0,0,0,0.25);
+    border-radius: 8px;
+    padding: 14px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .spec-box h4 {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--app-gold);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .spec-box ul {
+    font-size: 13px;
+    color: #E2C4BA;
+    padding-left: 18px;
+  }
+  .spec-box ul li {
+    margin-bottom: 4px;
+  }
+</style>
+</head>
+<body class="view-web">
+
+<div class="container">
+  <header>
+    <h1>Diagnóstico & Mockups de Redesign: Borda de Louvor</h1>
+    <p>Solução integrada para as inconsistências entre telas, conflito visual no Web (double-border clipping) e o padrão zebrado inadequado no iOS.</p>
+  </header>
+
+  <!-- Diagnostics Cards -->
+  <div class="diagnostics-grid">
+    <div class="diag-card">
+      <h3>⚠️ 1. Inconsistência entre Telas</h3>
+      <p>O conceito de "louvor em exibição no leitor" vs. "louvor focado no modal" vs. "louvores em playlists" usa 3 estilos gráficos divergentes. O modal misturava duas bordas concorrentes (foco + exibição).</p>
+    </div>
+    <div class="diag-card">
+      <h3>💻 2. Borda Mal Feita na Web</h3>
+      <p>O <code>Container</code> externo (raio 24, borda 3px) envelopava a chip interna (raio 20, borda 2px) com <strong>zero padding</strong>. Na web (CanvasKit/Skwasm), as bordas colidem causando halos serrilhados e desalinhamento.</p>
+    </div>
+    <div class="diag-card">
+      <h3>📱 3. Efeito Zebrado Ruim no iOS</h3>
+      <p>O <code>_ZebradaPainter</code> desenhava listras diagonais amarelo-ouro e vinho em 45°. Em um aplicativo litúrgico, isso lembra fita de isolamento de obra ou perigo ("caution tape"), violando a elegância do iOS.</p>
+    </div>
+  </div>
+
+  <!-- Interactive Toolbar -->
+  <div class="toolbar">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="font-size:13.5px; font-weight:700; color:var(--app-gold-light);">Simulador de Dispositivo:</span>
+      <div class="seg-control">
+        <button class="seg-btn active" onclick="setView('web', this)">💻 Web (Widescreen Modal)</button>
+        <button class="seg-btn" onclick="setView('ios', this)">📱 iOS / Mobile (iPhone Sheet)</button>
+      </div>
+    </div>
+    <span style="font-size:12.5px; color:#C4A59D;">Alterna entre a largura ampla da Web e o formato estreito do iPhone</span>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- SEÇÃO EM DESTAQUE: OPÇÃO 1 REFINADA (FEEDBACK) -->
+  <!-- ========================================== -->
+  <section class="proposal-section" style="border: 2px solid var(--app-gold); box-shadow: 0 0 25px rgba(212, 175, 55, 0.3);">
+    <div class="proposal-header" style="background: linear-gradient(90deg, #5A2A28 0%, #4B2D2B 100%);">
+      <div class="proposal-title-area">
+        <h2 style="font-size: 20px;">🌟 Opção 1 Refinada: Tag "Atual" Padronizada com GoldenTaggedContainer</h2>
+      </div>
+      <span class="proposal-badge recommended" style="font-size: 12px; padding: 4px 14px;">🎯 Conforme seu Feedback</span>
+    </div>
+    <div class="proposal-body">
+      <p class="proposal-desc">
+        <strong>Ajustes aplicados:</strong><br>
+        1. <strong>Fundo 100% opaco:</strong> Fundo vinho escuro (<code>AppColors.background</code>) cobre completamente o contorno da chip por baixo, garantindo contraste perfeito.<br>
+        2. <strong>Texto "Atual":</strong> Apenas a palavra <em>Atual</em>, sem emojis nem pontos pulsantes.<br>
+        3. <strong>Padronização visual:</strong> Idêntico ao estilo da tag <em>"Filtros"</em> e <em>"Buscar"</em> (raio de 4px, borda <code>1.5px solid AppColors.gold</code>, cor <code>AppColors.placeholder</code> #F0E68C).<br>
+        4. <strong>Borda & Aura Nobre:</strong> Borda única de 2.5px <code>AppColors.goldLight</code> com glow suave, eliminando qualquer padrão zebrado.
+      </p>
+
+      <div class="mockup-canvas-wrapper">
+        <div class="dialog-sheet">
+          <div class="dialog-header">
+            <span class="dialog-title">Seleção temporária</span>
+            <button class="dialog-info-btn">ⓘ</button>
+          </div>
+
+          <div class="items-list">
+            <!-- Normal -->
+            <div class="chip-wrapper current-normal">
+              <div class="base-chip">
+                <span class="chip-drag-handle">⋮⋮</span>
+                <div class="chip-content">
+                  <div class="chip-title">A Ti Senhor</div>
+                  <div class="chip-meta">♪ Cifra</div>
+                </div>
+                <button class="chip-remove-btn">×</button>
+              </div>
+            </div>
+
+            <!-- Item em Exibição: OPÇÃO REFINADA FINAL -->
+            <div class="opt1-refined-wrapper">
+              <div class="base-chip">
+                <span class="chip-drag-handle">⋮⋮</span>
+                <div class="chip-content">
+                  <div class="chip-title">#001 — Ainda há tempo</div>
+                  <div class="chip-meta">Básico · 📼 Playback</div>
+                </div>
+                <span class="opt1-refined-tag">Atual</span>
+                <button class="chip-remove-btn">×</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="dialog-footer">
+            <button class="dialog-btn">🗑 Limpar seleção</button>
+            <button class="dialog-btn">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- SEÇÃO 0: ESTADO ATUAL (PROBLEMA)           -->
+  <!-- ========================================== -->
+  <section class="proposal-section" style="border-color: rgba(220, 53, 69, 0.5);">
+    <div class="proposal-header" style="background: linear-gradient(90deg, #4A1A1A 0%, #351515 100%);">
+      <div class="proposal-title-area">
+        <h2 style="color:#FFA6A6;">❌ Estado Atual: Como está hoje (Imagens Enviadas)</h2>
+      </div>
+      <span class="proposal-badge" style="background:#551818; color:#FFA6A6; border-color:#FF6B6B;">Problema Atual</span>
+    </div>
+    <div class="proposal-body">
+      <p class="proposal-desc">
+        Abaixo está a reprodução fiel do código atual de <code>ActiveListPanel</code>: o primeiro item mostra a dupla borda com colisão (Web - Imagem 1) e o segundo item mostra a faixa zebrada de obra (iOS - Imagem 2).
+      </p>
+
+      <div class="mockup-canvas-wrapper">
+        <div class="dialog-sheet">
+          <div class="dialog-header">
+            <span class="dialog-title">Seleção temporária</span>
+            <button class="dialog-info-btn">ⓘ</button>
+          </div>
+
+          <div class="items-list">
+            <!-- Item 1: Focused on Web (Colisão de borda dupla) -->
+            <div class="current-focused-web">
+              <div class="base-chip">
+                <span class="chip-drag-handle">⋮⋮</span>
+                <div class="chip-content">
+                  <div class="chip-title">A Ti Senhor</div>
+                  <div class="chip-meta">♪ Cifra</div>
+                </div>
+                <button class="chip-remove-btn">×</button>
+              </div>
+            </div>
+
+            <!-- Item 2: Zebrada on iOS (Faixa de interdição) -->
+            <div class="current-zebrada-wrapper">
+              <div class="current-zebrada-tag">
+                <span style="font-size:12px;">👁</span> EM EXIBIÇÃO
+              </div>
+              <div class="current-zebrada-frame">
+                <div class="base-chip">
+                  <span class="chip-drag-handle">⋮⋮</span>
+                  <div class="chip-content">
+                    <div class="chip-title">#001 — Ainda há tempo</div>
+                    <div class="chip-meta">Básico · 📼 Playback</div>
+                  </div>
+                  <button class="chip-remove-btn">×</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dialog-footer">
+            <button class="dialog-btn">🗑 Limpar seleção</button>
+            <button class="dialog-btn">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-grid">
+        <div class="spec-box">
+          <h4 style="color:#FF7B7B;">Defeito no Web</h4>
+          <ul>
+            <li>Outer border (3px) + Inner chip border (2px) com raio 24 vs 20.</li>
+            <li>Zero respiro causa artefatos no Skia/CanvasKit.</li>
+            <li>Linha parece torta e borrada.</li>
+          </ul>
+        </div>
+        <div class="spec-box">
+          <h4 style="color:#FF7B7B;">Defeito no iOS</h4>
+          <ul>
+            <li>Padrão zebrado 45° remete a obras / perigo.</li>
+            <li>Excesso de 5 camadas visuais concêntricas.</li>
+            <li>Gera poluição visual em um app litúrgico.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- OPÇÃO 1: AURA DOURADA LITÚRGICA (RECOMENDADA)-->
+  <!-- ========================================== -->
+  <section class="proposal-section">
+    <div class="proposal-header">
+      <div class="proposal-title-area">
+        <h2>✨ Opção 1: Aura Dourada Litúrgica & Badge Nobre</h2>
+      </div>
+      <span class="proposal-badge recommended">⭐ Mais Recomendada</span>
+    </div>
+    <div class="proposal-body">
+      <p class="proposal-desc">
+        <strong>A essência:</strong> Substitui a faixa zebrada por uma <strong>única borda nobre ouro claro</strong> (2.5px), enriquecida com uma <strong>aura suave de iluminação</strong> (glow) e um mini-badge discreto integrado no topo. Elimina a dupla borda encavalada no foco substituindo por um <em>focus ring</em> com respiro limpo.
+      </p>
+
+      <div class="mockup-canvas-wrapper">
+        <div class="dialog-sheet">
+          <div class="dialog-header">
+            <span class="dialog-title">Seleção temporária</span>
+            <button class="dialog-info-btn">ⓘ</button>
+          </div>
+
+          <div class="items-list">
+            <!-- Normal / Focado com respiro elegante -->
+            <div class="chip-wrapper current-normal">
+              <div class="base-chip">
+                <span class="chip-drag-handle">⋮⋮</span>
+                <div class="chip-content">
+                  <div class="chip-title">A Ti Senhor</div>
+                  <div class="chip-meta">♪ Cifra</div>
+                </div>
+                <button class="chip-remove-btn">×</button>
+              </div>
+            </div>
+
+            <!-- EM EXIBIÇÃO: Opção 1 -->
+            <div class="chip-wrapper opt1-now-playing" style="margin-top: 10px;">
+              <div class="opt1-badge">
+                <span class="opt1-pulse-dot"></span>
+                EM EXIBIÇÃO
+              </div>
+              <div class="base-chip">
+                <span class="chip-drag-handle">⋮⋮</span>
+                <div class="chip-content">
+                  <div class="chip-title">#001 — Ainda há tempo</div>
+                  <div class="chip-meta">Básico · 📼 Playback</div>
+                </div>
+                <button class="chip-remove-btn">×</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="dialog-footer">
+            <button class="dialog-btn">🗑 Limpar seleção</button>
+            <button class="dialog-btn">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-grid">
+        <div class="spec-box">
+          <h4>Vantagens no iOS</h4>
+          <ul>
+            <li>Linguagem limpa, refinada e nobre (acento dourado e halo sutil).</li>
+            <li>Indicador discreto "• EM EXIBIÇÃO" com pulso suave de presença.</li>
+            <li>Zero sensação de "fita zebrada de obra".</li>
+          </ul>
+        </div>
+        <div class="spec-box">
+          <h4>Vantagens no Web</h4>
+          <ul>
+            <li>Borda única contínua sem sobreposições geométricas.</li>
+            <li>Sem serrilhado ou borrado no CanvasKit.</li>
+            <li>Perfeito em telas normais e Retina / 4K.</li>
+          </ul>
+        </div>
+        <div class="spec-box">
+          <h4>Consistência Geral</h4>
+          <ul>
+            <li>Combina diretamente com a barra do leitor e os botões da Home.</li>
+            <li>Usa estritamente os tokens de cor do app (<code>goldLight</code> e <code>goldGlow</code>).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- OPÇÃO 2: PÍLULA COM BADGE INTEGRADO & ACENTO -->
+  <!-- ========================================== -->
+  <section class="proposal-section">
+    <div class="proposal-header">
+      <div class="proposal-title-area">
+        <h2>🎵 Opção 2: Pílula com Acento Lateral (Modern Music Style)</h2>
+      </div>
+      <span class="proposal-badge">Estilo Apple Music / Spotify</span>
+    </div>
+    <div class="proposal-body">
+      <p class="proposal-desc">
+        <strong>A essência:</strong> Adota a convenção de players modernos: uma <strong>barra de acento vertical dourada</strong> na extremidade esquerda da pílula e um <strong>badge inline compacto</strong> ao lado do título. O contorno permanece limpo, com acabamento acetinado.
+      </p>
+
+      <div class="mockup-canvas-wrapper">
+        <div class="dialog-sheet">
+          <div class="dialog-header">
+            <span class="dialog-title">Seleção temporária</span>
+            <button class="dialog-info-btn">ⓘ</button>
+          </div>
+
+          <div class="items-list">
+            <!-- Normal -->
+            <div class="chip-wrapper current-normal">
+              <div class="base-chip">
+                <span class="chip-drag-handle">⋮⋮</span>
+                <div class="chip-content">
+                  <div class="chip-title">A Ti Senhor</div>
+                  <div class="chip-meta">♪ Cifra</div>
+                </div>
+                <button class="chip-remove-btn">×</button>
+              </div>
+            </div>
+
+            <!-- EM EXIBIÇÃO: Opção 2 -->
+            <div class="chip-wrapper opt2-now-playing">
+              <div class="base-chip">
+                <span class="chip-drag-handle">⋮⋮</span>
+                <div class="chip-content">
+                  <div class="chip-title">
+                    #001 — Ainda há tempo
+                    <span class="opt2-inline-badge">▶ EM EXIBIÇÃO</span>
+                  </div>
+                  <div class="chip-meta">Básico · 📼 Playback</div>
+                </div>
+                <button class="chip-remove-btn">×</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="dialog-footer">
+            <button class="dialog-btn">🗑 Limpar seleção</button>
+            <button class="dialog-btn">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-grid">
+        <div class="spec-box">
+          <h4>Vantagens no iOS</h4>
+          <ul>
+            <li>Muito compacto: não adiciona altura extra acima da pílula.</li>
+            <li>Barra de acento lateral instantaneamente reconhecível.</li>
+            <li>Visual moderno e despoluído.</li>
+          </ul>
+        </div>
+        <div class="spec-box">
+          <h4>Vantagens no Web</h4>
+          <ul>
+            <li>Implementado dentro da própria estrutura da pílula.</li>
+            <li>Sem necessidade de wrappers externos ou painters customizados.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- OPÇÃO 3: PARIDADE GOLDEN TAGGED CONTAINER -->
+  <!-- ========================================== -->
+  <section class="proposal-section">
+    <div class="proposal-header">
+      <div class="proposal-title-area">
+        <h2>🏛️ Opção 3: Paridade com o Design System Oficial (`GoldenTaggedContainer`)</h2>
+      </div>
+      <span class="proposal-badge">Padrão §5.2 MAPEAMENTO</span>
+    </div>
+    <div class="proposal-body">
+      <p class="proposal-desc">
+        <strong>A essência:</strong> Reaproveita a mesma linguagem visual que o app já usa na caixa de busca e nos filtros (<code>GoldenTaggedContainer</code>). Uma moldura retangular-arredondada com a tag flutuante clássica no topo esquerdo. A chip interna perde sua borda para que apenas a moldura externa brilhe.
+      </p>
+
+      <div class="mockup-canvas-wrapper">
+        <div class="dialog-sheet">
+          <div class="dialog-header">
+            <span class="dialog-title">Seleção temporária</span>
+            <button class="dialog-info-btn">ⓘ</button>
+          </div>
+
+          <div class="items-list">
+            <!-- Normal -->
+            <div class="chip-wrapper current-normal">
+              <div class="base-chip">
+                <span class="chip-drag-handle">⋮⋮</span>
+                <div class="chip-content">
+                  <div class="chip-title">A Ti Senhor</div>
+                  <div class="chip-meta">♪ Cifra</div>
+                </div>
+                <button class="chip-remove-btn">×</button>
+              </div>
+            </div>
+
+            <!-- EM EXIBIÇÃO: Opção 3 -->
+            <div class="opt3-container">
+              <div class="opt3-tag">👁 EM EXIBIÇÃO</div>
+              <div class="opt3-box">
+                <div class="base-chip">
+                  <span class="chip-drag-handle">⋮⋮</span>
+                  <div class="chip-content">
+                    <div class="chip-title">#001 — Ainda há tempo</div>
+                    <div class="chip-meta">Básico · 📼 Playback</div>
+                  </div>
+                  <button class="chip-remove-btn">×</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dialog-footer">
+            <button class="dialog-btn">🗑 Limpar seleção</button>
+            <button class="dialog-btn">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-grid">
+        <div class="spec-box">
+          <h4>Vantagens</h4>
+          <ul>
+            <li>100% de coerência com o <code>GoldenTaggedContainer</code> da Busca e Filtros.</li>
+            <li>Reaproveita padrões e convenções já documentados na especificação.</li>
+          </ul>
+        </div>
+        <div class="spec-box">
+          <h4>Desvantagem</h4>
+          <ul>
+            <li>Ocupa um pouco mais de espaço vertical por conta da margem da tag superior.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  function setView(view, btn) {
+    document.body.className = 'view-' + view;
+    document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+</script>
+
+</body>
+</html>

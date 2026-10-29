@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <!-- O sw.js aquece o que a página carregou (performance resource timing);
+       o buffer default (250) enche durante o boot e perderia o engine. Tem
+       de vir antes de qualquer outro pedido. -->
+  <script>try { performance.setResourceTimingBufferSize(600); } catch (e) {}</script>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <link rel="preload" href="main.dart.wasm" as="fetch" crossorigin="anonymous">
+  <link rel="preload" href="isar_plus.wasm" as="fetch" crossorigin="anonymous">
+
+  <!-- Fontes variáveis (subset — ver scripts/subset_fonts.sh). Caminho
+       confirmado em build/web/assets/FontManifest.json após o build: como o
+       asset do pubspec já começa com "assets/" (a pasta assets/fonts/ do
+       projeto), o Flutter web duplica o prefixo (assets/assets/fonts/...) e
+       URL-encoda os colchetes do nome do arquivo. É estável — nada no
+       pipeline renomeia estes dois arquivos (diferente de
+       MaterialIcons-Regular.otf, que o cache_bust_web_entrypoints.sh
+       renomeia com hash de conteúdo). -->
+  <link rel="preload" href="assets/assets/fonts/EBGaramond%5Bwght%5D.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="assets/assets/fonts/OpenSans%5Bwght%5D.ttf" as="font" type="font/ttf" crossorigin>
+
+  <script>
+    (function () {
+      function supportsSkwasmPreload() {
+        try {
+          return (
+            typeof WebAssembly !== 'undefined' &&
+            typeof SharedArrayBuffer !== 'undefined' &&
+            window.crossOriginIsolated === true
+          );
+        } catch (e) {
+          return false;
+        }
+      }
+
+      window.__plpcgPerf = window.__plpcgPerf || {};
+      var rendererPreload = supportsSkwasmPreload() ? 'skwasm' : 'fallback';
+      window.__plpcgPerf.rendererPreload = rendererPreload;
+
+      if (rendererPreload === 'skwasm') {
+        var link = document.createElement('link');
+        link.rel = 'preload';
+        link.href = 'canvaskit/skwasm.wasm';
+        link.as = 'fetch';
+        link.crossOrigin = 'anonymous';
+        document.head.appendChild(link);
+      }
+    })();
+  </script>
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Pesquisador e visualizador online e offline de partituras, cifras e gestinhos de louvores da ICM (Não Oficial)">
+  <meta name="theme-color" content="#D4AF37">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PLPCG">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>PLPCG</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background-color: #4B2D2B;
+    }
+
+    flutter-view,
+    flt-glass-pane,
+    canvas {
+      outline: none;
+    }
+
+    #loading {
+      position: fixed;
+      inset: 0;
+      z-index: 999999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #4B2D2B;
+      transition: opacity 0.2s ease-out, visibility 0.2s ease-out;
+    }
+
+    /* Saída em duas fases, como a transição de página do app: primeiro o
+       conteúdo (logo, halo, título) some sobre o fundo ainda opaco
+       (.leaving); depois só o marrom liso esmaece (.hidden). Esmaecer o
+       overlay inteiro deixava logo + halo como «fantasma» sobre a tela. */
+    #loading.leaving .logo-wrap,
+    #loading.leaving .title {
+      opacity: 0;
+      transition: opacity 0.16s ease-out;
+    }
+
+    #loading.hidden .logo-wrap,
+    #loading.hidden .title {
+      visibility: hidden;
+    }
+
+    #loading.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    #loading .logo-wrap {
+      position: relative;
+      width: 168px;
+      height: 168px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Halo dourado atrás da logo — mesma linguagem visual do LightBeam usado
+       no app (núcleo quente → dourado → transparente), em CSS puro. */
+    #loading .logo-glow {
+      position: absolute;
+      inset: -22%;
+      border-radius: 50%;
+      background: radial-gradient(
+        closest-side,
+        rgba(255, 251, 234, 0.9),
+        rgba(255, 217, 107, 0.55) 45%,
+        rgba(212, 175, 55, 0) 72%
+      );
+      filter: blur(18px);
+      opacity: 0.3;
+      transform: scale(0.6);
+      animation: plpcg-breathe-glow 2.4s ease-in-out infinite;
+    }
+
+    #loading img {
+      position: relative;
+      width: 168px;
+      height: 168px;
+      opacity: 0.35;
+      animation: plpcg-breathe-logo 2.4s ease-in-out infinite;
+    }
+
+    /* Estado "resolvido": logo assumida como o próprio indicador de progresso
+       (sem anel de spinner separado) chega a opacidade/brilho plenos antes do
+       overlay inteiro sumir via #loading.hidden. */
+    #loading.resolved .logo-glow {
+      animation: none;
+      opacity: 0.85;
+      transform: scale(1);
+      transition: opacity 0.45s ease-out, transform 0.45s ease-out;
+    }
+
+    #loading.resolved img {
+      animation: none;
+      opacity: 1;
+      transition: opacity 0.45s ease-out;
+    }
+
+    #loading .title {
+      margin: 0;
+      color: #D4AF37;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 1.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+    }
+
+    @keyframes plpcg-breathe-glow {
+      0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.6);
+      }
+      50% {
+        opacity: 0.6;
+        transform: scale(0.85);
+      }
+    }
+
+    @keyframes plpcg-breathe-logo {
+      0%, 100% {
+        opacity: 0.35;
+      }
+      50% {
+        opacity: 0.7;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="loading" aria-live="polite" aria-busy="true">
+    <div class="logo-wrap">
+      <div class="logo-glow"></div>
+      <img
+        src="assets/assets/branding/logo_colorido_no_bg_logo_only.svg"
+        alt=""
+        width="168"
+        height="168"
+      >
+    </div>
+    <p class="title">PLPCG</p>
+  </div>
+
+  <script>
+    (function () {
+      var loader = document.getElementById('loading');
+      if (!loader) return;
+
+      var removed = false;
+      var navigationStart = 0;
+      var navEntry = performance.getEntriesByType('navigation')[0];
+      if (navEntry) {
+        navigationStart = navEntry.startTime;
+      }
+
+      function msSinceNav() {
+        return Math.round(performance.now() - navigationStart);
+      }
+
+      function markLoaderVisible() {
+        performance.mark('plpcg-loader-visible');
+        window.__plpcgPerf = window.__plpcgPerf || {};
+        window.__plpcgPerf.loaderVisibleMs = msSinceNav();
+      }
+
+      requestAnimationFrame(function () {
+        requestAnimationFrame(markLoaderVisible);
+      });
+
+      function capturePerf() {
+        performance.mark('plpcg-first-frame');
+        try {
+          performance.measure('plpcg-loader', {
+            start: navigationStart,
+            end: 'plpcg-loader-visible',
+          });
+          performance.measure('plpcg-first-frame', {
+            start: navigationStart,
+            end: 'plpcg-first-frame',
+          });
+        } catch (e) {}
+
+        var loaderMs =
+          window.__plpcgPerf && window.__plpcgPerf.loaderVisibleMs;
+        var rendererPreload =
+          window.__plpcgPerf && window.__plpcgPerf.rendererPreload;
+        var perf = {
+          loaderVisibleMs: loaderMs != null ? loaderMs : null,
+          firstFrameMs: msSinceNav(),
+          crossOriginIsolated: window.crossOriginIsolated,
+          sab: typeof SharedArrayBuffer,
+          rendererPreload: rendererPreload || null,
+          capturedAt: new Date().toISOString(),
+        };
+        window.__plpcgPerf = perf;
+        window.dispatchEvent(
+          new CustomEvent('plpcg-perf-ready', { detail: perf }),
+        );
+      }
+
+      function hideLoader() {
+        if (removed) return;
+        removed = true;
+        capturePerf();
+        loader.setAttribute('aria-busy', 'false');
+        // Resolve: logo + brilho chegam ao estado pleno (opacidade 100%,
+        // glow no tamanho normal) antes do overlay sumir — dá continuidade
+        // visual em vez de um corte abrupto. Depois sai em duas fases (ver
+        // #loading.leaving no CSS): conteúdo, e só então o fundo liso.
+        loader.classList.add('resolved');
+        window.setTimeout(function () {
+          loader.classList.add('leaving');
+          window.setTimeout(function () {
+            loader.classList.add('hidden');
+            window.setTimeout(function () {
+              loader.remove();
+            }, 200);
+          }, 160);
+        }, 450);
+      }
+
+      window.addEventListener('flutter-first-frame', hideLoader, { once: true });
+
+      // Sem engine em cache e sem rede o flutter-first-frame nunca chega e o
+      // loader fica preso para sempre — avisa em vez de girar ad aeternum.
+      try {
+        window.setTimeout(function () {
+          try {
+            if (removed || navigator.onLine !== false) return;
+            var title = loader.querySelector('.title');
+            if (title) {
+              title.textContent =
+                'Sem ligação — abra o app online uma vez para poder usá-lo offline.';
+            }
+          } catch (e) {}
+        }, 15000);
+      } catch (e) {}
+    })();
+  </script>
+
+  <script id="plpcg-viewport-guard">
+    // Guarda do tamanho da tela (barra de navegação de baixo «cortada» ao
+    // abrir o PWA, só resolvida fechando o app). O Flutter web (full-page) só
+    // re-mede a janela no 'resize' do visualViewport — no iOS mede
+    // documentElement.clientHeight, que o WebKit do app instalado às vezes
+    // muda sem disparar esse evento — e congela o tamanho enquanto há campo
+    // de texto em edição (pesquisa), sem re-medir quando a edição acaba. Aí o
+    // <flutter-view> fica mais alto que a página e o fim dele (a barra) sai
+    // da tela. O guarda compara a altura em que o Flutter desenhou
+    // (<flutter-view>.style.height, gravada a cada frame) com a da página e,
+    // se divergirem sem campo focado, dispara um 'resize' sintético no
+    // visualViewport: o engine re-mede como num resize real.
+    // window.__plpcgViewport.heals guarda as últimas correções (diagnóstico
+    // pelo Web Inspector do Safari).
+    (function () {
+      var vv = window.visualViewport;
+      if (!vv || typeof vv.dispatchEvent !== 'function') return;
+      var state = { heals: [], lastKey: null };
+      window.__plpcgViewport = state;
+
+      function editing() {
+        var el = document.activeElement;
+        if (!el) return false;
+        return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
+          el.isContentEditable === true;
+      }
+
+      function check(reason) {
+        var view = document.querySelector('flutter-view');
+        if (!view) return;
+        var viewH = parseFloat(view.style.height);
+        var viewW = parseFloat(view.style.width);
+        if (!(viewH > 0) || !(viewW > 0)) return;
+        var root = document.documentElement;
+        var pageH = root.clientHeight;
+        var pageW = root.clientWidth;
+        if (Math.abs(viewH - pageH) <= 1 && Math.abs(viewW - pageW) <= 1) {
+          state.lastKey = null;
+          return;
+        }
+        // Em edição o engine segura o tamanho de propósito (teclado vira
+        // viewInsets); o focusout volta a verificar.
+        if (editing()) return;
+        // Uma tentativa por par de medidas: se o engine chegar ao mesmo
+        // valor (fora do iOS ele mede o visualViewport), não insistir.
+        var key = viewW + 'x' + viewH + '/' + pageW + 'x' + pageH;
+        if (key === state.lastKey) return;
+        state.lastKey = key;
+        var heal = {
+          reason: reason,
+          at: Math.round(performance.now()),
+          view: viewW + 'x' + viewH,
+          page: pageW + 'x' + pageH,
+          visualViewport: vv.width + 'x' + vv.height,
+          inner: window.innerWidth + 'x' + window.innerHeight,
+          screen: window.screen ? window.screen.width + 'x' + window.screen.height : null,
+        };
+        state.heals.push(heal);
+        if (state.heals.length > 20) state.heals.shift();
+        try {
+          console.info('[viewport] re-medindo: ' + JSON.stringify(heal));
+        } catch (e) {}
+        vv.dispatchEvent(new Event('resize'));
+      }
+
+      function schedule(reason, delay) {
+        window.setTimeout(function () { check(reason); }, delay);
+      }
+
+      window.addEventListener('flutter-first-frame', function () {
+        schedule('first-frame', 0);
+        schedule('first-frame+1s', 1000);
+        schedule('first-frame+3s', 3000);
+      }, { once: true });
+      window.addEventListener('resize', function () { schedule('resize', 150); });
+      window.addEventListener('orientationchange', function () {
+        schedule('orientationchange', 400);
+      });
+      window.addEventListener('pageshow', function () { schedule('pageshow', 300); });
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState !== 'visible') return;
+        schedule('visible', 300);
+        schedule('visible+1s', 1000);
+      });
+      // Fim da edição: o teclado leva ~250 ms a descer e o engine só larga o
+      // campo depois do framework.
+      document.addEventListener('focusout', function () {
+        schedule('focusout', 400);
+        schedule('focusout+1s', 1200);
+      });
+      if (typeof ResizeObserver === 'function') {
+        try {
+          new ResizeObserver(function () { schedule('observer', 150); })
+            .observe(document.documentElement);
+        } catch (e) {}
+      }
+    })();
+  </script>
+
+  <script>
+    // Service worker do shell (web/sw.js — spec 2026-09-14-pwa-shell-offline).
+    // Registado só depois do primeiro frame: o boot é o caminho crítico e o
+    // SW não ajuda na primeira visita. A tag vem do cache_bust_web_entrypoints.sh
+    // (12 hex); em `flutter run` fica o placeholder e não registamos nada —
+    // o template tem SyntaxError em runtime.
+    (function () {
+      var swTag = '__PLPCG_TAG__';
+      if (!('serviceWorker' in navigator)) return;
+      if (!/^[0-9a-f]{12}$/.test(swTag)) return;
+      window.addEventListener('flutter-first-frame', function () {
+        navigator.serviceWorker.register('sw.js?v=' + swTag).then(function (reg) {
+          // `used`: tudo o que esta página carregou da nossa origem — inclui
+          // main.dart.* e a variante do engine que o flutter_bootstrap
+          // escolheu para este browser. O SW copia-a do cache HTTP (~0 rede),
+          // por isso vai SEMPRE, mesmo com Save-Data. `full` liga a lista
+          // WARM (resto do shell), que custa rede: só sem Save-Data / 2g.
+          var c = navigator.connection || {};
+          var full = !(c.saveData || /(^|-)2g$/.test(c.effectiveType || ''));
+          var used = performance.getEntriesByType('resource')
+            .map(function (e) { return e.name; })
+            .filter(function (n) { return n.indexOf(location.origin + '/') === 0; });
+          var post = function (sw) {
+            // tag: o sw.js descarta `used` se não bater com a tag ativa dele
+            // (deploy a meio de sessão — esta página ainda tem a tag velha).
+            if (sw) sw.postMessage({ type: 'warm', used: used, full: full, tag: swTag });
+          };
+          // Primeiro registo: o worker ainda está em install e a mensagem
+          // corre em paralelo. Deploy novo: o controller troca depois do
+          // activate e voltamos a mandar a mesma lista ao SW novo.
+          post(reg.active || reg.waiting || reg.installing);
+          navigator.serviceWorker.addEventListener('controllerchange', function () {
+            post(navigator.serviceWorker.controller);
+          });
+        }).catch(function () {});
+      }, { once: true });
+    })();
+  </script>
+
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

@@ -1,15 +1,14 @@
+import 'package:coldigui/core/widgets/light_beam.dart';
 import 'package:coldigui/features/app_shell/presentation/widgets/plpcg_bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _destinations = [
-  PlpcgBottomNavDestination(icon: Icons.info_outline, label: 'Sobre'),
   PlpcgBottomNavDestination(icon: Icons.library_books, label: 'Biblioteca'),
   PlpcgBottomNavDestination(
     svgAsset: 'assets/branding/logo_colorido_no_bg_logo_only.svg',
     label: 'Pesquisar',
   ),
-  PlpcgBottomNavDestination(icon: Icons.cloud_download, label: 'Offline'),
   PlpcgBottomNavDestination(icon: Icons.playlist_play, label: 'Listas'),
 ];
 
@@ -26,7 +25,7 @@ void main() {
           ),
           child: Scaffold(
             bottomNavigationBar: PlpcgBottomNavBar(
-              selectedIndex: 2,
+              selectedIndex: 1,
               onDestinationSelected: (_) {},
               destinations: _destinations,
             ),
@@ -38,10 +37,7 @@ void main() {
     final screenBottom = tester.getBottomLeft(find.byType(Scaffold)).dy;
     final rowBottom = tester.getBottomLeft(find.byType(Row).first).dy;
 
-    expect(
-      screenBottom - rowBottom,
-      greaterThanOrEqualTo(bottomInset + 2),
-    );
+    expect(screenBottom - rowBottom, greaterThanOrEqualTo(bottomInset + 2));
   });
 
   testWidgets('Pesquisar responde ao toque acima da safe area', (tester) async {
@@ -68,6 +64,52 @@ void main() {
     await tester.tap(find.text('Pesquisar'));
     await tester.pumpAndSettle();
 
-    expect(tappedIndex, 2);
+    expect(tappedIndex, 1);
   });
+
+  testWidgets(
+    'trocar o rótulo recalcula a largura do feixe (A15 — memoização fora do build)',
+    (tester) async {
+      Widget buildWithLabel(String label) {
+        return MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(800, 600)),
+            child: Scaffold(
+              bottomNavigationBar: PlpcgBottomNavBar(
+                selectedIndex: 1,
+                onDestinationSelected: (_) {},
+                destinations: [
+                  const PlpcgBottomNavDestination(
+                    icon: Icons.library_books,
+                    label: 'Biblioteca',
+                  ),
+                  PlpcgBottomNavDestination(icon: Icons.search, label: label),
+                  const PlpcgBottomNavDestination(
+                    icon: Icons.playlist_play,
+                    label: 'Listas',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(buildWithLabel('AB'));
+      await tester.pumpAndSettle();
+      final shortWidth = tester
+          .widgetList<LightBeam>(find.byType(LightBeam))
+          .elementAt(1)
+          .width;
+
+      await tester.pumpWidget(buildWithLabel('Uma Label Bem Mais Comprida'));
+      await tester.pumpAndSettle();
+      final longWidth = tester
+          .widgetList<LightBeam>(find.byType(LightBeam))
+          .elementAt(1)
+          .width;
+
+      expect(longWidth, greaterThan(shortWidth));
+    },
+  );
 }

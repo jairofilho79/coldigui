@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// Limites e retry do store offline nativo (Fase 3).
 ///
 /// [pdfStorageSubdir] — subpasta em ApplicationDocumentsDirectory (perene).
@@ -6,7 +8,6 @@ abstract final class OfflineConfig {
   /// Subdiretório de PDFs offline em documents — **não** usar cache/temp.
   static const String pdfStorageSubdir = 'plpcg_pdfs';
   static const String pdfCacheName = 'plpc-pdfs';
-  static const Duration manifestCacheTtl = Duration(minutes: 5);
   static const Duration validationCacheTtl = Duration(hours: 24);
   static const Duration statsCacheTtl = Duration(minutes: 5);
   static const Duration swRegistrationTimeout = Duration(seconds: 5);
@@ -33,22 +34,13 @@ abstract final class OfflineConfig {
   /// Timeout de envio por request em [PdfBytesDatasource._fetchRemote].
   static const Duration pdfDownloadSendTimeout = Duration(seconds: 10);
 
-  /// Watchdog inter-chunk para download de ZIP bulk (UC-09).
-  ///
-  /// `Duration.zero` = sem limite (recomendado para arquivos grandes).
-  static const Duration zipDownloadReceiveTimeout = Duration.zero;
-
-  /// Timeout de conexão por request em [ZipPackageDownloader.download].
-  static const Duration zipDownloadConnectTimeout = Duration(seconds: 60);
-
-  /// Timeout de envio por request em [ZipPackageDownloader.download].
-  static const Duration zipDownloadSendTimeout = Duration(seconds: 30);
-
   /// Tamanho de chunk para upsert Isar no bulk UC-09 (Fase 3.5).
   static const int bulkIsarChunkSize = 75;
 
-  /// Subpasta transitória de ZIPs bulk sob `plpcg_pdfs/`.
-  static const String zipTempSubdir = '_bulk_zips';
+  /// Nome do bucket Cache API para PDFs offline na web (Solução C).
+  ///
+  /// Distinto de [pdfCacheName] (legado Service Worker — não alterar).
+  static const String pdfCacheStoreName = 'plpcg-pdfs-store-v1';
 
   /// Quota padrão do cache on-demand de PDFs (LRU eviction — backlog #10).
   static const int defaultPdfCacheQuotaBytes = 500 * 1024 * 1024;
@@ -56,12 +48,38 @@ abstract final class OfflineConfig {
   /// Debounce antes de reconcile global ao retornar ao foreground (Fase 3.6).
   static const Duration reconcileForegroundDebounce = Duration(seconds: 3);
 
-  /// Intervalo mínimo entre polls de checksum do manifest ao foreground (UC-12).
-  static const Duration catalogChecksumPollMinInterval = Duration(minutes: 30);
-
   /// Intervalo mínimo entre reconciles globais (backlog #12).
   static const Duration reconcileMinInterval = Duration(minutes: 30);
 
   /// Versão atual do layout offline — incrementar ao migrar paths/schema.
-  static const int offlineStorageVersion = 2;
+  static const int offlineStorageVersion = 5;
+
+  /// Intervalo mínimo entre syncs do catálogo Coldigom ao voltar ao
+  /// foreground (O5).
+  static const Duration coldigomCatalogSyncMinInterval = Duration(minutes: 30);
+
+  /// Praises convertidos por fatia na hidratação do catálogo Coldigom; entre
+  /// fatias o event loop é cedido para não travar o primeiro frame na web.
+  static const int coldigomHydrationChunkSize = 300;
+
+  /// Subdiretório de áudios Coldigom baixados em documents (nativo).
+  static const String audioStorageSubdir = 'plpcg_audio';
+
+  /// Bucket Cache API dos áudios Coldigom na web — irmão de
+  /// [pdfCacheStoreName]; buckets separados para «Remover áudios» não
+  /// tocar nos PDFs.
+  static const String audioCacheStoreName = 'plpcg-audio-store-v1';
+
+  /// Downloads Coldigom simultâneos (spec offline Coldigom §5.2): 3 no
+  /// nativo (como o on-demand de PDF), 6 na web.
+  static int get coldigomDownloadConcurrency => kIsWeb ? 6 : 3;
+
+  /// Estimativa de bytes por `type` quando o dump não traz `size` (O13).
+  static const Map<String, int> coldigomEstimatedBytesByType = {
+    'pdf': 350 * 1024,
+    'mp3': 4 * 1024 * 1024,
+    'audio': 4 * 1024 * 1024,
+    'chord': 1024,
+    'gestures': 60 * 1024,
+  };
 }

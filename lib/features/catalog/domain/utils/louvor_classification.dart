@@ -1,10 +1,9 @@
-import '../entities/louvor.dart';
-
-/// Utilitários de classificação/arranjo para filtros UC-02 e UC-03.
+/// Classificação/arranjo do manifesto (`ColAdultos (Especial)`) → rótulos.
 ///
-/// Contrato URL: param [UrlSyncParams.arranjo] (CSV de classificações base);
-/// [UrlSyncParams.arranjoEspecial] (CSV de arranjos especiais).
-/// Valor omitido quando nenhum filtro está selecionado.
+/// Serve à exibição — o nome das secções de material ([materialSectionLabel])
+/// e o chip do carrossel. Os filtros do catálogo já não usam classificação
+/// nem arranjo: são tom, ritmo, tags e tipo de material, do índice Coldigom
+/// (spec fim-fonte §2.2).
 abstract final class LouvorClassification {
   /// Rótulo quando [classificacao] não contém parênteses (UC-03).
   static const String specialArrangementPadrao = 'Padrão';
@@ -33,11 +32,6 @@ abstract final class LouvorClassification {
     return displayLabel(classificacao);
   }
 
-  /// Classificações base únicas do catálogo (chips UC-02).
-  static Set<String> collectAvailableArranjos(Iterable<Louvor> louvores) {
-    return louvores.map((l) => baseClassification(l.classificacao)).toSet();
-  }
-
   /// Extrai classificação base antes de parênteses.
   ///
   /// Ex.: `ColAdultos (Arranjo X)` → `ColAdultos`.
@@ -46,22 +40,6 @@ abstract final class LouvorClassification {
     final parenIndex = trimmed.indexOf('(');
     if (parenIndex == -1) return trimmed;
     return trimmed.substring(0, parenIndex).trim();
-  }
-
-  /// Parse CSV da URL `arranjo=`; vazio → sem filtro (todos).
-  static Set<String> parseArranjosFromUrl(String? csv) {
-    if (csv == null || csv.trim().isEmpty) return {};
-    return csv
-        .split(',')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toSet();
-  }
-
-  /// Serializa arranjos selecionados; vazio → omitir param.
-  static String? serializeArranjosForUrl(Set<String> selected) {
-    if (selected.isEmpty) return null;
-    return selected.join(',');
   }
 
   /// Extrai arranjo especial — texto entre `(` e `)`.
@@ -77,21 +55,5 @@ abstract final class LouvorClassification {
 
     final special = trimmed.substring(openIndex + 1, closeIndex).trim();
     return special.isEmpty ? specialArrangementPadrao : special;
-  }
-
-  /// Parse CSV da URL `arranjoEspecial=`; vazio → sem filtro (todos).
-  static Set<String> parseSpecialArrangementsFromUrl(String? csv) {
-    if (csv == null || csv.trim().isEmpty) return {};
-    return csv
-        .split(',')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toSet();
-  }
-
-  /// Serializa arranjos especiais selecionados; vazio → omitir param.
-  static String? serializeSpecialArrangementsForUrl(Set<String> selected) {
-    if (selected.isEmpty) return null;
-    return selected.join(',');
   }
 }

@@ -1,0 +1,194 @@
+import 'package:coldigui/core/utils/material_id_kind.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
+import 'package:coldigui/features/coldigom/domain/utils/youtube_url.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
+
+import '../models/praise_dto.dart';
+
+/// Converte louvores coldigom em entidades [Louvor] / [AudioTrack] / YouTube.
+abstract final class ColdigomLouvorAdapter {
+  /// Metadados do praise para o sheet Coldigom (tom, autor, ritmo, tags…).
+  static ColdigomPraiseMetadata toMetadata(PraiseDetailDto praise) {
+    return ColdigomPraiseMetadata(
+      name: praise.name,
+      tonality: praise.tonality,
+      author: praise.author,
+      rhythm: praise.rhythm,
+      tagNames: praise.tagNames,
+      lyricsExcerpt: praise.lyricsExcerpt,
+      shortId: praise.shortId,
+      groupId: praise.groupId,
+      biblicalSummary: praise.biblicalSummary,
+    );
+  }
+
+  /// Um [Louvor] por material PDF com `r2_key` válido.
+  static List<Louvor> toLouvores(PraiseDetailDto praise) {
+    final louvores = <Louvor>[];
+
+    for (final material in praise.materials) {
+      if (materialKindOfRawType(material.type) != MaterialKind.pdf) continue;
+      final r2Key = material.r2Key;
+      if (r2Key == null || r2Key.isEmpty) continue;
+
+      final pdfFileName = _basename(r2Key);
+      louvores.add(
+        Louvor.fromManifest(
+          nome: praise.name,
+          numero: praise.number,
+          categoria: material.materialKindName ?? 'PDF',
+          classificacao: praise.rhythm,
+          pdf: pdfFileName,
+          pdfId: encodePdfId(r2Key),
+          groupId: praise.id,
+          materialKindId: material.materialKindId,
+          praiseId: praise.id,
+          materialId: material.id,
+          notes: material.notes,
+        ),
+      );
+    }
+
+    return louvores;
+  }
+
+  /// Uma [AudioTrack] por material `mp3`/`audio` com `r2_key` válido.
+  static List<AudioTrack> toAudioTracks(PraiseDetailDto praise) {
+    final tracks = <AudioTrack>[];
+
+    for (final material in praise.materials) {
+      if (materialKindOfRawType(material.type) != MaterialKind.audio) continue;
+      final r2Key = material.r2Key;
+      if (r2Key == null || r2Key.isEmpty) continue;
+
+      tracks.add(
+        AudioTrack(
+          audioId: encodePdfId(r2Key),
+          r2Key: r2Key,
+          nome: praise.name,
+          numero: praise.number,
+          groupId: praise.id,
+          categoria: material.materialKindName ?? 'Áudio',
+          classificacao: praise.rhythm,
+          author: praise.author,
+          materialKindId: material.materialKindId,
+          notes: material.notes,
+        ),
+      );
+    }
+
+    return tracks;
+  }
+
+  /// Um [YoutubeMaterial] por `type: youtube` com URL HTTPS válida.
+  static List<YoutubeMaterial> toYoutubeMaterials(PraiseDetailDto praise) {
+    final items = <YoutubeMaterial>[];
+
+    for (final material in praise.materials) {
+      if (materialKindOfRawType(material.type) != MaterialKind.youtube) {
+        continue;
+      }
+      if (!YoutubeUrl.isValid(material.url)) continue;
+
+      items.add(
+        YoutubeMaterial(
+          id: material.id,
+          url: material.url!.trim(),
+          nome: praise.name,
+          numero: praise.number,
+          groupId: praise.id,
+          categoria: material.materialKindName ?? 'YouTube',
+          classificacao: praise.rhythm,
+          author: praise.author,
+          materialKindId: material.materialKindId,
+          notes: material.notes,
+        ),
+      );
+    }
+
+    return items;
+  }
+
+  /// Um [ChordMaterial] por `type: chord` com `r2_key` válido.
+  static List<ChordMaterial> toChordMaterials(PraiseDetailDto praise) {
+    final items = <ChordMaterial>[];
+
+    for (final material in praise.materials) {
+      if (materialKindOfRawType(material.type) != MaterialKind.chord) continue;
+      final r2Key = material.r2Key;
+      if (r2Key == null || r2Key.isEmpty) continue;
+
+      items.add(
+        ChordMaterial(
+          chordId: encodePdfId(r2Key),
+          r2Key: r2Key,
+          nome: praise.name,
+          numero: praise.number,
+          groupId: praise.id,
+          categoria: material.materialKindName ?? 'Cifra',
+          classificacao: praise.rhythm,
+          author: praise.author,
+          materialKindId: material.materialKindId,
+          notes: material.notes,
+        ),
+      );
+    }
+
+    return items;
+  }
+
+  /// Um [GestureMaterial] por `type: gestures` com `r2_key` válido.
+  static List<GestureMaterial> toGestureMaterials(PraiseDetailDto praise) {
+    final items = <GestureMaterial>[];
+    for (final material in praise.materials) {
+      if (materialKindOfRawType(material.type) != MaterialKind.gesture) {
+        continue;
+      }
+      final r2Key = material.r2Key;
+      if (r2Key == null || r2Key.isEmpty) continue;
+      items.add(
+        GestureMaterial(
+          gestureId: encodePdfId(r2Key),
+          r2Key: r2Key,
+          nome: praise.name,
+          numero: praise.number,
+          groupId: praise.id,
+          categoria: material.materialKindName ?? 'Gestos',
+          classificacao: praise.rhythm,
+          author: praise.author,
+          materialKindId: material.materialKindId,
+          notes: material.notes,
+        ),
+      );
+    }
+    return items;
+  }
+
+  /// Letra do praise como material sintético — `null` quando não há texto.
+  ///
+  /// `lyrics` só entra como gate de presença: o leitor `/letra` carrega o
+  /// texto do Isar na hora, então [LyricsMaterial] não guarda o texto em si.
+  static LyricsMaterial? toLyricsMaterial(
+    PraiseDetailDto praise,
+    String lyrics,
+  ) {
+    if (lyrics.trim().isEmpty) return null;
+    return LyricsMaterial(
+      praiseId: praise.id,
+      nome: praise.name,
+      numero: praise.number,
+    );
+  }
+
+  static String _basename(String path) {
+    final normalized = path.replaceAll(r'\', '/');
+    final slash = normalized.lastIndexOf('/');
+    return slash == -1 ? normalized : normalized.substring(slash + 1);
+  }
+}

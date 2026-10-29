@@ -44,12 +44,25 @@ abstract class OfflinePdfRepository {
   /// Remove arquivo no disco e entrada no índice (idempotente se ausente).
   Future<void> remove(String pdfId);
 
-  /// Reindexa [fromPdfId] como [toPdfId] sem mover o arquivo no disco.
+  /// Remove [pdfIds] em lote — arquivos primeiro, depois **uma** baixa no
+  /// índice Isar (`deleteByPdfIds`), não uma por PDF como [remove] em laço
+  /// faria. Quem deriva estado do índice ouve uma única mudança em vez de N
+  /// (ex.: remoção Coldigom de ~1700 PDFs bumpava `offlineIndexRevisionProvider`
+  /// ~1700×). Idempotente se algum `pdfId` ausente.
+  Future<void> removeMany(Set<String> pdfIds);
+
+  /// Reindexa cada chave de [fromTo] como o seu valor, sem mover arquivos no
+  /// disco, e tira [remove] do índice — tudo numa escrita só, com **um**
+  /// aviso a quem deriva estado do índice (a troca de ids legados de um
+  /// índice com milhares de PDFs; spec fim-fonte-plpcg §6.2).
   ///
-  /// Idempotente se [fromPdfId] ausente ou [toPdfId] já indexado.
-  Future<void> remapPdfId({
-    required String fromPdfId,
-    required String toPdfId,
+  /// Chave ausente é ignorada. Se o destino já está indexado (ou outra chave
+  /// do lote já foi para ele), a linha de origem sai e a do destino fica —
+  /// persistente se qualquer das duas era. Devolve quantas linhas de origem
+  /// mudaram ou saíram.
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
   });
 
   /// Resolve [pdfId] a partir do path absoluto no índice Isar, ou `null`.
@@ -60,9 +73,6 @@ abstract class OfflinePdfRepository {
 
   /// Todos os registros do índice — sem validar disco (bulk/reconcile 3.5/3.6).
   Future<List<OfflinePdfEntry>> listAll();
-
-  /// Indexa PDFs já gravados em disco (bulk UC-09) em chunks Isar.
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items);
 
   /// Upsert em lote com escrita atômica (quando bytes ainda não estão no disco).
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items);

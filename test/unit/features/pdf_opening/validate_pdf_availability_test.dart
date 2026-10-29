@@ -18,8 +18,7 @@ class _FakeOfflinePdfRepository implements OfflinePdfRepository {
   @override
   Future<(OfflinePdfEntry? entry, bool hasIndexEntry)> lookupWithIndexState(
     String pdfId,
-  ) async =>
-      (entry, entry != null);
+  ) async => (entry, entry != null);
 
   @override
   Future<Set<String>> lookupBatch(Set<String> pdfIds) async {
@@ -46,10 +45,13 @@ class _FakeOfflinePdfRepository implements OfflinePdfRepository {
   Future<void> remove(String pdfId) async {}
 
   @override
-  Future<void> remapPdfId({
-    required String fromPdfId,
-    required String toPdfId,
-  }) async {}
+  Future<void> removeMany(Set<String> pdfIds) async {}
+
+  @override
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
+  }) async => 0;
 
   @override
   Future<String?> findPdfIdByAbsolutePath(String absolutePath) async => null;
@@ -59,9 +61,6 @@ class _FakeOfflinePdfRepository implements OfflinePdfRepository {
 
   @override
   Future<List<OfflinePdfEntry>> listAll() async => [];
-
-  @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) async {}
 
   @override
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items) async {}
@@ -79,8 +78,7 @@ class _FakeOfflinePdfRepository implements OfflinePdfRepository {
   Future<int> evictOldestPdfs({
     required int targetBytes,
     Set<String> excludePdfIds = const {},
-  }) async =>
-      0;
+  }) async => 0;
 
   @override
   Future<void> flushPendingTouchLastAccessed() async {}
@@ -120,10 +118,7 @@ void main() {
     );
     final useCase = ValidatePdfAvailability(repository);
 
-    expect(
-      await useCase.call(pdfId: pdfId),
-      PdfOfflineAvailability.cachedLru,
-    );
+    expect(await useCase.call(pdfId: pdfId), PdfOfflineAvailability.cachedLru);
   });
 
   test('retorna notAvailable quando índice ausente', () async {

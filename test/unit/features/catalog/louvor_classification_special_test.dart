@@ -4,10 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('LouvorClassification displayLabel', () {
     test('converte Col* em Coletânea *', () {
-      expect(
-        LouvorClassification.displayLabel('ColCIAs'),
-        'Coletânea CIAs',
-      );
+      expect(LouvorClassification.displayLabel('ColCIAs'), 'Coletânea CIAs');
       expect(
         LouvorClassification.displayLabel('ColAdultos'),
         'Coletânea Adultos',
@@ -22,10 +19,7 @@ void main() {
     });
 
     test('retorna base quando não segue padrão Col', () {
-      expect(
-        LouvorClassification.displayLabel('Outra'),
-        'Outra',
-      );
+      expect(LouvorClassification.displayLabel('Outra'), 'Outra');
     });
 
     test('não reexpande rótulo já amigável (Coletânea …)', () {
@@ -52,34 +46,6 @@ void main() {
       expect(
         LouvorClassification.specialArrangement('ColAdultos'),
         LouvorClassification.specialArrangementPadrao,
-      );
-    });
-
-    test('parseSpecialArrangementsFromUrl vazio retorna conjunto vazio', () {
-      expect(
-        LouvorClassification.parseSpecialArrangementsFromUrl(null),
-        isEmpty,
-      );
-    });
-
-    test('parseSpecialArrangementsFromUrl parseia CSV', () {
-      expect(
-        LouvorClassification.parseSpecialArrangementsFromUrl('Padrão,Especial'),
-        {'Padrão', 'Especial'},
-      );
-    });
-
-    test('serializeSpecialArrangementsForUrl omite quando vazio', () {
-      expect(
-        LouvorClassification.serializeSpecialArrangementsForUrl({}),
-        isNull,
-      );
-    });
-
-    test('serializeSpecialArrangementsForUrl junta CSV', () {
-      expect(
-        LouvorClassification.serializeSpecialArrangementsForUrl({'Especial'}),
-        'Especial',
       );
     });
   });

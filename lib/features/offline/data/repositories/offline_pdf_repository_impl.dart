@@ -1,17 +1,18 @@
-import 'dart:io';
 import 'dart:math' show min;
-import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/database/collections/offline_pdf_index.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../domain/entities/offline_pdf_batch_item.dart';
 import '../../domain/entities/offline_pdf_entry.dart';
 import '../../domain/repositories/offline_pdf_repository.dart';
-import '../../domain/utils/offline_category_resolver.dart';
+import '../../domain/ports/pdf_storage_port.dart';
 import '../datasources/offline_pdf_local_datasource.dart';
-import '../datasources/pdf_local_store.dart';
+import '../utils/pdf_integrity_validator.dart';
 
-/// Orquestra [PdfLocalStore] + [OfflinePdfLocalDatasource] (Fase 3.1).
+/// Orquestra [PdfStoragePort] + [OfflinePdfLocalDatasource] (Fase 3.1 / 4a).
 class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   OfflinePdfRepositoryImpl({required this._store, required this._local});
 
@@ -19,7 +20,7 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   static const _touchFlushThreshold = 20;
   static const _evictionBatchSize = 100;
 
-  final PdfLocalStore _store;
+  final PdfStoragePort _store;
   final OfflinePdfLocalDatasource _local;
   final Map<String, DateTime> _pendingTouchAt = {};
 
@@ -109,7 +110,17 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
       ..lastAccessedAt = now
       ..isPersistent = persistent;
 
-    await _local.put(index);
+    // O arquivo já está no disco: em modo degradado o leitor precisa poder
+    // abri-lo, mesmo sem entrada no índice (fix round 1 / spec C.1). Quem
+    // realmente depende do índice (download/remoção por tipo, reconcile) usa
+    // as outras operações, que continuam propagando a exceção.
+    try {
+      await _local.put(index);
+    } on StorageUnavailableException {
+      debugPrint(
+        '[offline] índice indisponível; PDF gravado sem índice: $pdfId',
+      );
+    }
 
     return OfflinePdfEntry(
       pdfId: pdfId,
@@ -133,34 +144,32 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   }
 
   @override
-  Future<void> remapPdfId({
-    required String fromPdfId,
-    required String toPdfId,
-  }) async {
-    if (fromPdfId == toPdfId) return;
+  Future<void> removeMany(Set<String> pdfIds) async {
+    if (pdfIds.isEmpty) return;
 
-    final fromIndex = await _local.findByPdfId(fromPdfId);
-    if (fromIndex == null) return;
-
-    final toIndex = await _local.findByPdfId(toPdfId);
-    if (toIndex != null) {
-      await _local.deleteByPdfId(fromPdfId);
-      _pendingTouchAt.remove(fromPdfId);
-      return;
+    final indexes = await _local.findByPdfIds(pdfIds);
+    for (final index in indexes) {
+      await _store.delete(index.storagePath);
     }
+    // Uma baixa só no índice (não uma por PDF, como `remove` em laço) — é
+    // isso que faz `onIndexChanged` disparar 1× em vez de N (ver doc da
+    // interface).
+    await _local.deleteByPdfIds(pdfIds);
+    for (final pdfId in pdfIds) {
+      _pendingTouchAt.remove(pdfId);
+    }
+  }
 
-    final remapped = OfflinePdfIndex()
-      ..pdfId = toPdfId
-      ..storagePath = fromIndex.storagePath
-      ..category = fromIndex.category
-      ..fileSize = fromIndex.fileSize
-      ..downloadedAt = fromIndex.downloadedAt
-      ..lastAccessedAt = fromIndex.lastAccessedAt
-      ..isPersistent = fromIndex.isPersistent;
-
-    await _local.put(remapped);
-    await _local.deleteByPdfId(fromPdfId);
-    _pendingTouchAt.remove(fromPdfId);
+  @override
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
+  }) async {
+    final changed = await _local.remapPdfIds(fromTo, remove: remove);
+    for (final pdfId in [...fromTo.keys, ...remove]) {
+      _pendingTouchAt.remove(pdfId);
+    }
+    return changed;
   }
 
   @override
@@ -176,27 +185,6 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   Future<List<OfflinePdfEntry>> listAll() async {
     final indexes = await _local.findAll();
     return indexes.map(_toEntry).toList();
-  }
-
-  @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) async {
-    if (items.isEmpty) return;
-
-    final now = DateTime.now();
-    final indexes = items
-        .map(
-          (item) => OfflinePdfIndex()
-            ..pdfId = item.pdfId
-            ..storagePath = item.absolutePath
-            ..category = OfflineCategoryResolver.fromPdfId(item.pdfId)
-            ..fileSize = item.fileSize
-            ..downloadedAt = now
-            ..lastAccessedAt = now
-            ..isPersistent = true,
-        )
-        .toList();
-
-    await _local.putAllByPdfId(indexes);
   }
 
   @override
@@ -231,6 +219,17 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   @override
   Future<void> clearAll() => _local.clearAll();
 
+  /// Soma [OfflinePdfIndex.fileSize] do índice Isar — quota LRU on-demand
+  /// (A6). Antes escaneava o store (OPFS na web; filesystem no nativo), até
+  /// 3× por download; agora é O(1) sobre o índice, sem tocar o storage.
+  /// `PdfStoragePort.getTotalOfflineBytes` continua sendo usado para
+  /// estatísticas exibidas (`get_offline_stats_by_category`) e reconcile,
+  /// onde o scan real do disco é o ponto.
+  ///
+  /// Com Isar indisponível, [OfflinePdfLocalDatasource.sumFileSizes] devolve
+  /// `0` silenciosamente — a quota calculada fica zerada e nada é desalojado
+  /// (direção segura: subestimar o uso nunca libera espaço além do
+  /// necessário, só menos do que deveria).
   @override
   Future<int> totalCachedBytes() => _local.sumFileSizes();
 
@@ -303,30 +302,20 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
     await _local.deleteByPdfId(index.pdfId);
   }
 
-  static Future<_IndexFileValidation> _validateIndexFile(
-    OfflinePdfIndex index,
-  ) async {
-    final stat = await FileStat.stat(index.storagePath);
-    if (stat.type != FileSystemEntityType.file) {
+  Future<_IndexFileValidation> _validateIndexFile(OfflinePdfIndex index) async {
+    if (!await _store.exists(index.storagePath)) {
       return _IndexFileValidation.missing;
     }
-    if (stat.size < 4) return _IndexFileValidation.corrupt;
-
-    final raf = await File(index.storagePath).open();
-    try {
-      final header = await raf.read(4);
-      final validHeader =
-          header.length == 4 &&
-          header[0] == 0x25 &&
-          header[1] == 0x50 &&
-          header[2] == 0x44 &&
-          header[3] == 0x46;
-      return validHeader
-          ? _IndexFileValidation.valid
-          : _IndexFileValidation.corrupt;
-    } finally {
-      await raf.close();
+    if (index.fileSize < 4) {
+      return _IndexFileValidation.corrupt;
     }
+    final header = await _store.readBytes(index.storagePath, maxBytes: 4);
+    if (header == null || header.length < 4) {
+      return _IndexFileValidation.missing;
+    }
+    return PdfIntegrityValidator.hasValidPdfMagicBytes(header)
+        ? _IndexFileValidation.valid
+        : _IndexFileValidation.corrupt;
   }
 
   static OfflinePdfEntry _toEntry(OfflinePdfIndex index) => OfflinePdfEntry(

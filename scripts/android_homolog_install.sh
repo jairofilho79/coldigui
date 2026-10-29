@@ -15,9 +15,34 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-PACKAGE_ID="com.example.coldigui"
+PACKAGE_ID="com.plpcg.app"
 DART_DEFINES_FILE="dart_defines/plpcg.json"
-APK_PATH="build/app/outputs/flutter-apk/app-profile.apk"
+PRIVATE_DEFINES_FILE="dart_defines/private.json"
+
+BUILD_MODE="profile"
+ALLOW_NO_DEVICE=false
+SKIP_INSTALL=false
+
+for arg in "$@"; do
+  case "$arg" in
+    --release) BUILD_MODE="release" ;;
+    --profile) BUILD_MODE="profile" ;;
+    --allow-no-device) ALLOW_NO_DEVICE=true ;;
+    --skip-install) SKIP_INSTALL=true ;;
+    -h|--help)
+      echo "Uso: $0 [--release|--profile] [--allow-no-device] [--skip-install]"
+      exit 0
+      ;;
+  esac
+done
+
+APK_PATH="build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk"
+
+DEFINE_ARGS=(--dart-define-from-file="$DART_DEFINES_FILE")
+if [[ -f "$PRIVATE_DEFINES_FILE" ]]; then
+  echo "==> dart_defines privados: $PRIVATE_DEFINES_FILE"
+  DEFINE_ARGS+=(--dart-define-from-file="$PRIVATE_DEFINES_FILE")
+fi
 
 ensure_android_toolchain() {
   # shellcheck source=/dev/null
@@ -45,30 +70,50 @@ install_on_device() {
 
 ensure_android_toolchain
 
-echo "==> Resolvendo dispositivo Android (deve aparecer em 'flutter devices')..."
-DEVICE_ID="$(resolve_android_device)"
-
-echo "==> Desinstalando versão anterior ($PACKAGE_ID)..."
-if adb -s "$DEVICE_ID" uninstall "$PACKAGE_ID" >/dev/null 2>&1; then
-  echo "    App desinstalado."
-else
-  echo "    App não estava instalado (ok)."
+DEVICE_ID=""
+if [[ "$SKIP_INSTALL" == false ]]; then
+  echo "==> Verificando dispositivo Android..."
+  if DEVICE_ID="$(resolve_android_device 2>/dev/null)"; then
+    echo "    Dispositivo conectado: $DEVICE_ID"
+    echo "==> Desinstalando versão anterior ($PACKAGE_ID)..."
+    if adb -s "$DEVICE_ID" uninstall "$PACKAGE_ID" >/dev/null 2>&1; then
+      echo "    App desinstalado."
+    else
+      echo "    App não estava instalado (ok)."
+    fi
+  else
+    if [[ "$ALLOW_NO_DEVICE" == true ]]; then
+      echo "    Nenhum dispositivo Android físico detectado (continuando pois --allow-no-device foi informado)."
+    else
+      # Falha com mensagem detalhada de diagnóstico
+      DEVICE_ID="$(resolve_android_device)"
+    fi
+  fi
 fi
 
 echo "==> Dependências Flutter..."
 "$ROOT_DIR/scripts/setup_deps.sh"
 
-echo "==> Build Android (profile — standalone, homologação)..."
-flutter build apk --profile --dart-define-from-file="$DART_DEFINES_FILE"
+echo "==> Build Android ($BUILD_MODE — standalone, homologação)..."
+flutter build apk "--$BUILD_MODE" "${DEFINE_ARGS[@]}"
 
 if [[ ! -f "$APK_PATH" ]]; then
   echo "Erro: $APK_PATH não encontrado após flutter build." >&2
   exit 1
 fi
 
-echo "==> Instalando no dispositivo..."
-install_on_device "$DEVICE_ID"
+if [[ -n "$DEVICE_ID" && "$SKIP_INSTALL" == false ]]; then
+  echo "==> Instalando no dispositivo ($DEVICE_ID)..."
+  install_on_device "$DEVICE_ID"
+  echo ""
+  echo "Pronto. Abra o app pelo ícone no tablet/telefone."
+else
+  echo ""
+  echo "APK pronto em: $APK_PATH"
+  if [[ "$SKIP_INSTALL" == false && -z "$DEVICE_ID" ]]; then
+    echo "(Nenhum dispositivo conectado para instalação automática via adb)"
+  fi
+fi
 
-echo ""
-echo "Pronto. Abra o app pelo ícone no tablet."
 echo "API: https://plpcg.com (dart_defines/plpcg.json)."
+

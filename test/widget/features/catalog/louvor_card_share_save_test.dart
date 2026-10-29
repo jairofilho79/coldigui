@@ -1,10 +1,15 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../../../support/fakes/fake_playlists_notifier.dart';
+
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_card.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
@@ -14,10 +19,8 @@ import 'package:coldigui/features/offline/domain/repositories/offline_pdf_reposi
 import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.dart';
 import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/louvor_card.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
@@ -96,6 +99,7 @@ class _FakeBytesDatasource extends PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) async => _bytes;
 }
 
@@ -144,9 +148,12 @@ class _UnusedRepository implements OfflinePdfRepository {
   Future<void> remove(String pdfId) => throw UnimplementedError();
 
   @override
-  Future<void> remapPdfId({
-    required String fromPdfId,
-    required String toPdfId,
+  Future<void> removeMany(Set<String> pdfIds) => throw UnimplementedError();
+
+  @override
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
   }) => throw UnimplementedError();
 
   @override
@@ -159,10 +166,6 @@ class _UnusedRepository implements OfflinePdfRepository {
     required String category,
     bool isPersistent = false,
   }) => throw UnimplementedError();
-
-  @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) =>
-      throw UnimplementedError();
 
   @override
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items) =>
@@ -197,52 +200,34 @@ class _UnusedFetchAndStorePdf extends FetchAndStorePdf {
       );
 }
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<String> ensurePlaylistForLouvor(String pdfId) async => 'fake-playlist';
-
-  @override
-  Future<bool> activePlaylistNeedsChoiceForLouvor(String pdfId) async => false;
-
-  @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
-}
-
-class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
+/// O `+` do sheet de materiais entra pelo editor da lista ativa (B.3).
+class _RecordingActiveEditor extends ActivePlaylistEditor {
   String? lastAddedPdfId;
 
   @override
-  List<PlaylistViewItem> build() => const [];
+  List<PlaylistEntry>? build() => null;
 
   @override
-  Future<String> ensurePlaylistForLouvor(String pdfId) async => 'fake-playlist';
-
-  @override
-  Future<bool> activePlaylistNeedsChoiceForLouvor(String pdfId) async => false;
-
-  @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async {
-    lastAddedPdfId = pdfId;
-    return true;
+  Future<AddToActiveOutcome> addToActive(
+    String materialId, {
+    MaterialKind? kind,
+    bool allowDuplicate = false,
+  }) async {
+    lastAddedPdfId = materialId;
+    return AddToActiveOutcome.added;
   }
 }
 
 List<Override> _commonOverrides({
   PlaylistsNotifier Function()? playlistsNotifier,
+  ActivePlaylistEditor Function()? editor,
 }) {
   return [
+    isarAvailableProvider.overrideWithValue(true),
     resolvePdfForReaderProvider.overrideWithValue(_FakeResolvePdfForReader()),
-    carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+    if (editor != null) activePlaylistEditorProvider.overrideWith(editor),
     playlistsProvider.overrideWith(
-      playlistsNotifier ?? _FakePlaylistsNotifier.new,
+      playlistsNotifier ?? FakePlaylistsNotifier.new,
     ),
   ];
 }
@@ -322,7 +307,9 @@ void main() {
     expect(find.byIcon(Icons.more_vert), findsNothing);
   });
 
-  testWidgets('LouvorGroupCard com vários materiais não exibe + no card', (
+  // C5: "+" sempre visível — mesmo com vários materiais, o card oferece o
+  // material preferido (o PDF principal, aqui a Partitura) direto.
+  testWidgets('LouvorGroupCard com vários materiais mostra + no card (C5)', (
     tester,
   ) async {
     final prefs = await SharedPreferences.getInstance();
@@ -343,21 +330,21 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.add), findsNothing);
+    expect(find.byIcon(Icons.add), findsOneWidget);
   });
 
   testWidgets('LouvorGroupCard com vários materiais adiciona pelo sheet', (
     tester,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    final playlists = _RecordingPlaylistsNotifier();
+    final editor = _RecordingActiveEditor();
     final cifraPdfId = _pdfIdForPath('assets/ColAdultos/001-cifra.pdf');
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          ..._commonOverrides(playlistsNotifier: () => playlists),
+          ..._commonOverrides(editor: () => editor),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -373,12 +360,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.share_outlined), findsNothing);
-    expect(find.byIcon(Icons.add), findsNWidgets(2));
+    // 3: o "+" sempre visível do card (C5) segue montado sob o sheet, mais
+    // os dois "+" das entradas de PDF do sheet.
+    expect(find.byIcon(Icons.add), findsNWidgets(3));
 
     await tester.tap(find.byIcon(Icons.add).last);
     await tester.pumpAndSettle();
 
-    expect(playlists.lastAddedPdfId, cifraPdfId);
+    expect(editor.lastAddedPdfId, cifraPdfId);
     expect(find.text('Adicionado à seleção'), findsOneWidget);
   });
 }

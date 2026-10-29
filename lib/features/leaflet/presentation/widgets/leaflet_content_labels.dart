@@ -12,6 +12,7 @@ class LeafletContentLabels {
     required this.columnName,
     required this.footerPeace,
     required this.footerGreeting,
+    required this.shareQrCaption,
   });
 
   /// Data formatada — ex.: `QUINTA-FEIRA 11/06/2026` ([formatLeafletHeaderDate]).
@@ -29,6 +30,9 @@ class LeafletContentLabels {
   /// Saudação do rodapé ([leafletFooterGreeting]).
   final String footerGreeting;
 
+  /// Legenda do QR do link curto no rodapé ([leafletShareQrCaption]).
+  final String shareQrCaption;
+
   /// Monta labels a partir de [AppLocalizations] e [generatedAt].
   factory LeafletContentLabels.fromL10n(
     AppLocalizations l10n,
@@ -40,6 +44,7 @@ class LeafletContentLabels {
       columnName: l10n.leafletColumnName,
       footerPeace: l10n.leafletFooterPeace,
       footerGreeting: l10n.leafletFooterGreeting,
+      shareQrCaption: l10n.leafletShareQrCaption,
     );
   }
 }

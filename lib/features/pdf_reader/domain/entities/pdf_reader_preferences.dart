@@ -27,6 +27,10 @@ enum PdfFitMode {
 /// Preferências de visualização do leitor — fit mode persistido (UC-11 Fase 2.3).
 ///
 /// Navegação usa scroll vertical contínuo fixo em [PdfReaderPdfView]; sem toggle horizontal.
+///
+/// Duas páginas lado a lado em viewport largo é automático (sem preferência
+/// do usuário, onda 4.1) — ver `pdfReaderEffectiveSpreadEnabledProvider` e
+/// `spreadPageLayout`.
 class PdfReaderViewSettings {
   const PdfReaderViewSettings({required this.fitMode});
 

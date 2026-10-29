@@ -1,6 +1,8 @@
-/// Playlist sem PDFs — não pode gerar URL de compartilhamento (UC-07).
+/// Playlist sem nada para o link — não pode gerar URL de compartilhamento
+/// (UC-07).
 ///
-/// Lançada por [GeneratePlaylistShareUrl] quando `pdfIds.isEmpty`.
+/// Lançada por [GeneratePlaylistShareUrl] quando a lista não tem entradas ou
+/// só tem ids legados fora do Coldigom.
 class EmptyPlaylistShareException implements Exception {
   const EmptyPlaylistShareException();
 

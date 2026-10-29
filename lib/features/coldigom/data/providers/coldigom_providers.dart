@@ -1,0 +1,206 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../audio_player/domain/entities/audio_track.dart';
+import '../../../catalog/domain/entities/catalog_material.dart';
+import '../../../catalog/domain/entities/louvor.dart';
+import '../../../catalog/domain/entities/youtube_material.dart';
+import '../../../chords/domain/entities/chord_material.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
+import '../../domain/entities/coldigom_praise_metadata.dart';
+import '../coldigom_cache_writer.dart';
+
+// Rede (datasource + repositório) mora em `coldigom_remote_providers.dart`;
+// quem está em `data/` continua importando só este arquivo.
+export 'coldigom_remote_providers.dart';
+
+/// Cache em memória de louvores coldigom indexados por `pdfId`.
+class ColdigomLouvoresCacheNotifier extends Notifier<Map<String, Louvor>> {
+  @override
+  Map<String, Louvor> build() => const {};
+
+  void mergeLouvores(Iterable<Louvor> louvores) {
+    if (louvores.isEmpty) return;
+    final next = Map<String, Louvor>.from(state);
+    for (final louvor in louvores) {
+      next[louvor.pdfId] = louvor;
+    }
+    state = next;
+  }
+
+  Louvor? findByPdfId(String pdfId) => state[pdfId];
+}
+
+final coldigomLouvoresCacheProvider =
+    NotifierProvider<ColdigomLouvoresCacheNotifier, Map<String, Louvor>>(
+      ColdigomLouvoresCacheNotifier.new,
+    );
+
+/// Cache em memória de faixas coldigom indexadas por `audioId`.
+class ColdigomAudioTracksCacheNotifier
+    extends Notifier<Map<String, AudioTrack>> {
+  @override
+  Map<String, AudioTrack> build() => const {};
+
+  void mergeTracks(Iterable<AudioTrack> tracks) {
+    if (tracks.isEmpty) return;
+    final next = Map<String, AudioTrack>.from(state);
+    for (final track in tracks) {
+      next[track.audioId] = track;
+    }
+    state = next;
+  }
+
+  AudioTrack? findByAudioId(String audioId) => state[audioId];
+}
+
+final coldigomAudioTracksCacheProvider =
+    NotifierProvider<ColdigomAudioTracksCacheNotifier, Map<String, AudioTrack>>(
+      ColdigomAudioTracksCacheNotifier.new,
+    );
+
+/// Cache em memória de cifras coldigom indexadas por `chordId`.
+class ColdigomChordMaterialsCacheNotifier
+    extends Notifier<Map<String, ChordMaterial>> {
+  @override
+  Map<String, ChordMaterial> build() => const {};
+
+  void mergeChords(Iterable<ChordMaterial> chords) {
+    if (chords.isEmpty) return;
+    final next = Map<String, ChordMaterial>.from(state);
+    for (final chord in chords) {
+      next[chord.chordId] = chord;
+    }
+    state = next;
+  }
+
+  ChordMaterial? findByChordId(String chordId) => state[chordId];
+}
+
+final coldigomChordMaterialsCacheProvider =
+    NotifierProvider<
+      ColdigomChordMaterialsCacheNotifier,
+      Map<String, ChordMaterial>
+    >(ColdigomChordMaterialsCacheNotifier.new);
+
+/// Cache em memória de documentos de gestos coldigom indexados por `gestureId`.
+class ColdigomGestureMaterialsCacheNotifier
+    extends Notifier<Map<String, GestureMaterial>> {
+  @override
+  Map<String, GestureMaterial> build() => const {};
+
+  void mergeGestures(Iterable<GestureMaterial> gestures) {
+    if (gestures.isEmpty) return;
+    final next = Map<String, GestureMaterial>.from(state);
+    for (final gesture in gestures) {
+      next[gesture.gestureId] = gesture;
+    }
+    state = next;
+  }
+
+  GestureMaterial? findByGestureId(String gestureId) => state[gestureId];
+}
+
+final coldigomGestureMaterialsCacheProvider =
+    NotifierProvider<
+      ColdigomGestureMaterialsCacheNotifier,
+      Map<String, GestureMaterial>
+    >(ColdigomGestureMaterialsCacheNotifier.new);
+
+/// Cache de metadados Coldigom indexados por praise/`groupId`.
+class ColdigomPraiseMetaCacheNotifier
+    extends Notifier<Map<String, ColdigomPraiseMetadata>> {
+  @override
+  Map<String, ColdigomPraiseMetadata> build() => const {};
+
+  void mergeMeta(Map<String, ColdigomPraiseMetadata> byGroupId) {
+    if (byGroupId.isEmpty) return;
+    state = {...state, ...byGroupId};
+  }
+
+  void put(String groupId, ColdigomPraiseMetadata meta) {
+    if (groupId.isEmpty) return;
+    state = {...state, groupId: meta};
+  }
+
+  ColdigomPraiseMetadata? findByGroupId(String groupId) => state[groupId];
+}
+
+final coldigomPraiseMetaCacheProvider =
+    NotifierProvider<
+      ColdigomPraiseMetaCacheNotifier,
+      Map<String, ColdigomPraiseMetadata>
+    >(ColdigomPraiseMetaCacheNotifier.new);
+
+/// Cache de links de YouTube indexados por praise/`groupId` (sobra 6a).
+///
+/// É o único cache Coldigom por **lista**: um praise pode ter vários vídeos, e
+/// YouTube não tem id endereçável no espaço de ids do app.
+class ColdigomYoutubeCacheNotifier
+    extends Notifier<Map<String, List<YoutubeMaterial>>> {
+  @override
+  Map<String, List<YoutubeMaterial>> build() => const {};
+
+  /// Funde por `groupId`, sem repetir o mesmo vídeo (dedupe por `id`).
+  void mergeYoutube(Iterable<YoutubeMaterial> materials) {
+    final incoming = <String, List<YoutubeMaterial>>{};
+    for (final material in materials) {
+      final groupId = material.groupId.trim();
+      if (groupId.isEmpty) continue;
+      incoming.putIfAbsent(groupId, () => []).add(material);
+    }
+    if (incoming.isEmpty) return;
+
+    final next = Map<String, List<YoutubeMaterial>>.from(state);
+    for (final entry in incoming.entries) {
+      final merged = [...?next[entry.key]];
+      final seen = merged.map((m) => m.id).toSet();
+      for (final material in entry.value) {
+        if (seen.add(material.id)) merged.add(material);
+      }
+      next[entry.key] = List<YoutubeMaterial>.unmodifiable(merged);
+    }
+    state = next;
+  }
+
+  List<YoutubeMaterial> findByGroupId(String groupId) =>
+      state[groupId] ?? const [];
+}
+
+final coldigomYoutubeCacheProvider =
+    NotifierProvider<
+      ColdigomYoutubeCacheNotifier,
+      Map<String, List<YoutubeMaterial>>
+    >(ColdigomYoutubeCacheNotifier.new);
+
+/// Cache de letras Coldigom indexadas por praise/`groupId` (O6).
+///
+/// Uma letra por praise — chave pelo `groupId`, como os metadados.
+class ColdigomLyricsCacheNotifier
+    extends Notifier<Map<String, LyricsMaterial>> {
+  @override
+  Map<String, LyricsMaterial> build() => const {};
+
+  void mergeLyrics(Iterable<LyricsMaterial> lyrics) {
+    if (lyrics.isEmpty) return;
+    final next = Map<String, LyricsMaterial>.from(state);
+    for (final item in lyrics) {
+      next[item.groupId] = item;
+    }
+    state = next;
+  }
+
+  LyricsMaterial? findByGroupId(String groupId) => state[groupId];
+}
+
+final coldigomLyricsCacheProvider =
+    NotifierProvider<ColdigomLyricsCacheNotifier, Map<String, LyricsMaterial>>(
+      ColdigomLyricsCacheNotifier.new,
+    );
+
+/// Ponto único de escrita nos caches acima — ver [ColdigomCacheWriter].
+///
+/// Não observa nada: a instância vive enquanto o container viver, e não
+/// invalida quem a lê a cada merge.
+final coldigomCacheWriterProvider = Provider<ColdigomCacheWriter>((ref) {
+  return ColdigomCacheWriter(ref);
+});

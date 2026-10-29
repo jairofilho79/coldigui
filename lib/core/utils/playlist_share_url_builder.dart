@@ -1,127 +1,218 @@
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/utils/safe_query_parameters.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 
-/// Params extraídos de URL de compartilhamento de playlist (UC-07, Fase 4.4).
+import '../../features/coldigom/domain/utils/praise_short_id.dart';
+
+/// `shortId` de praise válido (spec fim-fonte-plpcg §4.1): **string** hex
+/// minúscula de 3 a 8 caracteres. Nunca é número — `"000"` é um id.
 ///
-/// Valores brutos dos query params [UrlSyncParams.sharePdfs] e
-/// [UrlSyncParams.shareName] — use [parsePdfIdsFromSharePdfs] para obter IDs.
-class PlaylistShareParams {
-  const PlaylistShareParams({
-    required this.sharePdfs,
-    required this.shareName,
-  });
+/// Delega em `normalizePraiseShortId` (plano 1, `praise_short_id.dart`) — uma
+/// fonte só para o padrão `[0-9a-f]{3,8}`.
+bool isPraiseShortId(Object? value) =>
+    value is String && normalizePraiseShortId(value) == value;
 
-  /// CSV de [pdfId] conforme query `sharepdfs`.
-  final String sharePdfs;
+/// Lê o param `p`: `trim`, maiúsculas viram minúsculas, token fora do padrão
+/// é ignorado; ordem e repetições ficam (a lista pode repetir um louvor).
+List<String> decodePraiseShareIds(String raw) => [
+  for (final part in raw.split('-')) ?normalizePraiseShortId(part),
+];
 
-  /// Nome exibido da playlist conforme query `sharename`.
-  final String shareName;
-}
-
-/// Monta path relativo `/?sharepdfs=...&sharename=...` (§2.5 MAPEAMENTO).
+/// Monta `/?p=…&n=…` (spec fim-fonte-plpcg §4.1).
 ///
-/// Lança [ArgumentError] se [pdfIds] ou [shareName] forem inválidos.
-String buildPlaylistShareLocation({
-  required List<String> pdfIds,
+/// Lança [ArgumentError] com [praiseShortIds] vazio, com um token que não é
+/// [isPraiseShortId] (quem gera valida antes — aqui seria bug) ou com
+/// [shareName] em branco.
+String buildPraiseShareLocation({
+  required List<String> praiseShortIds,
   required String shareName,
 }) {
-  if (pdfIds.isEmpty) {
-    throw ArgumentError.value(pdfIds, 'pdfIds', 'must not be empty');
+  if (praiseShortIds.isEmpty) {
+    throw ArgumentError.value(
+      praiseShortIds,
+      'praiseShortIds',
+      'must not be empty',
+    );
+  }
+  final invalid = [
+    for (final id in praiseShortIds)
+      if (!isPraiseShortId(id)) id,
+  ];
+  if (invalid.isNotEmpty) {
+    throw ArgumentError.value(invalid, 'praiseShortIds', 'invalid shortId');
   }
   if (shareName.trim().isEmpty) {
     throw ArgumentError.value(shareName, 'shareName', 'must not be empty');
   }
-
-  final params = {
-    UrlSyncParams.sharePdfs: pdfIds.join(','),
-    UrlSyncParams.shareName: shareName,
-  };
-
-  final query = params.entries
-      .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-      .join('&');
-  return '${RoutePaths.home}?$query';
+  return '${RoutePaths.home}'
+      '?${UrlSyncParams.praiseItems}=${praiseShortIds.join('-')}'
+      '&${UrlSyncParams.shortName}=${Uri.encodeComponent(shareName)}';
 }
 
-/// Monta URL absoluta para compartilhamento ([origin] + [buildPlaylistShareLocation]).
-///
-/// [origin] tipicamente [AppConfig.apiBaseUrl] (`https://plpcg.com`).
-String buildPlaylistShareUrl({
+/// URL absoluta do link por praise ([origin] + [buildPraiseShareLocation]).
+String buildPraiseShareUrl({
   required String origin,
-  required List<String> pdfIds,
+  required List<String> praiseShortIds,
   required String shareName,
 }) {
-  final normalizedOrigin =
-      origin.endsWith('/') ? origin.substring(0, origin.length - 1) : origin;
-  final location = buildPlaylistShareLocation(
-    pdfIds: pdfIds,
-    shareName: shareName,
-  );
-  return '$normalizedOrigin$location';
+  final normalizedOrigin = origin.endsWith('/')
+      ? origin.substring(0, origin.length - 1)
+      : origin;
+  return '$normalizedOrigin'
+      '${buildPraiseShareLocation(praiseShortIds: praiseShortIds, shareName: shareName)}';
 }
 
-/// Remove params de share de playlist de [uri] (UC-07 / UC-14, Fase 4.5).
-///
-/// Usado após import via deep link para evitar re-import na navegação.
+/// Params dos links de lista **anteriores** ao link por praise (spec
+/// fim-fonte-plpcg §4.4): o curto por material (`?s=`) e o longo
+/// (`shareitems`/`sharepdfs`/`shareaudios`/`sharename`). Só são reconhecidos
+/// para avisar e limpar a URL — nenhum deles abre mais.
+const Set<String> legacyPlaylistShareParams = {
+  UrlSyncParams.shortItems,
+  UrlSyncParams.shareItems,
+  UrlSyncParams.sharePdfs,
+  UrlSyncParams.shareAudios,
+  UrlSyncParams.shareName,
+};
+
+/// Params antigos que, sozinhos, marcam um link antigo. `s` só conta junto
+/// com `n` (como no parser antigo) e `sharename` nunca conta sozinho — um
+/// `?s=20` avulso não é link de lista.
+const Set<String> _standaloneLegacyParams = {
+  UrlSyncParams.shareItems,
+  UrlSyncParams.sharePdfs,
+  UrlSyncParams.shareAudios,
+};
+
+bool _isLegacyShareQuery(Map<String, String> query) =>
+    query.keys.any(_standaloneLegacyParams.contains) ||
+    (query.containsKey(UrlSyncParams.shortItems) &&
+        query.containsKey(UrlSyncParams.shortName));
+
+/// Link curto antigo `/l/<código>` (§4.4) — também só avisa.
+bool _isLegacyShortLinkPath(Uri uri) => uri.path.startsWith('/l/');
+
+/// Params de um link de lista (UC-07).
+class PlaylistShareParams {
+  /// Link por praise (`?p=…&n=…`). [praiseShortIds] já validados e minúsculos.
+  const PlaylistShareParams({
+    required this.shareName,
+    required this.praiseShortIds,
+  }) : isLegacy = false;
+
+  /// Link de uma versão antiga (§4.4) — não importa nada.
+  const PlaylistShareParams.legacy()
+    : shareName = '',
+      praiseShortIds = const [],
+      isLegacy = true;
+
+  /// Nome da lista (`n`).
+  final String shareName;
+
+  /// Tokens do `p`, na ordem, com repetições.
+  final List<String> praiseShortIds;
+
+  /// `true` quando a URL só tem params de link antigo.
+  final bool isLegacy;
+
+  /// Há o que importar. Um `p` sem token válido é link **inválido** (aviso),
+  /// não «não é link».
+  bool get hasMaterial => praiseShortIds.isNotEmpty;
+}
+
+/// Remove de [uri] os params de link de lista — `p`, `n` e os antigos.
 Uri stripPlaylistShareParams(Uri uri) {
-  final query = Map<String, String>.from(uri.queryParameters)
-    ..remove(UrlSyncParams.sharePdfs)
-    ..remove(UrlSyncParams.shareName);
+  final query = Map<String, String>.from(safeQueryParameters(uri))
+    ..remove(UrlSyncParams.praiseItems)
+    ..remove(UrlSyncParams.shortName)
+    ..removeWhere((key, _) => legacyPlaylistShareParams.contains(key));
   if (query.isEmpty) {
     return uri.replace(queryParameters: const {});
   }
   return uri.replace(queryParameters: query);
 }
 
-/// Extrai params de share de [uri] quando ambos presentes.
-PlaylistShareParams? parsePlaylistShareParams(Uri uri) {
-  final sharePdfs = uri.queryParameters[UrlSyncParams.sharePdfs];
-  final shareName = uri.queryParameters[UrlSyncParams.shareName];
-  if (sharePdfs == null ||
-      sharePdfs.isEmpty ||
-      shareName == null ||
-      shareName.isEmpty) {
-    return null;
-  }
-  return PlaylistShareParams(sharePdfs: sharePdfs, shareName: shareName);
-}
-
-/// Parse CSV de [sharePdfs] — preserva ordem, dedupe (primeira ocorrência).
-List<String> parsePdfIdsFromSharePdfs(String sharePdfs) {
-  final seen = <String>{};
-  final result = <String>[];
-  for (final part in sharePdfs.split(',')) {
-    final id = part.trim();
-    if (id.isEmpty || seen.contains(id)) continue;
-    seen.add(id);
-    result.add(id);
-  }
-  return result;
-}
-
-/// Aceita URL completa, query string ou fragmento colado pelo usuário (UC-07 UI).
+/// Lê um link de lista em [uri].
 ///
-/// Retorna `null` se não encontrar ambos `sharepdfs` e `sharename`.
+/// - `p` presente → link por praise, mesmo sem token válido ou sem `n` (aí é
+///   inválido e o import avisa — D.6 de 2026-09-13).
+/// - sem `p`, com path `/l/<código>`, `s` + `n` ou `shareitems`/`sharepdfs`/
+///   `shareaudios` → [PlaylistShareParams.legacy].
+/// - senão `null`: não é link de lista (todo link comum do app passa aqui;
+///   `n`, `s` ou `sharename` sozinhos também não são).
+///
+/// Lê a query por [safeQueryParameters] — `%` malformado não lança.
+PlaylistShareParams? parsePlaylistShareParams(Uri uri) {
+  final query = safeQueryParameters(uri);
+  final praiseRaw = query[UrlSyncParams.praiseItems];
+  if (praiseRaw != null) {
+    return PlaylistShareParams(
+      shareName: query[UrlSyncParams.shortName] ?? '',
+      praiseShortIds: decodePraiseShareIds(praiseRaw),
+    );
+  }
+  if (_isLegacyShortLinkPath(uri) || _isLegacyShareQuery(query)) {
+    return const PlaylistShareParams.legacy();
+  }
+  return null;
+}
+
+/// Primeiro link (`http(s)://…` ou `plpcg:…`) dentro de um texto colado.
+final RegExp _linkInText = RegExp(
+  r'(?:https?://|plpcg:)\S+',
+  caseSensitive: false,
+);
+
+/// Aceita URL completa, query crua ou texto colado com o link no meio
+/// («Importar lista», UC-07).
+///
+/// Lê primeiro o primeiro link (`http(s)://…` ou `plpcg:…`) achado no texto —
+/// a legenda do folheto é «{nome}\n\n{url}» e o nome pode ter `?`. Depois,
+/// como recurso, as leituras do texto inteiro (URL, query crua, trecho depois
+/// do primeiro `?`); a primeira com material vence. Sem material em nenhuma,
+/// devolve o melhor recurso — link antigo antes de um `p` sem token válido,
+/// porque a mensagem de link antigo diz mais ao usuário — ou `null` se nada
+/// parece link de lista.
 PlaylistShareParams? extractShareParamsFromUserInput(String raw) {
   final trimmed = raw.trim();
   if (trimmed.isEmpty) return null;
 
+  PlaylistShareParams? fallback;
+  PlaylistShareParams? consider(PlaylistShareParams? params) {
+    if (params == null) return null;
+    if (params.hasMaterial) return params;
+    final current = fallback;
+    if (current == null || (params.isLegacy && !current.isLegacy)) {
+      fallback = params;
+    }
+    return null;
+  }
+
+  final link = _linkInText.firstMatch(trimmed)?.group(0);
+  final linkUri = link == null ? null : Uri.tryParse(link);
+  if (linkUri != null) {
+    final fromLink = consider(parsePlaylistShareParams(linkUri));
+    if (fromLink != null) return fromLink;
+  }
+
   final uri = Uri.tryParse(trimmed);
   if (uri != null && uri.hasQuery) {
-    final fromUri = parsePlaylistShareParams(uri);
+    final fromUri = consider(parsePlaylistShareParams(uri));
     if (fromUri != null) return fromUri;
   }
 
   final queryOnly = trimmed.startsWith('?') ? trimmed.substring(1) : trimmed;
-  final fromQuery = parsePlaylistShareParams(Uri(query: queryOnly));
+  final fromQuery = consider(parsePlaylistShareParams(Uri(query: queryOnly)));
   if (fromQuery != null) return fromQuery;
 
-  if (trimmed.contains('sharepdfs=') && trimmed.contains('sharename=')) {
-    final questionIndex = trimmed.indexOf('?');
-    final queryPart =
-        questionIndex >= 0 ? trimmed.substring(questionIndex + 1) : trimmed;
-    return parsePlaylistShareParams(Uri(query: queryPart));
+  final questionIndex = trimmed.indexOf('?');
+  if (questionIndex >= 0) {
+    final fromFragment = consider(
+      parsePlaylistShareParams(
+        Uri(query: trimmed.substring(questionIndex + 1)),
+      ),
+    );
+    if (fromFragment != null) return fromFragment;
   }
 
-  return null;
+  return fallback;
 }

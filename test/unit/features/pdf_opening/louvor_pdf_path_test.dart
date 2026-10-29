@@ -25,30 +25,30 @@ Louvor _louvorWithPdfId(String relPath) {
 }
 
 void main() {
-  test('LouvorPdfPath.fromLouvor retorna path com prefixo /assets/', () {
-    const relPath = 'assets/ColAdultos/001.pdf';
+  test('deriva /assets/praises/… do pdfId coldigom', () {
+    const relPath = 'assets/praises/p1/m1.pdf';
     final louvor = _louvorWithPdfId(relPath);
 
     expect(LouvorPdfPath.fromLouvor(louvor), '/$relPath');
-    expect(
-      PdfPathNormalizer.getPdfRelPath(louvor.pdfId),
-      relPath,
+    expect(PdfPathNormalizer.getPdfRelPath(louvor.pdfId), relPath);
+  });
+
+  test('preserva acentos e espaços do path', () {
+    const relPath = 'assets/praises/p1/Cifra nível I.pdf';
+
+    expect(LouvorPdfPath.fromLouvor(_louvorWithPdfId(relPath)), '/$relPath');
+  });
+
+  test('ignora o campo pdf (só nome do ficheiro no adapter)', () {
+    final louvor = Louvor.fromManifest(
+      nome: 'Teste',
+      numero: '001',
+      categoria: 'Partitura',
+      classificacao: 'Coro',
+      pdf: 'https://outro.test/qualquer.pdf',
+      pdfId: _encodePdfId('assets/praises/p1/m1.pdf'),
     );
-  });
 
-  test('LouvorPdfPath preserva acentos do pdfId', () {
-    const relPath = 'assets/ColAdultos/Cifra nível I/001.pdf';
-    final louvor = _louvorWithPdfId(relPath);
-
-    expect(LouvorPdfPath.fromLouvor(louvor), '/$relPath');
-  });
-
-  test(
-      'LouvorPdfPath adiciona assets/ quando pdfId omite prefixo (manifest produção)',
-      () {
-    const relPath = 'ColAdultos/001.pdf';
-    final louvor = _louvorWithPdfId(relPath);
-
-    expect(LouvorPdfPath.fromLouvor(louvor), '/assets/ColAdultos/001.pdf');
+    expect(LouvorPdfPath.fromLouvor(louvor), '/assets/praises/p1/m1.pdf');
   });
 }

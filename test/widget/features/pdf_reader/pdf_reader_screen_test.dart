@@ -1,41 +1,143 @@
+import 'dart:convert';
+
+import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
+import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
+import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
+import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_read_failed_exception.dart';
 import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';
+import 'package:coldigui/features/pdf_reader/data/providers/pdf_reader_viewer_providers.dart';
+import 'package:coldigui/features/pdf_reader/domain/entities/pdf_reader_preferences.dart';
+import 'package:coldigui/features/pdf_reader/domain/ports/pdf_reader_controller_port.dart';
+import 'package:coldigui/features/pdf_reader/domain/usecases/set_zoom_and_fit_mode.dart';
 import 'package:coldigui/features/pdf_reader/presentation/pages/pdf_reader_screen.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdfrx/pdfrx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../unit/features/pdf_reader/pdf_reader_test_helpers.dart';
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
+/// Sessão de áudio de mentira — só o que a barra do leitor precisa
+/// (`currentTrack`) para decidir se o overlay do mini-player aparece
+/// (Important 3, onda 4).
+class _FakeAudioSession extends AudioPlayerSessionNotifier {
+  _FakeAudioSession(this._state);
+
+  final AudioPlayerSessionState _state;
+
   @override
-  List<CarouselItem> build() => const [];
+  AudioPlayerSessionState build() => _state;
 }
 
-class _FakeCarouselNotifierWithItems extends CarouselLouvoresNotifier {
+const _playingTrack = AudioTrack(
+  audioId: 'aud-1',
+  r2Key: 'assets/praises/p1/a.mp3',
+  nome: 'Louvor',
+  numero: '12',
+  groupId: 'p1',
+  categoria: 'Áudio',
+  classificacao: 'Coro',
+);
+
+/// Resolver de teste (fix round 1) — sempre falha com o erro dado, sem tocar
+/// rede/Isar; usado para exercitar os catches de `_redownloadCorruptedPdf`.
+class _ThrowingResolvePdfForReader extends Fake implements ResolvePdfForReader {
+  _ThrowingResolvePdfForReader(this._error);
+
+  final Object _error;
+
   @override
-  List<CarouselItem> build() => const [
-    CarouselItem(
-      pdfId: 'x',
-      sortOrder: 0,
-      numero: '1',
-      nome: 'Louvor',
-      categoria: 'c',
-      classificacao: 'Col',
-    ),
-  ];
+  Future<LocalPdfSource> call({
+    required String pdfId,
+    required String remotePath,
+    ProgressCallback? onProgress,
+  }) async {
+    throw _error;
+  }
 }
+
+/// Handle de teste para C8 (última página) / Important 2 (onda 4):
+/// [isViewerReady] segue [loadingState] de verdade (não fixo em `true`) —
+/// começa `loading` e só fica pronto quando o teste dispara a notificação
+/// (`loadingState.value = success`), simulando o `onViewerReady` real do
+/// pdfrx chegar DEPOIS do primeiro frame. [animateToPage] é gravado em vez de
+/// delegar ao controller de verdade (o teste não monta um `PdfViewer` real
+/// anexado).
+class _RestoreTrackingHandle extends TrackablePdfReaderViewerHandle {
+  _RestoreTrackingHandle({
+    required super.document,
+    required super.documentRef,
+    required super.viewerController,
+  });
+
+  final List<int> animateToPageCalls = [];
+
+  @override
+  bool get isViewerReady => loadingState.value == PdfReaderLoadingState.success;
+
+  @override
+  Future<void> animateToPage({
+    required int pageNumber,
+    Duration duration = const Duration(milliseconds: 500),
+    Curve curve = Curves.easeInOut,
+  }) async {
+    animateToPageCalls.add(pageNumber);
+  }
+}
+
+/// Porta de fit que só conta chamadas (auditoria P3): o teste mede quantas
+/// vezes o leitor pede `applyFitMode` — deve ser uma na abertura e nenhuma
+/// por virada de página.
+class _CountingFitPort extends Fake implements PdfReaderControllerPort {
+  final List<PdfFitMode> applyFitModeCalls = [];
+
+  @override
+  Future<void> applyFitMode(PdfFitMode mode) async {
+    applyFitModeCalls.add(mode);
+  }
+}
+
+_RestoreTrackingHandle _createRestoreTrackingHandle({int pageCount = 5}) {
+  final document = FakePdfDocument(pageCount: pageCount);
+  return _RestoreTrackingHandle(
+    document: document,
+    documentRef: PdfDocumentRefDirect(document, autoDispose: false),
+    viewerController: PdfViewerController(),
+  );
+}
+
+const _carouselItems = <CarouselItem>[
+  CarouselItem(
+    materialId: 'x',
+    kind: MaterialKind.pdf,
+    index: 0,
+    key: 'x',
+    numero: '1',
+    nome: 'Louvor',
+    categoria: 'c',
+    classificacao: 'Col',
+  ),
+];
 
 class _FixedOfflineCacheStatusNotifier extends OfflineCacheStatusNotifier {
   @override
@@ -46,7 +148,7 @@ ProviderScope _readerScope({
   required SharedPreferences prefs,
   required Widget child,
   List<Override> overrides = const [],
-  CarouselLouvoresNotifier? carouselNotifier,
+  List<CarouselItem> carouselItems = const [],
 }) {
   return ProviderScope(
     retry: (retryCount, error) => null,
@@ -55,9 +157,7 @@ ProviderScope _readerScope({
       offlineCacheStatusProvider.overrideWith(
         _FixedOfflineCacheStatusNotifier.new,
       ),
-      carouselLouvoresProvider.overrideWith(
-        () => carouselNotifier ?? _FakeCarouselNotifier(),
-      ),
+      carouselItemsProvider.overrideWithValue(carouselItems),
       ...overrides,
     ],
     child: child,
@@ -105,7 +205,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Esquema de URL não permitido'), findsOneWidget);
+    // InvalidPdfPathException não carrega mais literal PT (E8 fix round 1):
+    // cai no fallback genérico de pdfReaderErrorMessage.
+    expect(find.text('Não foi possível abrir o PDF'), findsOneWidget);
     expect(find.text('Tentar novamente'), findsOneWidget);
   });
 
@@ -175,22 +277,175 @@ void main() {
     expect(find.byIcon(Icons.share), findsNothing);
   });
 
-  test('pdfReaderErrorMessage formata InvalidPdfPathException', () {
-    const error = InvalidPdfPathException('teste');
-    expect(pdfReaderErrorMessage(error), 'teste');
+  // O mini-player de tela cheia fica no topo (`shell_scaffold.dart`) — o FAB
+  // de sair não precisa mais subir para escapar dele.
+  Future<Positioned> pumpFullscreenFabPositioned(
+    WidgetTester tester, {
+    required List<Override> overrides,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        overrides: [
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
+          ),
+          ...overrides,
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': 'asset:fixtures/sample.pdf',
+                'titulo': 'Fixture',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.fullscreen));
+    await tester.pumpAndSettle();
+
+    return tester.widget<Positioned>(
+      find.ancestor(
+        of: find.byIcon(Icons.fullscreen_exit),
+        matching: find.byType(Positioned),
+      ),
+    );
+  }
+
+  testWidgets('sem faixa tocando, fullscreen mantém o FAB em bottom 16', (
+    tester,
+  ) async {
+    final positioned = await pumpFullscreenFabPositioned(tester, overrides: []);
+
+    expect(positioned.bottom, 16);
   });
+
+  testWidgets(
+    'com faixa tocando, o FAB também fica em bottom 16 (mini-player no topo)',
+    (tester) async {
+      final positioned = await pumpFullscreenFabPositioned(
+        tester,
+        overrides: [
+          audioPlayerSessionProvider.overrideWith(
+            () => _FakeAudioSession(
+              const AudioPlayerSessionState(queue: [_playingTrack]),
+            ),
+          ),
+        ],
+      );
+
+      expect(positioned.bottom, 16);
+    },
+  );
 
   test('pdfReaderErrorMessage formata exceções offline', () {
     const offline = PdfOfflineUnavailableException(pdfId: 'x');
-    const deleted = PdfExternallyDeletedException(pdfId: 'y');
-    const corrupted = PdfLocalCorruptedException(pdfId: 'z');
     const fetchFailed = PdfFetchFailedException('erro fetch');
 
     expect(pdfReaderErrorMessage(offline), offline.message);
-    expect(pdfReaderErrorMessage(deleted), deleted.message);
-    expect(pdfReaderErrorMessage(corrupted), corrupted.message);
     expect(pdfReaderErrorMessage(fetchFailed), 'erro fetch');
   });
+
+  test('pdfReaderErrorMessage cai no genérico para removido/corrompido/caminho '
+      'inválido/leitura falhou (D.6, E8 fix round 1)', () {
+    // As quatro perderam o literal PT: quem tem `context` mostra o texto
+    // do l10n (pdfExternallyDeleted/pdfLocalCorrupted/pdfLocalReadFailedMessage);
+    // este fallback sem l10n só pode dizer o genérico. InvalidPdfPathException
+    // nunca teve chave l10n própria — sempre caiu aqui.
+    const deleted = PdfExternallyDeletedException(pdfId: 'y');
+    const corrupted = PdfLocalCorruptedException(pdfId: 'z');
+    const invalidPath = InvalidPdfPathException('Esquema de URL não permitido');
+    const readFailed = PdfLocalReadFailedException(pdfId: 'w');
+
+    expect(pdfReaderErrorMessage(deleted), 'Não foi possível abrir o PDF');
+    expect(pdfReaderErrorMessage(corrupted), 'Não foi possível abrir o PDF');
+    expect(pdfReaderErrorMessage(invalidPath), 'Não foi possível abrir o PDF');
+    expect(pdfReaderErrorMessage(readFailed), 'Não foi possível abrir o PDF');
+  });
+
+  testWidgets('PdfReaderScreen exibe fallback genérico com retry para '
+      'PdfLocalReadFailedException (B3 — não apaga PDF por erro genérico)', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    const readFailed = PdfLocalReadFailedException(pdfId: 'pdf-2');
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        overrides: [
+          pdfReaderSessionProvider('/tmp/read-failed.pdf')
+              .overrideWith((ref) => Future.error(readFailed)),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': '/tmp/read-failed.pdf',
+                'pdfId': 'pdf-2',
+                'titulo': 'Fixture',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Sem l10n neste MaterialApp: cai no genérico (E8 fix round 1) — a chave
+    // pdfLocalReadFailedMessage é coberta com l10n no teste seguinte.
+    expect(find.text('Não foi possível abrir o PDF'), findsOneWidget);
+    expect(find.text('Tentar novamente'), findsOneWidget);
+    expect(find.text('Baixar novamente'), findsNothing);
+  });
+
+  testWidgets(
+    'PdfReaderScreen exibe a chave l10n para PdfLocalReadFailedException '
+    'quando l10n está disponível (E8 fix round 1)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      const readFailed = PdfLocalReadFailedException(pdfId: 'pdf-2');
+
+      await tester.pumpWidget(
+        _readerScope(
+          prefs: prefs,
+          overrides: [
+            pdfReaderSessionProvider('/tmp/read-failed.pdf')
+                .overrideWith((ref) => Future.error(readFailed)),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: const Scaffold(
+              body: PdfReaderScreen(
+                queryParams: {
+                  'file': '/tmp/read-failed.pdf',
+                  'pdfId': 'pdf-2',
+                  'titulo': 'Fixture',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
+      expect(find.text(l10n.pdfLocalReadFailedMessage), findsOneWidget);
+      expect(find.text('Tentar novamente'), findsOneWidget);
+      expect(find.text('Baixar novamente'), findsNothing);
+    },
+  );
 
   testWidgets('PdfReaderScreen exibe Baixar novamente para PDF corrompido', (
     tester,
@@ -202,12 +457,14 @@ void main() {
       _readerScope(
         prefs: prefs,
         overrides: [
-          pdfReaderSessionProvider(
-            '/tmp/corrupt.pdf',
-          ).overrideWith((ref) => Future.error(corrupted)),
+          pdfReaderSessionProvider('/tmp/corrupt.pdf')
+              .overrideWith((ref) => Future.error(corrupted)),
         ],
-        child: const MaterialApp(
-          home: Scaffold(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const Scaffold(
             body: PdfReaderScreen(
               queryParams: {
                 'file': '/tmp/corrupt.pdf',
@@ -222,10 +479,78 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text(corrupted.message), findsOneWidget);
+    final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
+    expect(find.text(l10n.pdfLocalCorrupted), findsOneWidget);
     expect(find.text('Baixar novamente'), findsOneWidget);
     expect(find.text('Tentar novamente'), findsNothing);
   });
+
+  testWidgets(
+    'redownload de PDF removido externamente mantém texto e ação Baixar '
+    '(fix round 1)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      // pdfId real (Base64 do caminho relativo) — LouvorPdfPath.fromLouvor
+      // decodifica via PdfPathNormalizer.getPdfRelPath e lança FormatException
+      // com um id não codificado como 'pdf-1'.
+      final pdfId = encodePdfId('ColAdultos/001.pdf');
+      final corrupted = PdfLocalCorruptedException(pdfId: pdfId);
+      final louvor = Louvor(
+        nome: 'Aleluia',
+        numero: '001',
+        categoria: 'ColAdultos',
+        classificacao: 'Partitura',
+        pdf: 'ColAdultos/001.pdf',
+        pdfId: pdfId,
+        groupId: '001:aleluia',
+        searchTitleNorm: 'aleluia',
+        searchContentTokens: const [],
+        searchCompactContent: '',
+      );
+
+      await tester.pumpWidget(
+        _readerScope(
+          prefs: prefs,
+          overrides: [
+            pdfReaderSessionProvider('/tmp/corrupt.pdf')
+                .overrideWith((ref) => Future.error(corrupted)),
+            catalogMaterialLookupProvider.overrideWithValue(
+              CatalogMaterialLookup(coldigomLouvoresByPdfId: {pdfId: louvor}),
+            ),
+            resolvePdfForReaderProvider.overrideWithValue(
+              _ThrowingResolvePdfForReader(
+                PdfExternallyDeletedException(pdfId: pdfId),
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: Scaffold(
+              body: PdfReaderScreen(
+                queryParams: {
+                  'file': '/tmp/corrupt.pdf',
+                  'pdfId': pdfId,
+                  'titulo': 'Fixture',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Baixar novamente'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
+      expect(find.text(l10n.pdfExternallyDeleted), findsOneWidget);
+      expect(find.text(l10n.pdfOfflineGoToSettings), findsOneWidget);
+    },
+  );
 
   testWidgets('PdfReaderScreen exibe botão share com sessão carregada', (
     tester,
@@ -236,17 +561,16 @@ void main() {
       _readerScope(
         prefs: prefs,
         overrides: [
-          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith((
-            ref,
-          ) async {
-            final handle = createTrackableHandle();
-            handle.loadingState.value = PdfReaderLoadingState.success;
-            ref.onDispose(handle.dispose);
-            return PdfReaderSession(
-              handle: handle,
-              filePath: 'asset:fixtures/sample.pdf',
-            );
-          }),
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf')
+              .overrideWith((ref) async {
+                final handle = createTrackableHandle();
+                handle.loadingState.value = PdfReaderLoadingState.success;
+                ref.onDispose(handle.dispose);
+                return PdfReaderSession(
+                  handle: handle,
+                  filePath: 'asset:fixtures/sample.pdf',
+                );
+              }),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -287,8 +611,11 @@ void main() {
             (ref) => const CarouselReaderPosition(
               currentIndex: 2,
               total: 3,
-              previousPdfId: 'A',
-              nextPdfId: 'C',
+              currentKey: 'B',
+              previousMaterialId: 'A',
+              nextMaterialId: 'C',
+              previousKey: 'A',
+              nextKey: 'C',
             ),
           ),
           pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
@@ -316,6 +643,7 @@ void main() {
 
     expect(find.byIcon(Icons.chevron_left), findsNothing);
     expect(find.byIcon(Icons.view_list), findsNothing);
+    expect(find.byIcon(Icons.layers_outlined), findsNothing);
     expect(find.byIcon(Icons.fullscreen), findsOneWidget);
   });
 
@@ -327,7 +655,7 @@ void main() {
     await tester.pumpWidget(
       _readerScope(
         prefs: prefs,
-        carouselNotifier: _FakeCarouselNotifierWithItems(),
+        carouselItems: _carouselItems,
         overrides: [
           pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
             (ref) => Future.error(const InvalidPdfPathException('stub')),
@@ -381,4 +709,307 @@ void main() {
 
     expect(find.byType(PdfReaderScreen), findsOneWidget);
   });
+
+  testWidgets(
+    'restaura a última página lembrada quando a rota não traz page (C8)',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        StorageKeys.pdfLastPages: jsonEncode([
+          {'id': 'pdf-x', 'p': 3},
+        ]),
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final handle = _createRestoreTrackingHandle();
+
+      await tester.pumpWidget(
+        _readerScope(
+          prefs: prefs,
+          overrides: [
+            pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+              (ref) async => PdfReaderSession(
+                handle: handle,
+                filePath: 'asset:fixtures/sample.pdf',
+              ),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: PdfReaderScreen(
+                queryParams: {
+                  'file': 'asset:fixtures/sample.pdf',
+                  'pdfId': 'pdf-x',
+                  'titulo': 'Fixture',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      // O viewer pdfrx só notifica pronto DEPOIS do primeiro frame — Important
+      // 2 (onda 4): sem a restauração escutar essa notificação (em vez de um
+      // post-frame cego agendado antes disso), a restauração nunca aconteceria.
+      handle.loadingState.value = PdfReaderLoadingState.success;
+      await tester.pump();
+
+      for (var i = 0; i < 40; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+        if (handle.animateToPageCalls.isNotEmpty) break;
+      }
+
+      expect(handle.animateToPageCalls, [3]);
+    },
+  );
+
+  testWidgets('não restaura a última página quando a rota já traz page (C8)', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      StorageKeys.pdfLastPages: jsonEncode([
+        {'id': 'pdf-x', 'p': 3},
+      ]),
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final handle = _createRestoreTrackingHandle();
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        overrides: [
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+            (ref) async => PdfReaderSession(
+              handle: handle,
+              filePath: 'asset:fixtures/sample.pdf',
+            ),
+          ),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': 'asset:fixtures/sample.pdf',
+                'pdfId': 'pdf-x',
+                'titulo': 'Fixture',
+                'page': '1',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    handle.loadingState.value = PdfReaderLoadingState.success;
+    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    expect(handle.animateToPageCalls, isEmpty);
+  });
+
+  testWidgets('botão de ajuste chama toggleFitMode (C8)', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        overrides: [
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': 'asset:fixtures/sample.pdf',
+                'titulo': 'Fixture',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
+    expect(find.byTooltip(l10n.readerFitModeTooltip), findsOneWidget);
+    expect(find.byIcon(Icons.fit_screen_outlined), findsOneWidget);
+
+    await tester.tap(find.byTooltip(l10n.readerFitModeTooltip));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.fit_screen), findsOneWidget);
+  });
+
+  testWidgets(
+    'sem item de menu «duas páginas» — spread é automático (onda 4.1)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        _readerScope(
+          prefs: prefs,
+          overrides: [
+            pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+              (ref) => Future.error(const InvalidPdfPathException('stub')),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: const Scaffold(
+              body: PdfReaderScreen(
+                queryParams: {
+                  'file': 'asset:fixtures/sample.pdf',
+                  'titulo': 'Fixture',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(find.byIcon(Icons.more_vert), findsNothing);
+      expect(find.byType(PopupMenuButton<void>), findsNothing);
+    },
+  );
+
+  testWidgets('virar página não reaplica o fit — só a abertura aplica (P3)', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final handle = _createRestoreTrackingHandle(pageCount: 3);
+    final fitPort = _CountingFitPort();
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        overrides: [
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+            (ref) async => PdfReaderSession(
+              handle: handle,
+              filePath: 'asset:fixtures/sample.pdf',
+            ),
+          ),
+          setZoomAndFitModeProvider.overrideWithValue(
+            SetZoomAndFitMode(fitPort),
+          ),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': 'asset:fixtures/sample.pdf',
+                'pdfId': 'pdf-x',
+                'titulo': 'Fixture',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // O viewer avisa que está pronto depois do primeiro frame; é aqui que o
+    // fit inicial (único permitido) acontece.
+    handle.loadingState.value = PdfReaderLoadingState.success;
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      if (fitPort.applyFitModeCalls.isNotEmpty) break;
+    }
+    expect(fitPort.applyFitModeCalls, hasLength(1));
+
+    // Seta → próxima página: navega, mas NÃO pode pedir fit de novo.
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    expect(handle.animateToPageCalls, [2]);
+    expect(
+      fitPort.applyFitModeCalls,
+      hasLength(1),
+      reason: 'a virada de página reaplicou o fit (auditoria P3)',
+    );
+  });
+
+  // A revisão final apontou um risco residual: sem fit por página,
+  // `_handleViewerReady` é o ÚNICO ponto que aplica o fit na abertura —
+  // inclusive para handles reaproveitados do `PdfSessionCache` (LRU), que já
+  // chegam com `isViewerReady == true` (loadingState `success`) ANTES do
+  // primeiro pump da tela. Este teste garante que o caminho `fromCache: true`
+  // também recebe o fit inicial exatamente uma vez, e que a virada de página
+  // seguinte não o reaplica.
+  testWidgets(
+    'handle vindo do cache LRU (fromCache) também aplica o fit exatamente uma vez (P3)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final handle = _createRestoreTrackingHandle(pageCount: 3);
+      final fitPort = _CountingFitPort();
+
+      // Handle de cache: já está pronto ANTES da tela montar (diferente do
+      // caminho de abertura "a frio", onde o pdfrx avisa depois do 1º frame).
+      handle.loadingState.value = PdfReaderLoadingState.success;
+
+      await tester.pumpWidget(
+        _readerScope(
+          prefs: prefs,
+          overrides: [
+            pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+              (ref) async => PdfReaderSession(
+                handle: handle,
+                filePath: 'asset:fixtures/sample.pdf',
+                fromCache: true,
+              ),
+            ),
+            setZoomAndFitModeProvider.overrideWithValue(
+              SetZoomAndFitMode(fitPort),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: PdfReaderScreen(
+                queryParams: {
+                  'file': 'asset:fixtures/sample.pdf',
+                  'pdfId': 'pdf-x',
+                  'titulo': 'Fixture',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        if (fitPort.applyFitModeCalls.isNotEmpty) break;
+      }
+      expect(
+        fitPort.applyFitModeCalls,
+        hasLength(1),
+        reason: 'handle do cache LRU deve receber o fit inicial uma única vez',
+      );
+
+      // Seta → próxima página: navega, mas NÃO pode pedir fit de novo.
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      expect(fitPort.applyFitModeCalls, hasLength(1));
+      expect(handle.animateToPageCalls, [2]);
+    },
+  );
 }

@@ -38,11 +38,15 @@ def _flutter_physical_ios() -> list[tuple[str, str]]:
         check=True,
     )
     devices = json.loads(machine.stdout)
-    return [
+    physical = [
         (d["id"], d.get("name", d["id"]))
         for d in devices
         if d.get("targetPlatform") == "ios" and not d.get("emulator")
     ]
+    # Prioriza iPad se houver múltiplos dispositivos físicos iOS conectados
+    physical.sort(key=lambda d: (0 if "ipad" in d[1].lower() else 1, d[1]))
+    return physical
+
 
 
 def _flutter_diagnostics() -> str:

@@ -1,12 +1,17 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/offline_config.dart';
 import '../../../../core/constants/storage_keys.dart';
+import '../../../../core/database/isar_provider.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../data/providers/offline_providers.dart';
 import '../../domain/entities/reconcile_result.dart';
+import '../../domain/usecases/reconcile_offline_index.dart';
+import 'offline_maintenance_lock_provider.dart';
 
 /// Estado do reconcile global UC-10 (Fase 3.6).
 ///
@@ -16,6 +21,7 @@ class OfflineReconcileState {
     this.lastResult,
     this.lastRunAt,
     this.isRunning = false,
+    this.lastSkipReason,
   });
 
   /// Resultado do último [ReconcileOfflineIndex] concluído.
@@ -27,15 +33,23 @@ class OfflineReconcileState {
   /// `true` enquanto [OfflineReconcileNotifier.requestReconcile] executa.
   final bool isRunning;
 
+  /// Motivo da última recusa (índice indisponível/vazio ou lock ocupado).
+  final ReconcileSkipReason? lastSkipReason;
+
   OfflineReconcileState copyWith({
     ReconcileResult? lastResult,
     DateTime? lastRunAt,
     bool? isRunning,
+    ReconcileSkipReason? lastSkipReason,
+    bool clearSkipReason = false,
   }) {
     return OfflineReconcileState(
       lastResult: lastResult ?? this.lastResult,
       lastRunAt: lastRunAt ?? this.lastRunAt,
       isRunning: isRunning ?? this.isRunning,
+      lastSkipReason: clearSkipReason
+          ? null
+          : (lastSkipReason ?? this.lastSkipReason),
     );
   }
 }
@@ -46,8 +60,8 @@ class OfflineReconcileState {
 /// debounced. **Proibido** no cold start / `main()`.
 final offlineReconcileProvider =
     NotifierProvider<OfflineReconcileNotifier, OfflineReconcileState>(
-  OfflineReconcileNotifier.new,
-);
+      OfflineReconcileNotifier.new,
+    );
 
 /// Dispara [MigrateOfflineStorage] + [ReconcileOfflineIndex] em background.
 class OfflineReconcileNotifier extends Notifier<OfflineReconcileState> {
@@ -70,18 +84,39 @@ class OfflineReconcileNotifier extends Notifier<OfflineReconcileState> {
       return;
     }
 
-    state = state.copyWith(isRunning: true);
+    final lock = ref.read(offlineMaintenanceLockProvider.notifier);
+    if (!lock.tryAcquire(OfflineMaintenanceOwner.reconcile)) {
+      debugPrint('[offline] reconcile adiado: manutenção offline em andamento');
+      state = state.copyWith(lastSkipReason: ReconcileSkipReason.locked);
+      return;
+    }
+
+    state = state.copyWith(isRunning: true, clearSkipReason: true);
 
     try {
       await ref.read(migrateOfflineStorageProvider).call();
-      final result = await ref.read(reconcileOfflineIndexProvider).call();
-      final now = DateTime.now();
-      await _persistLastReconcileAt(now);
-      state = OfflineReconcileState(
-        lastResult: result,
-        lastRunAt: now,
+      final outcome = await ref
+          .read(reconcileOfflineIndexProvider)
+          .call(isIndexAvailable: ref.read(isarAvailableProvider));
+
+      switch (outcome) {
+        case ReconcileDone():
+          final now = DateTime.now();
+          await _persistLastReconcileAt(now);
+          state = OfflineReconcileState(
+            lastResult: outcome.result,
+            lastRunAt: now,
+          );
+        case ReconcileSkipped(:final reason):
+          state = state.copyWith(lastSkipReason: reason);
+      }
+    } on StorageUnavailableException catch (e) {
+      debugPrint('[offline] reconcile abortado: $e');
+      state = state.copyWith(
+        lastSkipReason: ReconcileSkipReason.indexUnavailable,
       );
     } finally {
+      lock.release(OfflineMaintenanceOwner.reconcile);
       if (state.isRunning) {
         state = state.copyWith(isRunning: false);
       }
@@ -89,8 +124,9 @@ class OfflineReconcileNotifier extends Notifier<OfflineReconcileState> {
   }
 
   DateTime? _loadLastReconcileAt() {
-    final millis =
-        ref.read(sharedPreferencesProvider).getInt(StorageKeys.lastReconcileAt);
+    final millis = ref
+        .read(sharedPreferencesProvider)
+        .getInt(StorageKeys.lastReconcileAt);
     if (millis == null) return null;
     return DateTime.fromMillisecondsSinceEpoch(millis);
   }

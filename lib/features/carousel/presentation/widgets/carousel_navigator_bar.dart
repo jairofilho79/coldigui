@@ -1,35 +1,48 @@
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_action_button.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../l10n/app_localizations.dart';
 
-/// Barra compartilhada: chip único, setas condicionais, lista e ações extras.
+/// Barra da lista ativa: chip-carrossel + grupo «louvor» + grupo «lista»
+/// (spec 2026-09-12).
 ///
-/// Embutida em [CarouselBarShell] no shell ([CarouselChips]) e na barra 2 do
-/// leitor PDF ([PdfReaderScreen]).
+/// ```
+/// [‹ chip ›]  ┃ Abrir  Material ┃ Lista  Compartilhar  Limpar
+///               (louvor)          (lista)
+/// ```
 ///
-/// Ícones (setas, lista) usam [carouselBarIconButtonStyle] — vinho PLPCG
-/// ([AppColors.title]), inclusive no estado desabilitado durante [loading].
+/// Embutida em `CarouselBarShell` no shell (`CarouselChips`), em toda rota.
 ///
-/// [onChipTap] — no shell, abre o louvor focado em `/leitor`; omitido no
-/// leitor (chip já representa o PDF em exibição).
+/// [onChipTap] / [onOpen] — abrir o item focado (leitor ou player); ausentes
+/// no leitor, onde o chip já representa o material aberto.
 ///
-/// [trailingActions] — tipicamente [CarouselBarTrailingActions] (salvar
-/// playlist, folheto, limpar) no shell e no leitor.
+/// [swapMaterial] — `CarouselSwapMaterialButton`, omitido quando o louvor não
+/// tem alternativa. Sem [onOpen] e sem [swapMaterial], o grupo «louvor» não
+/// é desenhado.
+///
+/// [trailingActions] — `CarouselBarTrailingActions` (compartilhar + limpar),
+/// desenhadas dentro do grupo «lista», depois de «Lista».
+///
+/// [showLabels] — legendas sob os ícones (barra ≥ `carouselBarLabelsMinWidth`).
 class CarouselNavigatorBar extends StatelessWidget {
   const CarouselNavigatorBar({
     required this.item,
     required this.canGoPrevious,
     required this.canGoNext,
-    required this.onOpenList,
-    this.chipVariant = CarouselLouvorChipVariant.modal,
+    required this.onOpenSelection,
+    this.showLabels = true,
+    this.chipVariant = CarouselLouvorChipVariant.topBar,
     this.onPrevious,
     this.onNext,
     this.onChipTap,
+    this.onOpen,
+    this.swapMaterial,
     this.loading = false,
     this.trailingActions = const [],
+    this.onAdd,
+    this.isAdded = false,
     super.key,
   });
 
@@ -37,51 +50,83 @@ class CarouselNavigatorBar extends StatelessWidget {
   final CarouselLouvorChipVariant chipVariant;
   final bool canGoPrevious;
   final bool canGoNext;
+  final bool showLabels;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
 
   /// Propagado para [CarouselLouvorChip.onTap] quando não [loading].
   final VoidCallback? onChipTap;
-  final VoidCallback onOpenList;
 
-  /// Desabilita setas/chip; o botão de lista permanece habilitado.
+  /// Ação «Abrir» do item focado — omitida (`null`) quando indisponível.
+  ///
+  /// No shell abre `/leitor`; ausente no leitor (sem alternativa útil ali).
+  final VoidCallback? onOpen;
+
+  /// Botão «Material» (trocar material). Omitido se o louvor não tem
+  /// alternativa.
+  final Widget? swapMaterial;
+
+  /// Abre modal com louvores da seleção atual.
+  final VoidCallback onOpenSelection;
+
+  /// Desabilita setas/chip/abrir; «Lista» permanece habilitado.
   final bool loading;
   final List<Widget> trailingActions;
+
+  /// Adicionar item à lista ativa quando não estiver nela.
+  final VoidCallback? onAdd;
+  final bool isAdded;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final hasLouvorGroup = onOpen != null || swapMaterial != null;
 
     return Row(
       children: [
-        if (canGoPrevious)
-          IconButton(
-            style: carouselBarIconButtonStyle,
-            tooltip: l10n?.readerCarouselPrevious ?? 'Louvor anterior',
-            onPressed: loading ? null : onPrevious,
-            icon: const Icon(Icons.chevron_left),
-          ),
         Flexible(
           child: CarouselLouvorChip(
             item: item,
             variant: chipVariant,
+            showNavArrows: true,
+            canGoPrevious: canGoPrevious,
+            canGoNext: canGoNext,
+            onPrevious: loading ? null : onPrevious,
+            onNext: loading ? null : onNext,
             onTap: loading ? null : onChipTap,
+            onAdd: loading ? null : onAdd,
+            isAdded: isAdded,
           ),
         ),
-        if (canGoNext)
-          IconButton(
-            style: carouselBarIconButtonStyle,
-            tooltip: l10n?.readerCarouselNext ?? 'Próximo louvor',
-            onPressed: loading ? null : onNext,
-            icon: const Icon(Icons.chevron_right),
+        const SizedBox(width: 6),
+        if (hasLouvorGroup) ...[
+          CarouselBarActionGroup(
+            tint: CarouselBarActionGroup.louvorTint,
+            children: [
+              if (onOpen != null)
+                CarouselBarActionButton(
+                  icon: Icons.file_open_outlined,
+                  label: l10n?.carouselOpen ?? 'Abrir',
+                  showLabel: showLabels,
+                  onPressed: loading ? null : onOpen,
+                ),
+              ?swapMaterial,
+            ],
           ),
-        IconButton(
-          style: carouselBarIconButtonStyle,
-          tooltip: l10n?.carouselOpenList ?? 'Ver seleção',
-          onPressed: onOpenList,
-          icon: const Icon(Icons.view_list),
+          const CarouselBarGroupDivider(),
+        ],
+        CarouselBarActionGroup(
+          tint: CarouselBarActionGroup.listaTint,
+          children: [
+            CarouselBarActionButton(
+              icon: Icons.queue_music,
+              label: l10n?.carouselList ?? 'Lista',
+              showLabel: showLabels,
+              onPressed: onOpenSelection,
+            ),
+            ...trailingActions,
+          ],
         ),
-        ...trailingActions,
       ],
     );
   }

@@ -1,0 +1,157 @@
+import 'package:coldigui/features/catalog/domain/entities/catalog_list_entry.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/coldigom/data/adapters/coldigom_louvor_adapter.dart';
+import 'package:coldigui/features/coldigom/data/mappers/coldigom_praise_cache_mapper.dart';
+import 'package:coldigui/features/coldigom/data/models/praise_dto.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
+import 'package:flutter_riverpod/misc.dart';
+
+/// Um praise do catálogo montado como a hidratação o monta (adapter +
+/// `coldigomMeta`) — para testes de filtros, /biblioteca e página inicial
+/// sem Isar nem rede.
+///
+/// [pdfKinds]/[audioKinds]: `kindId → nome do kind`; cada entrada vira um
+/// material (`pdf`/`mp3`) com `materialKindId`. Precisa de pelo menos um
+/// material, senão não há grupo.
+LouvorGroup catalogGroup({
+  required String praiseId,
+  required String name,
+  String number = '',
+  String tonality = '',
+  String rhythm = '',
+  List<String> tags = const [],
+  Map<String, String> pdfKinds = const {'k-partitura': 'Partitura'},
+  Map<String, String> audioKinds = const {},
+  String? shortId,
+  String? groupId,
+}) {
+  final materials = <MaterialDto>[
+    for (final kind in pdfKinds.entries)
+      MaterialDto(
+        id: 'pdf-${kind.key}',
+        type: 'pdf',
+        r2Key: 'assets/praises/$praiseId/pdf-${kind.key}.pdf',
+        materialKindId: kind.key,
+        materialKindName: kind.value,
+      ),
+    for (final kind in audioKinds.entries)
+      MaterialDto(
+        id: 'mp3-${kind.key}',
+        type: 'mp3',
+        r2Key: 'assets/praises/$praiseId/mp3-${kind.key}.mp3',
+        materialKindId: kind.key,
+        materialKindName: kind.value,
+      ),
+  ];
+  final detail = PraiseDetailDto(
+    id: praiseId,
+    name: name,
+    number: number,
+    rhythm: rhythm,
+    tonality: tonality,
+    tagNames: tags,
+    shortId: shortId,
+    groupId: groupId,
+    materials: materials,
+  );
+  return LouvorGroup.fromLouvores(
+    ColdigomLouvorAdapter.toLouvores(detail),
+    audioTracks: ColdigomLouvorAdapter.toAudioTracks(detail),
+    coldigomMetaByGroupId: {praiseId: ColdigomLouvorAdapter.toMetadata(detail)},
+  ).single;
+}
+
+/// Índice com [groups], tokens de busca calculados como no sync.
+ColdigomSearchIndex catalogIndexOf(List<LouvorGroup> groups) {
+  return ColdigomSearchIndex.build([
+    for (final group in groups)
+      ColdigomIndexedPraise.build(
+        praiseId: group.groupId,
+        numero: group.numero,
+        nome: group.nome,
+        searchTokens: ColdigomPraiseCacheMapper.buildSearchTokens(
+          name: group.nome,
+          number: group.numero,
+          author: group.coldigomMeta?.author ?? '',
+          tags: group.coldigomMeta?.tagNames ?? const [],
+        ),
+        group: group,
+      ),
+  ]);
+}
+
+/// Sync do catálogo sem rede nem Isar: estado fixo e `sync()` contado.
+///
+/// [syncResult]: desfecho de `sync()`. `null` (padrão) devolve
+/// [ColdigomCatalogSyncNoop] sem mexer no estado; com valor, `sync()` o
+/// grava em `lastResult` — como o notifier real — e o devolve.
+class FakeColdigomCatalogSyncNotifier extends ColdigomCatalogSyncNotifier {
+  FakeColdigomCatalogSyncNotifier([
+    this.initial = const ColdigomCatalogSyncState(
+      lastResult: ColdigomCatalogSyncNoop(),
+    ),
+    this.syncResult,
+  ]);
+
+  final ColdigomCatalogSyncState initial;
+  final ColdigomCatalogSyncResult? syncResult;
+  var syncCalls = 0;
+
+  @override
+  ColdigomCatalogSyncState build() => initial;
+
+  @override
+  Future<ColdigomCatalogSyncResult> sync() async {
+    syncCalls++;
+    final result = syncResult;
+    if (result == null) return const ColdigomCatalogSyncNoop();
+    state = state.copyWith(lastResult: result);
+    return result;
+  }
+
+  @override
+  Future<void> requestSyncIfStale() async {}
+}
+
+/// Índice já hidratado com [index] e um sync falso — o que uma tela que lê
+/// o catálogo precisa para não tocar em Isar nem rede.
+List<Override> catalogIndexOverrides(
+  ColdigomSearchIndex index, {
+  FakeColdigomCatalogSyncNotifier? sync,
+}) {
+  return [
+    coldigomCatalogHydrationProvider.overrideWith((ref) async => index),
+    coldigomCatalogSyncProvider.overrideWith(
+      () => sync ?? FakeColdigomCatalogSyncNotifier(),
+    ),
+  ];
+}
+
+/// `coldigomLouvoresCacheProvider` já com [louvores] — o catálogo em memória
+/// que o lookup e a fonte leem, para testes que precisam de PDFs conhecidos.
+Override coldigomLouvoresOverride(List<Louvor> louvores) {
+  return coldigomLouvoresCacheProvider.overrideWith(
+    () => _SeededLouvoresCache(louvores),
+  );
+}
+
+class _SeededLouvoresCache extends ColdigomLouvoresCacheNotifier {
+  _SeededLouvoresCache(this._seed);
+
+  final List<Louvor> _seed;
+
+  @override
+  Map<String, Louvor> build() => {for (final l in _seed) l.pdfId: l};
+}
+
+/// Resumo legível de uma entrada da lista: o praiseId para chip solto e
+/// `[a (b)]` para amendoim — membro que não casou (esmaecido) entre
+/// parênteses.
+String describeEntry(CatalogListEntry entry) => switch (entry) {
+  SingleEntry(:final group) => group.groupId,
+  ClusterEntry(:final members) =>
+    '[${[for (final m in members) m.matched ? m.group.groupId : '(${m.group.groupId})'].join(' ')}]',
+};

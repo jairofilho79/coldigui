@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_typography.dart';
+import 'brand_fade_page_transitions_builder.dart';
 import 'color_extensions.dart';
 
 /// Tema Material 3 — paleta Coletânea Digital (§6 MAPEAMENTO).
@@ -21,7 +22,7 @@ abstract final class AppTheme {
       onSecondary: AppColors.title,
       surface: AppColors.card,
       onSurface: AppColors.title,
-      error: AppColors.offlineMissing,
+      error: AppColors.title,
       onError: AppColors.textLight,
     );
 
@@ -30,6 +31,21 @@ abstract final class AppTheme {
       fontFamily: AppTypography.sansFamily,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
+      // Transição própria em vez da da plataforma: na web o
+      // `defaultTargetPlatform` é macOS/iOS em Mac e iPad e o Cupertino slide
+      // animava o shell inteiro a cada push/pop e a cada troca de louvor no
+      // leitor (auditoria P7). Ver [BrandFadePageTransitionsBuilder].
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          for (final platform in TargetPlatform.values)
+            platform: const BrandFadePageTransitionsBuilder(),
+        },
+      ),
+      // Flutuante também para os `SnackBar` montados direto (fora de
+      // `showAppSnackbar`) — mesma família visual (auditoria P8).
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+      ),
       textTheme: AppTypography.textTheme(AppColors.title),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.background,
@@ -73,21 +89,36 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(_borderRadius),
           borderSide: const BorderSide(color: AppColors.goldLight, width: 2),
         ),
+        labelStyle: AppTypography.body.copyWith(
+          color: AppColors.title.withValues(alpha: 0.75),
+        ),
+        floatingLabelStyle: AppTypography.label.copyWith(
+          color: AppColors.title,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.card,
-        selectedColor: AppColors.gold.withValues(alpha: 0.25),
+        selectedColor: Color.alphaBlend(
+          AppColors.gold.withValues(alpha: 0.35),
+          AppColors.card,
+        ),
         disabledColor: const Color(0xFF9CA3AF),
         labelStyle: AppTypography.label,
         secondaryLabelStyle: AppTypography.label.copyWith(
-          color: AppColors.textLight,
+          color: AppColors.title,
+          fontWeight: FontWeight.w600,
         ),
+        deleteIconColor: AppColors.title,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_chipRadius),
-          side: const BorderSide(color: AppColors.title, width: 1.5),
         ),
-        side: const BorderSide(color: AppColors.title, width: 1.5),
+        side: WidgetStateBorderSide.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? const BorderSide(color: AppColors.gold, width: 2)
+              : const BorderSide(color: AppColors.title, width: 1.5),
+        ),
         showCheckmark: false,
       ),
       dropdownMenuTheme: DropdownMenuThemeData(

@@ -3,9 +3,12 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 
+import '../../../offline/data/utils/pdf_integrity_validator.dart';
 import '../../../pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import '../../domain/entities/pdf_reader_preferences.dart';
+import '../../domain/exceptions/pdf_local_open_failure.dart';
 import '../../domain/ports/pdf_reader_controller_port.dart';
+import '../pdfrx_bootstrap.dart';
 import '../models/pdf_reader_viewer_handle.dart';
 import '../utils/pdf_source_resolver.dart';
 
@@ -49,6 +52,7 @@ class PdfrxViewerAdapter implements PdfReaderControllerPort {
   /// Retorna um [PdfReaderViewerHandle] novo; o lifecycle pertence à sessão
   /// ([pdfReaderSessionProvider]), não ao adapter.
   Future<PdfReaderViewerHandle> openDocument(String filePath) async {
+    await ensurePdfrxInitialized();
     final source = _resolver.resolve(filePath);
     final document = await _openDocument(source);
     final documentRef = PdfDocumentRefDirect(document, autoDispose: false);
@@ -68,7 +72,7 @@ class PdfrxViewerAdapter implements PdfReaderControllerPort {
     final documentFuture = switch (source.kind) {
       PdfSourceKind.remoteUrl => _openRemote(source.value),
       PdfSourceKind.asset => PdfDocument.openAsset(source.value),
-      PdfSourceKind.localFile => PdfDocument.openFile(source.value),
+      PdfSourceKind.localFile => _openLocal(source.value),
     };
     return documentFuture.whenComplete(Timeline.finishSync);
   }
@@ -76,6 +80,31 @@ class PdfrxViewerAdapter implements PdfReaderControllerPort {
   Future<PdfDocument> _openRemote(String url) async {
     final bytes = await _bytesDatasource.fetchBytes(url);
     return PdfDocument.openData(bytes, sourceName: url);
+  }
+
+  /// D2 OA — local sempre via bytes; web não usa [PdfDocument.openFile].
+  ///
+  /// UC-11 B3: a falha ao abrir o documento é embrulhada em
+  /// [PdfLocalOpenFailure] com o veredito do magic `%PDF` calculado sobre os
+  /// bytes que acabaram de ser lidos. Se a **leitura** falhar, o erro sobe
+  /// cru (sem veredito) — não há evidência de corrupção e o
+  /// `pdfReaderSessionProvider` preserva o arquivo offline.
+  Future<PdfDocument> _openLocal(String path) async {
+    final bytes = await _bytesDatasource.fetchBytes(path);
+    final hasValidMagicBytes = PdfIntegrityValidator.hasValidPdfMagicBytes(
+      bytes.length >= 4 ? bytes.sublist(0, 4) : bytes,
+    );
+    try {
+      return await PdfDocument.openData(bytes, sourceName: path);
+    } on Object catch (error, stackTrace) {
+      Error.throwWithStackTrace(
+        PdfLocalOpenFailure(
+          cause: error,
+          hasValidMagicBytes: hasValidMagicBytes,
+        ),
+        stackTrace,
+      );
+    }
   }
 
   @override
@@ -118,14 +147,7 @@ class PdfrxViewerAdapter implements PdfReaderControllerPort {
 
     try {
       final pageNumber = controller.pageNumber ?? handle.page;
-      final matrix = switch (mode) {
-        PdfFitMode.pageWidth => controller.calcMatrixFitWidthForPage(
-          pageNumber: pageNumber,
-        ),
-        PdfFitMode.pageFit => controller.calcMatrixFitHeightForPage(
-          pageNumber: pageNumber,
-        ),
-      };
+      final matrix = handle.fitMatrixForPage(pageNumber, mode);
       if (matrix != null) {
         await controller.goTo(matrix);
       }

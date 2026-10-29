@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:coldigui/features/offline/data/utils/reconcile_path_validator.dart';
+import 'package:coldigui/features/offline/data/utils/reconcile_path_validator_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -31,9 +32,7 @@ void main() {
 
   test('aceita PDF com magic bytes válidos', () {
     final file = File('${tempDir.path}/valid.pdf');
-    file.writeAsBytesSync(
-      Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x2D]),
-    );
+    file.writeAsBytesSync(Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x2D]));
 
     final result = validatePdfPathsChunk([
       ReconcilePathEntry(pdfId: 'id1', absolutePath: file.path),

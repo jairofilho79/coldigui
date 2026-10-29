@@ -1,0 +1,181 @@
+import 'package:coldigui/core/utils/material_id_kind.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/domain/utils/catalog_tag_hierarchy.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_filter_options_provider.dart';
+import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
+
+void main() {
+  group('hierarquia de tags', () {
+    test('o pai casa consigo e com os filhos; prefixo solto não conta', () {
+      expect(catalogTagMatches('PES', 'PES'), isTrue);
+      expect(catalogTagMatches('PES · 9.2026', 'PES'), isTrue);
+      expect(catalogTagMatches('PES · 9.2026 · Coro', 'PES · 9.2026'), isTrue);
+      expect(catalogTagMatches('PESCA', 'PES'), isFalse);
+      expect(catalogTagMatches('PES', 'PES · 9.2026'), isFalse);
+    });
+
+    test('ancestrais em ordem, do mais geral à própria tag', () {
+      expect(catalogTagWithAncestors('A · B · C').toList(), [
+        'A',
+        'A · B',
+        'A · B · C',
+      ]);
+      expect(catalogTagWithAncestors('Avulsos').toList(), ['Avulsos']);
+    });
+
+    test('pai imediato; raiz não tem pai', () {
+      expect(catalogTagParent('A · B · C'), 'A · B');
+      expect(catalogTagParent('PES · 9.2026'), 'PES');
+      expect(catalogTagParent('PES'), isNull);
+    });
+
+    test('rótulo da subtag é o último nível', () {
+      expect(catalogTagLeaf('A · B · C'), 'C');
+      expect(catalogTagLeaf('PES · 9.2026'), '9.2026');
+      expect(catalogTagLeaf('PES'), 'PES');
+    });
+
+    test('seleção refinada: tag com descendente selecionado sai', () {
+      expect(catalogTagsRefined({'PES', 'PES · 9.2026', 'CIAs'}), {
+        'PES · 9.2026',
+        'CIAs',
+      });
+      expect(catalogTagsRefined({'A', 'A · B · C'}), {'A · B · C'});
+      expect(catalogTagsRefined({'PES', 'PESCA'}), {'PES', 'PESCA'});
+    });
+  });
+
+  group('CatalogFilterOptions.fromGroups', () {
+    final groups = [
+      catalogGroup(
+        praiseId: 'p1',
+        name: 'Hino',
+        tonality: 'Dm',
+        rhythm: 'Fox',
+        tags: const ['PES · 9.2026', 'Avulsos'],
+        pdfKinds: const {'k-cifra1': 'Cifra I'},
+      ),
+      catalogGroup(
+        praiseId: 'p2',
+        name: 'Coro',
+        tonality: ' G ',
+        tags: const ['avulsos'],
+        pdfKinds: const {'k-grade': 'Grade'},
+        audioKinds: const {'k-play': 'Playback'},
+      ),
+      catalogGroup(
+        praiseId: 'p3',
+        name: 'Outro',
+        tonality: 'Dm',
+        pdfKinds: const {'k-grade': 'Grade'},
+      ),
+      // Grupo sem meta (ex.: montado fora do catálogo): não contribui nem
+      // derruba nada.
+      LouvorGroup(groupId: 'x', numero: '', nome: 'x', sections: const []),
+    ];
+    final options = CatalogFilterOptions.fromGroups(groups);
+
+    test('tom e ritmo: valores com praise, aparados, sem vazios', () {
+      expect(options.tonalities, ['Dm', 'G']);
+      expect(options.rhythms, ['Fox']);
+    });
+
+    test('a categoria do praise não vira opção em lugar nenhum', () {
+      expect(options.tags, isNot(contains('Clamor')));
+      expect(options.tags, isNot(contains('Adoração')));
+    });
+
+    test(
+      'tags como estão (M5), com os ancestrais, sem acento/caixa na ordem',
+      () {
+        expect(options.tags, ['Avulsos', 'avulsos', 'PES', 'PES · 9.2026']);
+      },
+    );
+
+    test(
+      'tipos de material por id, com o nome do kind, ordenados pelo nome',
+      () {
+        expect(options.materialKinds, const [
+          CatalogKindOption(
+            id: 'k-cifra1',
+            name: 'Cifra I',
+            types: {MaterialKind.pdf},
+          ),
+          CatalogKindOption(
+            id: 'k-grade',
+            name: 'Grade',
+            types: {MaterialKind.pdf},
+          ),
+          CatalogKindOption(
+            id: 'k-play',
+            name: 'Playback',
+            types: {MaterialKind.audio},
+          ),
+        ]);
+      },
+    );
+
+    test('um kind com PDF num louvor e áudio noutro tem os dois tipos', () {
+      final mixed = CatalogFilterOptions.fromGroups([
+        catalogGroup(
+          praiseId: 'a',
+          name: 'A',
+          pdfKinds: const {'k-coro': 'Coro'},
+        ),
+        catalogGroup(
+          praiseId: 'b',
+          name: 'B',
+          pdfKinds: const {},
+          audioKinds: const {'k-coro': 'Coro'},
+        ),
+      ]);
+      expect(mixed.materialKinds.single.types, {
+        MaterialKind.pdf,
+        MaterialKind.audio,
+      });
+    });
+
+    test('sem grupos → vazio', () {
+      final empty = CatalogFilterOptions.fromGroups(const []);
+      expect(empty.tonalities, isEmpty);
+      expect(empty.tags, isEmpty);
+      expect(empty.materialKinds, isEmpty);
+    });
+  });
+
+  test('catalogFilterOptionsProvider lê o índice local', () {
+    final container = ProviderContainer(
+      overrides: [
+        coldigomSearchIndexProvider.overrideWithValue(
+          catalogIndexOf([
+            catalogGroup(praiseId: 'p1', name: 'Hino', tonality: 'Dm'),
+          ]),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    expect(container.read(catalogFilterOptionsProvider).tonalities, ['Dm']);
+  });
+
+  test('índice vazio → CatalogFilterOptions.empty', () {
+    final container = ProviderContainer(
+      overrides: [
+        coldigomSearchIndexProvider.overrideWithValue(
+          ColdigomSearchIndex.empty,
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    expect(
+      container.read(catalogFilterOptionsProvider),
+      same(CatalogFilterOptions.empty),
+    );
+  });
+}

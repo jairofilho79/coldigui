@@ -4,12 +4,17 @@ import 'dart:typed_data';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 
 import 'offline_test_helpers.dart';
+
+/// Desembrulha um [ReconcileOutcome] esperado como concluído.
+ReconcileDone _done(ReconcileOutcome outcome) {
+  expect(outcome, isA<ReconcileDone>());
+  return outcome as ReconcileDone;
+}
 
 void main() {
   late Directory tempDir;
@@ -36,10 +41,10 @@ void main() {
       getApplicationDocumentsDirectory: () async => docsDir,
     );
     repository = OfflinePdfRepositoryImpl(
-      store: store,
+      store: pdfStoragePortFor(store),
       local: OfflinePdfLocalDatasource(isar),
     );
-    useCase = ReconcileOfflineIndex(repository, store);
+    useCase = ReconcileOfflineIndex(repository, pdfStoragePortFor(store));
   });
 
   tearDown(() async {
@@ -57,7 +62,7 @@ void main() {
     );
     expect(await File(entry.absolutePath).exists(), isTrue);
 
-    final result = await useCase();
+    final result = _done(await useCase());
 
     expect(result.removedFromIndex, 1);
     expect(await repository.lookup(pdfId), isNull);
@@ -71,23 +76,7 @@ void main() {
     );
     await File(entry.absolutePath).delete();
 
-    final package = OfflineMaterialPackage(
-      parts: [
-        OfflinePackagePart(
-          filename: 'Partitura-1.zip',
-          size: 100,
-          url: '/packages/Partitura-1.zip',
-          pdfs: [pdfId],
-        ),
-      ],
-      totalSize: 100,
-      totalParts: 1,
-    );
-
-    final result = await useCase(
-      materialPackage: package,
-      materialCategory: 'Partitura',
-    );
+    final result = _done(await useCase());
 
     expect(result.removedFromIndex, 1);
     expect(await repository.lookup(pdfId), isNull);
@@ -100,7 +89,7 @@ void main() {
       category: 'ColAdultos',
     );
 
-    final result = await useCase();
+    final result = _done(await useCase());
 
     expect(result.removedFromIndex, 0);
     expect(await repository.lookup(pdfId), isNotNull);
@@ -119,7 +108,7 @@ void main() {
       'ColAdultos/orphan-only.pdf',
     );
 
-    final result = await useCase();
+    final result = _done(await useCase());
 
     expect(result.removedFromIndex, 0);
     expect(result.orphanFiles, 1);
@@ -134,11 +123,89 @@ void main() {
       category: 'ColAdultos',
     );
 
-    final first = await useCase();
-    final second = await useCase();
+    final first = _done(await useCase());
+    final second = _done(await useCase());
 
     expect(first.removedFromIndex, 0);
     expect(second.removedFromIndex, 0);
     expect(second.orphanFiles, 0);
+  });
+
+  test(
+    'reconcile completo com índice indisponível é pulado sem apagar nada',
+    () async {
+      final orphanPath = await store.writeAtomic(
+        pdfBytes,
+        'ColAdultos/001.pdf',
+      );
+
+      final outcome = await useCase(isIndexAvailable: false);
+
+      expect(outcome, isA<ReconcileSkipped>());
+      expect(
+        (outcome as ReconcileSkipped).reason,
+        ReconcileSkipReason.indexUnavailable,
+      );
+      expect(await File(orphanPath).exists(), isTrue);
+    },
+  );
+
+  test(
+    'reconcile completo com índice vazio e arquivos no disco é pulado',
+    () async {
+      final aPath = await store.writeAtomic(pdfBytes, 'ColAdultos/001.pdf');
+      final bPath = await store.writeAtomic(pdfBytes, 'ColAdultos/002.pdf');
+
+      final outcome = await useCase();
+
+      expect(outcome, isA<ReconcileSkipped>());
+      expect(
+        (outcome as ReconcileSkipped).reason,
+        ReconcileSkipReason.emptyIndexWithFiles,
+      );
+      expect(await File(aPath).exists(), isTrue);
+      expect(await File(bPath).exists(), isTrue);
+    },
+  );
+
+  test(
+    'reconcile completo com 1 linha e muitos arquivos é pulado (indexTooSmall)',
+    () async {
+      // Índice com uma entrada só (a linha que sobrou de um Isar truncado) e
+      // um disco cheio: seguir apagaria tudo como "órfão".
+      final indexed = await repository.upsert(
+        pdfId: pdfId,
+        bytes: pdfBytes,
+        category: 'ColAdultos',
+      );
+      final onDisk = <String>[indexed.absolutePath];
+      for (var i = 2; i <= 8; i++) {
+        onDisk.add(
+          await store.writeAtomic(
+            pdfBytes,
+            'ColAdultos/${i.toString().padLeft(3, '0')}.pdf',
+          ),
+        );
+      }
+
+      final outcome = await useCase();
+
+      expect(outcome, isA<ReconcileSkipped>());
+      expect(
+        (outcome as ReconcileSkipped).reason,
+        ReconcileSkipReason.indexTooSmall,
+      );
+      for (final path in onDisk) {
+        expect(await File(path).exists(), isTrue);
+      }
+      expect(await repository.lookup(pdfId), isNotNull);
+    },
+  );
+
+  test('reconcile completo com índice vazio e disco vazio conclui', () async {
+    final outcome = await useCase();
+
+    expect(outcome, isA<ReconcileDone>());
+    expect((outcome as ReconcileDone).orphanFiles, 0);
   });
 }

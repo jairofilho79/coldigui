@@ -1,0 +1,503 @@
+# Performance e loading na Web — diagnóstico e plano de trabalho
+
+**Status:** em progresso — Fases A, B, C, D, E, G e **H** concluídas (jul/2026); ver [web_phase_h_measurement.md](web_phase_h_measurement.md)
+**Data:** julho/2026  
+**Contexto:** Após conclusão do [WEB_BUILD_REFACTOR_PLAN.md](WEB_BUILD_REFACTOR_PLAN.md) (Fases 0–8), o app compila e roda na web (`flutter build web --wasm`), mas a **primeira visita** exibe tela branca por **3–5 segundos** antes de qualquer UI. Este documento consolida o diagnóstico, comparação com nativo, e um plano faseado para o próximo agente/sessão trabalhar de forma aprofundada.
+
+---
+
+## Sintoma observado
+
+| Aspecto | Comportamento |
+|---|---|
+| Plataforma | Web (Chrome/Safari, deploy ou `scripts/web_local_dev.py`) |
+| Momento | **Primeira visita** ou hard refresh (sem cache quente) |
+| Duração | ~3–5 s de tela completamente branca |
+| Depois | App Flutter aparece e funciona normalmente |
+| Nativo (iOS/Android) | Sem esse delay perceptível no cold start |
+
+---
+
+## Por que acontece (diagnóstico)
+
+Flutter Web **não pinta nenhum pixel** até que todo o pipeline abaixo conclua. O `web/index.html` atual não tem splash/loader — só carrega `flutter_bootstrap.js`:
+
+```html
+<!-- web/index.html — estado atual -->
+<script src="flutter_bootstrap.js" async></script>
+```
+
+Enquanto isso, o `<body>` está vazio → **tela branca**.
+
+### Pipeline de boot (ordem cronológica)
+
+```text
+1. HTML parse + download flutter_bootstrap.js
+2. Download + compilação/inicialização do engine Flutter Web (WASM)
+      ├── main.dart.wasm (~3,6 MB)
+      ├── main.dart.js (~4,1 MB) — fallback / bootstrap
+      └── canvaskit/skwasm (~3–7 MB conforme renderer)
+3. `runApp(BootstrapApp)` imediato após `WidgetsFlutterBinding.ensureInitialized()`
+      ├── [BootstrapApp] aguarda `isarInitializerProvider` (WASM Isar em background)
+      └── pdfrx init lazy / idle (Fase B)
+4. SharedPreferences.getInstance()
+5. `ColdiguiApp` → primeiro frame com shell (AppBar, nav, filtros)
+6. `louvoresManifestProvider` cache-first: Isar imediato + refresh remoto em background (Fase G)
+```
+
+**Gargalo principal:** etapas 2–3 ocorrem **antes** do primeiro frame. O usuário vê branco durante download + parse/instanciação de WASM + init síncrona de Isar e pdfrx.
+
+### Inventário de assets pesados (build release, jul/2026)
+
+Medição em `build/web/` após `flutter build web --wasm --release`:
+
+| Asset | Tamanho aprox. | Quando carrega |
+|---|---|---|
+| `main.dart.wasm` | 3,6 MB | Boot (obrigatório) |
+| `main.dart.js` | 4,1 MB | Boot (obrigatório) |
+| `canvaskit/canvaskit.wasm` | 6,9 MB | Boot (renderer) |
+| `canvaskit/skwasm.wasm` | 3,4 MB | Boot (renderer WASM) |
+| `assets/packages/pdfrx/assets/pdfium.wasm` | 5,0 MB | Boot (`pdfrxFlutterInitialize`) |
+| `isar_plus.wasm` | 1,3 MB | Boot (`Isar.initialize`) |
+| Fontes (EBGaramond, OpenSans, subset — Tarefa 5) | ~284 KB (era ~1,35 MB) | Boot (tipografia) |
+| **Total `build/web/`** | **~56 MB** | — |
+
+> Nota: na visita subsequente, o service worker cacheia a maior parte; o delay cai drasticamente. O problema reportado é **cold start / first visit**.
+
+### Código que bloqueia o primeiro frame
+
+```dart
+// lib/main.dart + lib/bootstrap_app.dart (Fase B)
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  runApp(ProviderScope(..., child: BootstrapApp())); // Isar async
+}
+```
+
+```dart
+// lib/features/catalog/presentation/providers/louvores_manifest_provider.dart (Fase G)
+// Cache Isar → data imediato; loadManifest() remoto em background
+```
+
+```dart
+// lib/core/database/isar_bootstrap_web.dart
+await Isar.initialize('isar_plus.wasm');
+return Isar.open(..., engine: IsarEngine.sqlite);
+```
+
+### Cabeçalhos COOP/COEP (SharedArrayBuffer / OPFS)
+
+Isar web e pdfrx WASM performam melhor com `SharedArrayBuffer`, que exige:
+
+```
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+```
+
+- **Produção:** configurado em `web/_headers` (Cloudflare Pages).
+- **Dev local:** `scripts/web_local_dev.py` injeta os mesmos headers.
+- **Sem COOP/COEP:** Isar/pdfrx caem em modos single-thread mais lentos — aumenta o tempo de boot.
+
+Referência: [WEB_BUILD_REFACTOR_PLAN.md §Fase 5/6](WEB_BUILD_REFACTOR_PLAN.md) (D5, D6).
+
+---
+
+## Por que no nativo (iOS/Android) isso não acontece
+
+| Fator | Web | Nativo |
+|---|---|---|
+| Engine | Baixado e compilado no browser a cada cold start | Binário AOT pré-instalado no dispositivo |
+| Isar | WASM + IndexedDB/OPFS (~1,3 MB + init) | Arquivo local via `path_provider` (instantâneo) |
+| pdfrx | WASM pdfium (~5 MB) carregado no boot | Biblioteca nativa linkada no app |
+| Primeiro frame | Só após WASM + init async | Quase imediato após `runApp` |
+| Cache | Depende de service worker / HTTP cache | N/A (app local) |
+
+O nativo **não paga o custo de rede + instanciação WASM** na abertura. O binário já está na memória do processo.
+
+---
+
+## Objetivos do plano
+
+1. **Percepção imediata:** splash/loader visível em <100 ms (HTML/CSS puro, sem Flutter).
+2. **Reduzir tempo até UI útil:** adiar init pesada (Isar, pdfrx) para depois do primeiro frame quando possível.
+3. **Otimizar cold start:** preload, cache headers, validar COOP/COEP em produção.
+4. **Medir antes/depois:** baseline Lighthouse + Performance API + DevTools Network.
+
+---
+
+## Plano de trabalho faseado
+
+Cada fase = PR pequeno e escopado. Seguir regra anti-overengineering: alterar só o necessário.
+
+### Fase A — Splash screen HTML (quick win, alto impacto na percepção)
+
+**Objetivo:** eliminar tela branca; mostrar branding enquanto Flutter carrega.
+
+**Arquivos:** `web/index.html` (principal), opcionalmente `web/splash.css`.
+
+**Implementação sugerida:**
+
+1. Adicionar `<div id="loading">` no `<body>` **antes** do script Flutter, com:
+   - Cor de fundo `#4B2D2B` (`AppColors.background` / `manifest.json` `background_color`)
+   - Logo ou texto "PLPCG" + spinner CSS
+   - `theme-color` já é `#D4AF37` (`AppColors.gold`)
+2. Remover o loader quando Flutter sinalizar primeiro frame:
+   - **Opção recomendada:** callback `onEntrypointLoaded` / `didCreateEngineInitializer` do `flutter_bootstrap.js` (ver [Flutter web initialization](https://docs.flutter.dev/platform-integration/web/initialization))
+   - **Opção simples:** `MutationObserver` em `flt-glass-pane` ou evento `flutter-first-frame`
+3. Garantir que o loader funciona **sem JavaScript Dart** — só HTML/CSS/JS vanilla.
+
+**Critérios de aceite:**
+
+- [ ] Loader visível em <100 ms após navegação (Network throttling 3G simulado).
+- [ ] Loader some suavemente no primeiro frame Flutter.
+- [ ] Sem regressão em PWA install (`manifest.json` background alinhado).
+- [ ] Smoke Chrome continua verde.
+
+**Estimativa de esforço:** baixo (1 PR, ~1–2 h).
+
+---
+
+### Fase B — Adiar inicialização de Isar e pdfrx
+
+**Objetivo:** `runApp` o mais cedo possível; init pesada em background.
+
+**Problema atual:** `main()` bloqueia ~2 WASM loads antes de qualquer UI.
+
+**Abordagem sugerida:**
+
+1. **`runApp` imediato** após `WidgetsFlutterBinding.ensureInitialized()`.
+2. Mover `openAppIsar()` para provider assíncrono (ex.: `FutureProvider<Isar>` ou `AsyncNotifier`) com estado `loading` / `ready` / `error`.
+3. Mover `pdfrxFlutterInitialize()` para **lazy init** — só quando o usuário abrir um PDF (ex.: no `PdfrxViewerAdapter` ou provider do leitor).
+4. Telas que dependem de Isar (catálogo cache, playlists, offline) exibem skeleton/loading até `isarProvider` resolver.
+5. Manter override em `ProviderScope` quando Isar estiver pronto (`ref.listen` + rebuild controlado, ou `ProviderScope` com override tardio via `UncontrolledProviderScope` / padrão já usado no projeto).
+
+**Arquivos prováveis:**
+
+- `lib/main.dart`
+- `lib/core/database/isar_provider.dart`
+- `lib/core/database/isar_bootstrap_web.dart`
+- `lib/app.dart` (shell de loading global opcional)
+- Features que usam `isarProvider` diretamente no boot
+
+**Riscos / cuidados:**
+
+- Race conditions se UI acessar Isar antes de estar pronto — usar `AsyncValue` consistentemente.
+- Smoke tests web precisam aguardar Isar ready.
+- Não quebrar boot nativo — conditional import já separa `isar_bootstrap_native.dart` / `_web.dart`.
+
+**Critérios de aceite:**
+
+- [ ] Primeiro frame Flutter em ≤2 s (cold start, rede rápida) — medir antes/depois.
+- [ ] Isar abre em background; catálogo mostra loading state explícito.
+- [ ] pdfrx só inicializa ao abrir PDF; leitor continua funcional.
+- [ ] `flutter test` + `flutter test --platform chrome` verdes.
+- [ ] Sem regressão iOS/Android.
+
+**Estimativa de esforço:** médio-alto (2–3 PRs).
+
+---
+
+### Fase C — Cache HTTP e service worker
+
+**Objetivo:** segunda visita e reload quente quase instantâneos.
+
+**Estado atual:**
+
+- `web/_headers` define COOP/COEP global; entrypoints (`index.html`, `main.dart.*`, `flutter_bootstrap.js`, `version.json`, `manifest.json`, `sw.js`, `flutter_service_worker.js`) são `no-cache`; só `flutter_bootstrap.js`, `main.dart.*`, `MaterialIcons-Regular.<hash>.otf` e o registo do `sw.js` (`sw.js?v=<tag>`) levam `?v=<web_cache_tag>` — os outros ficam sem query; `/canvaskit/<hash>/*` e `/assets/*` são `immutable`.
+- **Service worker próprio (`web/sw.js`, set/2026 — A9):** precache do shell (`CRITICAL`, ≈ 2 MB) no `install`; o engine realmente carregado (`main.dart.*` + variante de `canvaskit/<hash>/`) entra pela lista `used` que o `index.html` envia após o primeiro frame (resource timing, vem do cache HTTP); `WARM` em background; navegação network-first com fallback ao `index.html` em cache; um cache `plpcg-shell-<tag>` por deploy. O PWA instalado abre sem rede. Listas geradas por `scripts/generate_sw_manifest.py`; prova em CI por `scripts/verify_web_sw.py`.
+- `scripts/web_local_dev.py` / `web_frontend_server.py` espelham as mesmas regras de cache para validação local.
+
+**Implementação sugerida:**
+
+1. Em `web/_headers` (Cloudflare Pages), adicionar regras para:
+   ```
+   /*.wasm
+     Cache-Control: public, max-age=31536000, immutable
+
+   /*.js
+     Cache-Control: public, max-age=31536000, immutable
+   ```
+   (ajustar paths conforme estrutura real do build — ver também `/canvaskit/*`, `/assets/packages/*/assets/*`)
+2. Validar que `flutter_service_worker.js` continua com `no-cache` (**regra por último**, após `/*.js`).
+3. Confirmar que deploy em `plpcjf.org` / `v2.plpcg.com` aplica `_headers`.
+4. Documentar comportamento esperado: 1ª visita lenta, 2ª visita rápida.
+
+**Comportamento esperado (hard refresh vs reload):**
+
+| Ação | O que acontece |
+|---|---|
+| **1ª visita** (sem cache) | Download completo de WASM/JS; lento (~3–5 s antes do Flutter). |
+| **Reload normal** (F5) | Browser usa cache HTTP (`immutable`); SW revalida `flutter_service_worker.js`; rápido. |
+| **Hard refresh** (Ctrl+Shift+R) | Ignora cache HTTP; re-download de assets; similar à 1ª visita. |
+| **Novo deploy** | SW busca `flutter_service_worker.js` (`no-cache`), detecta hash novo, precacheia assets atualizados; visita seguinte usa versão nova. |
+
+**Validação pós-deploy:**
+
+```bash
+# Cache longo em assets WASM/JS
+curl -sI https://plpcjf.org/main.dart.wasm | grep -i cache-control
+curl -sI https://plpcjf.org/canvaskit/canvaskit.wasm | grep -i cache-control
+
+# Service worker sempre revalidado
+curl -sI https://plpcjf.org/flutter_service_worker.js | grep -i cache-control
+```
+
+DevTools → Network: reload normal deve mostrar `(disk cache)` ou `(memory cache)` em `.wasm`/`.js`; hard refresh deve mostrar transfer size completo.
+
+**Critérios de aceite:**
+
+- [x] Regras `immutable` em `web/_headers` + espelho em `web_local_dev.py`.
+- [ ] DevTools Network: assets `.wasm`/`.js` servidos com cache longo em produção (validar após deploy).
+- [x] Hard refresh vs normal reload documentados (tabela acima).
+- [ ] Service worker atualiza corretamente após novo deploy (validar após deploy).
+
+**Estimativa de esforço:** baixo (1 PR infra).
+
+---
+
+### Fase D — Validar COOP/COEP em produção
+
+**Objetivo:** garantir que Isar OPFS e pdfrx multi-thread estão ativos (não fallback lento).
+
+**Checklist:**
+
+- [x] `curl -I https://<domínio-web>/` → headers COOP/COEP presentes (validado local + script; **re-validar v2.plpcg.com pós-deploy**).
+- [x] Console do browser: sem warning de `SharedArrayBuffer` desabilitado (com COOP/COEP).
+- [x] Isar abre com OPFS / isolation ativa — `crossOriginIsolated === true` + OPFS API disponível.
+- [x] Comparar tempo de boot com e sem headers (baseline ~589 ms mais rápido até 1º frame com COOP/COEP).
+
+**Scripts:**
+
+```bash
+./scripts/verify_web_headers_artifact.sh          # pós-build (CI)
+./scripts/validate_web_coop_coep.sh https://v2.plpcg.com
+./scripts/validate_web_coop_coep.sh https://<hash>.plpcg-v2.pages.dev
+```
+
+**Relatório:** [web_phase_d_coop_coep_validation.md](web_phase_d_coop_coep_validation.md)
+
+**Referência:** `scripts/web_local_dev.py` já simula headers corretos em dev.
+
+**Estimativa de esforço:** baixo (validação + doc).
+
+---
+
+### Fase E — Preload de recursos críticos
+
+**Objetivo:** paralelizar download de WASM enquanto JS bootstrap parseia.
+
+**Implementação em `web/index.html`:**
+
+```html
+<link rel="preload" href="main.dart.wasm" as="fetch" crossorigin="anonymous">
+<link rel="preload" href="isar_plus.wasm" as="fetch" crossorigin="anonymous">
+<link rel="preload" href="canvaskit/skwasm.wasm" as="fetch" crossorigin="anonymous">
+```
+
+**Complemento:** [`web/flutter_bootstrap.js`](web/flutter_bootstrap.js) com `canvasKitBaseUrl: "canvaskit"` — sem isso o loader padrão baixa `skwasm.wasm` do CDN (`gstatic.com`) e o preload local vira download duplicado (~3,5 MB desperdiçados).
+
+**Cuidados:**
+
+- Preload errado desperdiça banda — medir impacto real antes/depois.
+- Se Fase B adiar pdfrx, **não** preload pdfium.
+
+**Critérios de aceite:**
+
+- [x] Waterfall Network mostra downloads paralelos (`main.dart.wasm`, `isar_plus.wasm`, `skwasm.wasm` no parse do HTML).
+- [x] Tempo total de boot medido (Performance API) igual ou menor.
+
+**Métricas (local, Chrome, `scripts/web_local_dev.py`, service worker bloqueado, jul/2026):**
+
+| Cenário | `flutter-first-frame` | Observação |
+|---|---|---|
+| Antes (sem preload, skwasm via CDN) | ~1678 ms | `skwasm.wasm` do gstatic após bootstrap |
+| Após Fase E (preload + skwasm local) | ~676 ms | 1 request por WASM; paralelo no `<head>` |
+
+**Estimativa de esforço:** baixo.
+
+---
+
+### Fase F — Code splitting / deferred imports
+
+**Objetivo:** reduzir tamanho do bundle inicial (`main.dart.wasm`).
+
+**Candidatos a `deferred as`:**
+
+- Feature PDF reader (`pdfrx`, adapters)
+- Feature offline bulk (ZIP, extractors)
+- Feature leaflet (captura PNG)
+- Telas raramente acessadas no primeiro uso (settings offline, etc.)
+
+**Abordagem:**
+
+1. Auditar grafo de imports a partir de `main.dart`.
+2. Aplicar `import '...' deferred as pdf_reader;` + `await pdf_reader.loadLibrary()` na navegação.
+3. Medir redução de `main.dart.wasm` e tempo de parse.
+
+**Riscos:**
+
+- Complexidade de routing (GoRouter) com libraries deferred.
+- WASM deferred loading tem nuances — testar em Chrome e Safari.
+
+**Critérios de aceite:**
+
+- [ ] `main.dart.wasm` reduzido mensuravelmente (meta: −15–30%, a validar).
+- [ ] Navegação para features deferred mostra loading breve aceitável.
+- [ ] Build WASM continua passando.
+
+**Estimativa de esforço:** alto (múltiplos PRs).
+
+---
+
+### Fase G — Otimizar boot do catálogo (~4600 louvores)
+
+**Objetivo:** UI shell visível enquanto catálogo carrega.
+
+**Implementado (jul/2026):**
+
+1. **Cache-first (stale-while-revalidate):** `LouvoresManifestNotifier` retorna cache Isar imediatamente quando disponível; `loadManifest()` remoto roda em background e atualiza `state` sem voltar a `loading`.
+2. **Skeleton shimmer:** `CatalogLoadingSliver` + `LouvorGroupCardSkeleton` na Home e Biblioteca substituem `CircularProgressIndicator` durante `manifestAsync.isLoading`.
+3. **Repositório:** `CatalogRepository.loadCachedLouvores()` — leitura local sem rede.
+
+**Arquivos:**
+
+- `lib/features/catalog/presentation/providers/louvores_manifest_provider.dart`
+- `lib/features/catalog/domain/repositories/catalog_repository.dart`
+- `lib/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart`
+- `lib/core/widgets/shimmer_placeholder.dart`
+- `lib/features/catalog/presentation/pages/home_screen.dart`
+- `lib/features/library/presentation/pages/library_screen.dart`
+
+**Avaliação Isar (~4600 registros):** leitura via `findAll()` no cache-first é ordem de dezenas–centenas de ms (local); gargalo perceptível na 1ª visita continua sendo fetch remoto `GET /api/catalog/louvores`. Índices extras não implementados — sem evidência de ganho no open.
+
+**Medição manual sugerida (DevTools, pós-deploy):**
+
+| Métrica | Como medir |
+|---|---|
+| Skeleton visível | Após `flutter-first-frame`, Home/Biblioteca mostram chips skeleton (1ª visita) ou dados imediatos (cache quente) |
+| Manifest `data` | Performance API / breakpoint em `louvoresManifestProvider` |
+| Boot recorrente | Reload normal: manifest `data` antes do fetch remoto concluir |
+
+**Critérios de aceite:**
+
+- [x] Home mostra shell (filtros + busca) + skeleton em <500 ms após primeiro frame Flutter (skeleton no 1º paint da Home; cache quente pula skeleton).
+- [x] Catálogo interativo assim que manifest estiver `data` (busca UC-01 + filtros material; arranjos após `availableArranjos`).
+
+**Estimativa de esforço:** médio.
+
+---
+
+### Fase H — Medição e regressão contínua
+
+**Objetivo:** baseline numérico e gate de regressão.
+
+**Métricas a capturar (cold start, throttling Fast 3G):**
+
+| Métrica | Como medir |
+|---|---|
+| Time to loader visible | Performance `navigationStart` → loader paint |
+| Time to first Flutter frame | `flutter-first-frame` event ou `flt-glass-pane` no DOM |
+| Time to interactive home | Manifest `data` + lista renderizada |
+| Total transfer size | DevTools Network (Disable cache) |
+| Lighthouse Performance score | CI ou manual pré-release |
+
+**Ações:**
+
+- [x] Script ou doc com passos reproduzíveis de medição — [web_phase_h_measurement.md](web_phase_h_measurement.md), `scripts/measure_web_boot.sh`.
+- [x] Teste estático (`test/web/web_index_perf_test.dart`) asserta splash + `__plpcgPerf` + preload em `index.html`.
+- [x] Baseline versionado em [web_perf_baseline.json](web_perf_baseline.json); gate CI `--check` compara mediana de 2 runs.
+
+---
+
+## Ordem recomendada de execução
+
+```text
+A (splash HTML)  →  percepção imediata, baixo risco
+D (validar COOP) →  garantir ambiente correto antes de otimizar
+C (cache headers)→  melhora visitas subsequentes
+B (defer init)   →  maior ganho no cold start real
+E (preload)      →  incremental sobre B
+G (catálogo UX)  →  paralelo ou após B
+F (deferred)     →  maior esforço, fazer por último
+H (medição)      →  contínuo em todas as fases
+```
+
+---
+
+## Arquivos e referências do repositório
+
+| Arquivo | Relevância |
+|---|---|
+| `web/index.html` | Ponto de entrada; splash loader; preload WASM |
+| `web/flutter_bootstrap.js` | Boot customizado; `canvasKitBaseUrl` local para skwasm |
+| `web/_headers` | COOP/COEP + cache (Cloudflare Pages) |
+| `web/manifest.json` | Cores PWA (`#4B2D2B`, `#D4AF37`) |
+| `web/isar_plus.wasm`, `web/isar_plus.js` | Assets Isar web (OPFS) |
+| `lib/main.dart` | Boot bloqueante atual |
+| `lib/core/database/isar_bootstrap_web.dart` | Init Isar WASM |
+| `lib/core/database/isar_bootstrap_native.dart` | Comparação nativo |
+| `lib/app.dart` | Dispara manifest no boot |
+| `lib/core/theme/color_extensions.dart` | Tokens de cor para splash |
+| `scripts/web_build.sh` | Build release WASM |
+| `scripts/web_local_dev.py` | Dev local com COOP/COEP |
+| `scripts/validate_web_coop_coep.sh` | Validação HTTP COOP/COEP (Fase D) |
+| `scripts/verify_web_headers_artifact.sh` | Gate pós-build `_headers` (Fase D / CI) |
+| `docs/web_phase_d_coop_coep_validation.md` | Relatório Fase D |
+| `scripts/fetch_isar_web_assets.sh` | Copia WASM Isar para `web/` |
+| `docs/WEB_BUILD_REFACTOR_PLAN.md` | Contexto migração web (D5 WASM, D6 COOP) |
+| `docs/web_phase8_build_report.md` | Versões Flutter/Dart usadas no build |
+
+---
+
+## Prompt sugerido para o próximo agente
+
+```text
+Siga docs/WEB_PERFORMANCE_AND_LOADING.md.
+
+Fase deste PR: [A|B|C|D|E|F|G|H]
+Objetivo: [descrever fase]
+
+Antes de codar:
+1. Medir baseline cold start (DevTools, Disable cache).
+2. Confirmar COOP/COEP se a fase tocar Isar/pdfrx.
+
+Build/test:
+  flutter analyze
+  flutter test
+  flutter test --platform chrome test/web/ --dart-define-from-file=dart_defines/plpcjf.json
+  flutter build web --wasm --release --dart-define-from-file=dart_defines/plpcjf.json
+
+Regras:
+- Anti-overengineering: só alterar o escopo da fase.
+- Não quebrar boot nativo (iOS/Android).
+- Documentar métricas antes/depois neste arquivo ou em comentário no PR.
+```
+
+---
+
+## Notas adicionais
+
+- **Tela branca ≠ bug de Flutter** — é comportamento esperado sem splash customizado + boot síncrono pesado.
+- **Eliminar completamente o delay na 1ª visita é impossível** (WASM + rede); o objetivo realista é (1) feedback visual imediato e (2) reduzir bytes/init antes do primeiro frame.
+- **Safari iOS** pode ser mais lento com WASM — incluir no test plan (Fase 5 do refactor plan já alertava para isso).
+- Após Fase A, o usuário verá loader → app; o tempo total pode ser igual, mas a **percepção** melhora drasticamente.
+- **Fontes (Tarefa 5, set/2026):** `EBGaramond[wght].ttf` e `OpenSans[wght].ttf` (renomeado — eixo `wdth` fixado em 100 e removido) são gerados por `scripts/subset_fonts.sh` a partir dos originais em `assets/fonts/source/`, com subset de unicodes (Latin + pontuação + bemol/sustenido de cifras) via `fontTools.subset`/`fontTools.varLib.instancer`. Total caiu de ~1,35 MB para ~284 KB (188 KB + 96 KB). O range `U+266D-266F` (♭ ♮ ♯) está no subset por precaução, mas **nenhuma das duas fontes originais tem esses glifos** — cifras com bemol/sustenido caem no fallback do sistema, e ampliar o range não muda o tamanho. `--no-tree-shake-icons` foi removido de `scripts/web_build.sh`: `scripts/cache_bust_web_entrypoints.sh` já renomeia `MaterialIcons-Regular.otf` com hash de conteúdo e atualiza o `FontManifest.json`, então um subset de ícones diferente a cada build não gera mais ícone em branco por cache immutable.
+
+---
+
+## Histórico
+
+| Data | Evento |
+|---|---|
+| jul/2026 | Documento criado a partir de análise de cold start web vs nativo |
+| jul/2026 | **Fase C:** cache HTTP `immutable` para `.wasm`/`.js` em `web/_headers`; espelho em `web_local_dev.py` |
+| jul/2026 | **Fase D:** scripts `validate_web_coop_coep.sh` + `verify_web_headers_artifact.sh`; baseline COOP/COEP; relatório [web_phase_d_coop_coep_validation.md](web_phase_d_coop_coep_validation.md) |
+| jul/2026 | **Fase G:** cache-first manifest (`LouvoresManifestNotifier`); skeleton Home/Biblioteca; `loadCachedLouvores()` |
+| jul/2026 | **Fase E:** preload WASM em `index.html` + `canvasKitBaseUrl` local em `flutter_bootstrap.js`; 1º frame ~1678 ms → ~676 ms (dev local, Chrome) |
+| jul/2026 | **Fase F (baseline pré-split):** `main.dart.wasm` 3,6 MB, `main.dart.js` 4,1 MB, 0 chunks deferred |
+| jul/2026 | **Fase H:** `window.__plpcgPerf` em `index.html`; `measure_web_boot.sh` + baseline JSON; gate CI; doc [web_phase_h_measurement.md](web_phase_h_measurement.md) |
+| jul/2026 | **Fase F (pós-split):** `main.dart.wasm` 3,6 MB; `main.dart.js` 3,7 MB (−~10%); 5 chunks `.part.js` (~338 KB total: pdf_reader, offline_bulk, leaflet); pdfrx/archive/leaflet adiados até navegação/ação |
+| set/2026 | **canvaskit com hash no caminho:** `scripts/cache_bust_web_entrypoints.sh` move `canvaskit/` → `canvaskit/<hash>/` e reaponta `canvasKitBaseUrl` e o preload de `skwasm.wasm`. Causa: `/canvaskit/*` é `immutable` por 1 ano com nomes fixos — no upgrade Flutter 3.44 → 3.47 o navegador ficou com `skwasm.js` velho e `main.dart.wasm` novo (`LinkError: Import "skwasm" "emscripten_builtin_free"`, app presa no loader). Teste: `test/web/cache_bust_web_entrypoints_test.dart` |
+| set/2026 | **Tarefa 5 (Top 12 web, A2):** subset de fontes (`scripts/subset_fonts.sh`) — EBGaramond+OpenSans de ~1,35 MB → ~284 KB; `--no-tree-shake-icons` removido de `scripts/web_build.sh` (coberto pelo hash de `MaterialIcons-Regular.otf` em `cache_bust_web_entrypoints.sh`); preload das duas fontes em `web/index.html` |
+| set/2026 | **Shell offline (A9):** `web/sw.js` próprio + `scripts/generate_sw_manifest.py` (`CRITICAL` ≈ 2 MB: bootstrap + isar + manifests + fontes + ícones; ENGINE `main.dart.*`/`canvaskit/<hash>/**` fora das listas, aquecido pela lista `used` da página; `WARM` = resto); registo após `flutter-first-frame`; `flutter_bootstrap.js` sem `serviceWorkerSettings`; `navigator.storage.persist()` no boot; `manifest.json` `id`/`scope`; CI corre o cache-bust, `verify_web_headers_artifact.sh` exige `sw.js` sem placeholders e `verify_web_sw.py` prova engine aquecido + boot com o servidor em baixo. Spec `2026-09-14-pwa-shell-offline-design.md` |

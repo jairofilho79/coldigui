@@ -4,28 +4,12 @@ import 'package:flutter/services.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
 import '../../../../l10n/app_localizations.dart';
 
-/// Resultado do diálogo de importação de playlist (UC-07).
-class ImportPlaylistDialogResult {
-  const ImportPlaylistDialogResult({
-    required this.sharePdfs,
-    required this.shareName,
-  });
-
-  /// Valor bruto do param `sharepdfs` (CSV).
-  final String sharePdfs;
-
-  /// Nome da playlist conforme param `sharename`.
-  final String shareName;
-}
-
 /// Diálogo para colar URL de playlist compartilhada (UC-07, Fase 4.4).
-Future<ImportPlaylistDialogResult?> showImportPlaylistDialog(
-  BuildContext context,
-) {
+Future<PlaylistShareParams?> showImportPlaylistDialog(BuildContext context) {
   final l10n = AppLocalizations.of(context)!;
   final controller = TextEditingController();
 
-  return showDialog<ImportPlaylistDialogResult>(
+  return showDialog<PlaylistShareParams>(
     context: context,
     builder: (dialogContext) {
       var invalidInput = false;
@@ -38,12 +22,7 @@ Future<ImportPlaylistDialogResult?> showImportPlaylistDialog(
               setState(() => invalidInput = true);
               return;
             }
-            Navigator.of(dialogContext).pop(
-              ImportPlaylistDialogResult(
-                sharePdfs: params.sharePdfs,
-                shareName: params.shareName,
-              ),
-            );
+            Navigator.of(dialogContext).pop(params);
           }
 
           Future<void> pasteFromClipboard() async {
@@ -66,8 +45,9 @@ Future<ImportPlaylistDialogResult?> showImportPlaylistDialog(
                   maxLines: 4,
                   decoration: InputDecoration(
                     labelText: l10n.playlistImportUrlLabel,
-                    errorText:
-                        invalidInput ? l10n.playlistImportInvalidUrl : null,
+                    errorText: invalidInput
+                        ? l10n.playlistImportInvalidUrl
+                        : null,
                   ),
                   onChanged: (_) {
                     if (invalidInput) {

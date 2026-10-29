@@ -1,0 +1,118 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../audio_player/domain/entities/audio_track.dart';
+import '../../../chords/domain/entities/chord_material.dart';
+import '../../../coldigom/data/providers/coldigom_providers.dart';
+import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
+import '../../domain/entities/louvor.dart';
+import '../../domain/entities/louvor_group.dart';
+import '../../domain/entities/youtube_material.dart';
+
+/// Leitura **síncrona** de material por id, para a presentation (C.3).
+///
+/// Vinte arquivos liam os caches Coldigom direto, cada um sabendo qual dos
+/// cinco notifiers guardava o quê. Aqui a pergunta é sempre a mesma ("qual
+/// material é este id?") e a resposta vem no mesmo frame — sempre dos caches
+/// do catálogo coldigom: nada aqui espera rede.
+///
+/// Complementa (não substitui) `CatalogSource`: a porta monta **grupos** e é
+/// assíncrona; o lookup só devolve o material solto que já está em memória.
+final class CatalogMaterialLookup {
+  const CatalogMaterialLookup({
+    this.coldigomLouvoresByPdfId = const {},
+    this.audioTracksById = const {},
+    this.chordsById = const {},
+    this.gesturesById = const {},
+    this.praiseMetaByGroupId = const {},
+    this.youtubeByGroupId = const {},
+  });
+
+  /// PDFs do catálogo coldigom em memória, por `pdfId`.
+  final Map<String, Louvor> coldigomLouvoresByPdfId;
+
+  /// Faixas Coldigom em cache, por `audioId`.
+  final Map<String, AudioTrack> audioTracksById;
+
+  /// Cifras Coldigom em cache, por `chordId`.
+  final Map<String, ChordMaterial> chordsById;
+
+  /// Documentos de gestos Coldigom em cache, por `gestureId`.
+  final Map<String, GestureMaterial> gesturesById;
+
+  /// Metadados do praise em cache, por `groupId`.
+  final Map<String, ColdigomPraiseMetadata> praiseMetaByGroupId;
+
+  /// Links de YouTube em cache, por `groupId`.
+  final Map<String, List<YoutubeMaterial>> youtubeByGroupId;
+
+  /// PDF de [materialId], ou `null` se o catálogo em memória ainda não o tem
+  /// (antes da hidratação, ou id legado que o crosswalk não conhece).
+  Louvor? louvor(String materialId) => coldigomLouvoresByPdfId[materialId];
+
+  /// Faixa de áudio em cache, ou `null`.
+  AudioTrack? audioTrack(String audioId) => audioTracksById[audioId];
+
+  /// Cifra em cache, ou `null`.
+  ChordMaterial? chord(String chordId) => chordsById[chordId];
+
+  /// Documento de gestos em cache, ou `null`.
+  GestureMaterial? gesture(String gestureId) => gesturesById[gestureId];
+
+  /// Cifras em cache do praise [groupId], ordenadas por categoria.
+  ///
+  /// Varre o cache (pequeno: só o que já foi aquecido) — o sheet e o leitor
+  /// de cifra perguntam por louvor, não por id de cifra.
+  List<ChordMaterial> chordsOfGroup(String groupId) => [
+    for (final chord in chordsById.values)
+      if (chord.groupId == groupId) chord,
+  ]..sort((a, b) => a.categoria.compareTo(b.categoria));
+
+  /// Metadados do praise Coldigom, ou `null`.
+  ColdigomPraiseMetadata? praiseMeta(String groupId) =>
+      praiseMetaByGroupId[groupId];
+
+  /// Links de YouTube do praise; lista vazia quando não há.
+  List<YoutubeMaterial> youtube(String groupId) =>
+      youtubeByGroupId[groupId] ?? const [];
+
+  /// [group] com a [ColdigomPraiseMetadata] e vídeos YouTube em cache
+  /// anexados, quando faltam.
+  ///
+  /// Quem não é Coldigom não tem entrada no cache, então não precisa de
+  /// checagem por acervo. Só lê o cache — nunca busca na rede: um praise cujo
+  /// detalhe ainda não foi carregado abre o sheet sem o cabeçalho de
+  /// metadados.
+  LouvorGroup withPraiseMeta(LouvorGroup group) {
+    var result = group;
+    if (result.coldigomMeta == null) {
+      final meta = praiseMeta(result.groupId);
+      if (meta != null) result = result.withColdigomMeta(meta);
+    }
+    if (result.youtubeMaterials.isEmpty) {
+      final yt = youtube(result.groupId);
+      if (yt.isNotEmpty) result = result.withYoutubeMaterials(yt);
+    }
+    return result;
+  }
+
+  /// Faixas na ordem de [audioIds], **ignorando** ids sem hit no cache.
+  ///
+  /// Mesma regra de `tracksForAudioIds`: uma lista salva pode citar um áudio
+  /// que ainda não foi aquecido, e isso não pode furar a fila.
+  List<AudioTrack> tracksFor(Iterable<String> audioIds) => [
+    for (final id in audioIds) ?audioTracksById[id],
+  ];
+}
+
+/// Lookup síncrono do material por id, sobre os caches do catálogo coldigom.
+final catalogMaterialLookupProvider = Provider<CatalogMaterialLookup>((ref) {
+  return CatalogMaterialLookup(
+    coldigomLouvoresByPdfId: ref.watch(coldigomLouvoresCacheProvider),
+    audioTracksById: ref.watch(coldigomAudioTracksCacheProvider),
+    chordsById: ref.watch(coldigomChordMaterialsCacheProvider),
+    gesturesById: ref.watch(coldigomGestureMaterialsCacheProvider),
+    praiseMetaByGroupId: ref.watch(coldigomPraiseMetaCacheProvider),
+    youtubeByGroupId: ref.watch(coldigomYoutubeCacheProvider),
+  );
+});
