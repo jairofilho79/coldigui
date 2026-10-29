@@ -120,47 +120,49 @@ class _SearchBarState extends State<SearchBar> {
         // busca quer a lista inteira de volta.
         const SingleActivator(LogicalKeyboardKey.escape): _clearSearch,
       },
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => _focusNode.requestFocus(),
-        child: GoldenTaggedContainer(
-          label: l10n.searchLabel,
-          glowEnabled: true,
-          glowActive: _glowActive,
-          contentPadding: GoldenTaggedContainer.compactContentPaddingFor(
-            context,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Icon(Icons.search, color: AppColors.title, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  style: AppTypography.input.copyWith(height: 1.1),
-                  maxLines: 1,
-                  textAlignVertical: TextAlignVertical.center,
-                  decoration: InputDecoration(
-                    hintText: widget.hintText,
-                    hintStyle: AppTypography.inputHint(italic: true)
-                        .copyWith(height: 1.1),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    filled: false,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
+      child: TextFieldTapRegion(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _focusNode.requestFocus(),
+          child: GoldenTaggedContainer(
+            label: l10n.searchLabel,
+            glowEnabled: true,
+            glowActive: _glowActive,
+            contentPadding: GoldenTaggedContainer.compactContentPaddingFor(
+              context,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(Icons.search, color: AppColors.title, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    style: AppTypography.input.copyWith(height: 1.1),
+                    maxLines: 1,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration(
+                      hintText: widget.hintText,
+                      hintStyle: AppTypography.inputHint(italic: true)
+                          .copyWith(height: 1.1),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    autofocus: shouldAutofocusSearch(
+                      platform: defaultTargetPlatform,
+                    ),
+                    textInputAction: TextInputAction.search,
+                    onChanged: widget.onQueryChanged,
+                    onSubmitted: widget.onSubmitted,
+                    onTapOutside: (_) => _focusNode.unfocus(),
                   ),
-                  autofocus: shouldAutofocusSearch(
-                    platform: defaultTargetPlatform,
-                  ),
-                  textInputAction: TextInputAction.search,
-                  onChanged: widget.onQueryChanged,
-                  onSubmitted: widget.onSubmitted,
                 ),
-              ),
               ValueListenableBuilder<TextEditingValue>(
                 valueListenable: _controller,
                 builder: (context, value, _) {
@@ -192,6 +194,7 @@ class _SearchBarState extends State<SearchBar> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

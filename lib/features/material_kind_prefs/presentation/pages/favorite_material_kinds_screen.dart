@@ -141,6 +141,7 @@ class _FavoriteMaterialKindsScreenState
         syncState.lastErrorCause != null;
 
     return CustomScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -342,41 +343,44 @@ class _FavoriteMaterialKindsScreenState
   /// Busca no mesmo molde da [SearchBar] da Pesquisar: caixa creme com tag,
   /// glow dourado no foco, ícone/texto vinho.
   Widget _searchField(AppLocalizations l10n) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: _searchFocus.requestFocus,
-      child: GoldenTaggedContainer(
-        label: l10n.searchLabel,
-        glowEnabled: true,
-        glowActive: _searchFocused,
-        contentPadding: GoldenTaggedContainer.compactContentPaddingFor(context),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Icon(Icons.search, color: AppColors.title, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: _searchController,
-                focusNode: _searchFocus,
-                style: AppTypography.input.copyWith(height: 1.1),
-                maxLines: 1,
-                textAlignVertical: TextAlignVertical.center,
-                decoration: InputDecoration(
-                  hintText: l10n.favoriteMaterialKindsSearchHint,
-                  hintStyle: AppTypography.inputHint(italic: true)
-                      .copyWith(height: 1.1),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  filled: false,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
+    return TextFieldTapRegion(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _searchFocus.requestFocus,
+        child: GoldenTaggedContainer(
+          label: l10n.searchLabel,
+          glowEnabled: true,
+          glowActive: _searchFocused,
+          contentPadding: GoldenTaggedContainer.compactContentPaddingFor(context),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Icon(Icons.search, color: AppColors.title, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocus,
+                  style: AppTypography.input.copyWith(height: 1.1),
+                  maxLines: 1,
+                  textAlignVertical: TextAlignVertical.center,
+                  decoration: InputDecoration(
+                    hintText: l10n.favoriteMaterialKindsSearchHint,
+                    hintStyle: AppTypography.inputHint(italic: true)
+                        .copyWith(height: 1.1),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onChanged: (value) => setState(() => _query = value),
+                  onTapOutside: (_) => _searchFocus.unfocus(),
                 ),
-                onChanged: (value) => setState(() => _query = value),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
