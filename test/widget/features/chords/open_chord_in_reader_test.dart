@@ -114,8 +114,7 @@ void main() {
     // Garante a lista ativa carregada antes de abrir a cifra.
     capturedRef.read(playlistsProvider);
     // Quem grava a cifra no cache é o sheet de materiais (pelo
-    // `coldigomCacheWriter`) antes de o tile abrir; `openChordInReader` só
-    // entra na lista e navega.
+    // `coldigomCacheWriter`) antes de o tile abrir; o opener só navega.
     capturedRef.read(coldigomCacheWriterProvider).mergeChords([_chord]);
     await tester.pumpAndSettle();
     return capturedRef;
@@ -124,10 +123,6 @@ void main() {
   testWidgets('cifra já na lista ativa abre /cifra sem regravar a lista', (
     tester,
   ) async {
-    // O tile passou a abrir a cifra pelo `openMaterialProvider`, que em
-    // produção é o `openChordInReader` — e ele entra na lista ativa como o PDF
-    // faz. Este teste fixa o efeito colateral do caminho composto: a cifra que
-    // já está na lista **não** regrava a lista (só foca o chip).
     await repository.create(
       nome: 'Ensaio',
       pdfIds: [_chordId],
@@ -149,11 +144,9 @@ void main() {
     expect(ref.read(coldigomChordMaterialsCacheProvider)[_chordId], isNotNull);
   });
 
-  testWidgets('cifra fora da lista ativa entra na lista (controle)', (
+  testWidgets('cifra fora da lista ativa abre sem alterar a lista', (
     tester,
   ) async {
-    // Controle do teste acima: com a cifra ausente o mesmo caminho **grava** a
-    // lista, o que prova que as asserções de "não regravou" pegam a escrita.
     await repository.create(
       nome: 'Ensaio',
       pdfIds: [_pdfA],
@@ -168,8 +161,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final after = await repository.getById('p1');
-    expect(after!.items, [_pdfA, _chordId]);
-    expect(after.updatedAt.isAfter(before!.updatedAt), isTrue);
+    expect(after!.items, [_pdfA]);
+    expect(after.updatedAt, before!.updatedAt);
+    expect(after.version, before.version);
     expect(find.text('cifra:$_chordId'), findsOneWidget);
   });
 }

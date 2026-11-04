@@ -47,15 +47,14 @@ ChordRoute chordRouteFor(
   );
 }
 
-/// Abre [chord] em `/cifra`, entrando na lista ativa como o PDF faz.
+/// Abre [chord] em `/cifra` sem alterar a lista ativa.
 ///
 /// Espelha `openLouvorInReader`, sem a etapa de resolve local: o `.chord` é
 /// buscado pelo `chordSongProvider`, que já está aquecido pelo sheet. As
 /// cifras do grupo entram no cache no data, por quem monta o grupo
 /// (`ColdigomCacheWriter`) — a presentation não escreve cache (C.3).
 ///
-/// O `kind` vai explícito: o id da cifra é classificável por extensão, mas
-/// quem chama **sabe** que é cifra e não precisa pagar a decodificação.
+/// A adição à lista ativa é uma ação separada, pelo botão `+`.
 Future<void> openChordInReader({
   required WidgetRef ref,
   required BuildContext context,

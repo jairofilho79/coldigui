@@ -27,6 +27,11 @@ Playlist persistida em Isar
 
 Modelo: id, nome, pdfIds[], createdAt, favorita
 
+- Abrir uma cifra ou gestos não adiciona o material à playlist nem regrava a
+  lista existente. A adição é uma ação explícita pelo botão `+`.
+- Quando o material aberto não pertence à lista ativa, o modal o mostra em uma
+  seção separada e mantém o destaque no item focado da lista.
+
 ## Componentes Flutter alvo
 
 PlaylistsScreen, CreatePlaylistFromCarousel
