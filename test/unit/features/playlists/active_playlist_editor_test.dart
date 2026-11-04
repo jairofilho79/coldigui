@@ -368,6 +368,47 @@ void main() {
     expect(replaced, isFalse);
   });
 
+  for (final replacement in [
+    PlaylistEntry(id: _pdfC, kind: MaterialKind.pdf),
+    PlaylistEntry(id: _audioA, kind: MaterialKind.audio),
+    const PlaylistEntry(id: 'chord-1', kind: MaterialKind.chord),
+    const PlaylistEntry(id: 'gesture-1', kind: MaterialKind.gesture),
+    const PlaylistEntry(id: 'lyrics:p1', kind: MaterialKind.lyrics),
+  ]) {
+    test(
+      'replaceByKey persiste ${replacement.kind} na posição intermediária',
+      () async {
+        final before = PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf);
+        final current = PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf);
+        const after = PlaylistEntry(id: 'other-audio', kind: MaterialKind.audio);
+        await repository.create(
+          nome: 'Ativa',
+          entries: [before, current, after],
+          playlistId: 'p1',
+          salva: false,
+        );
+        final c = await boot(activeId: 'p1');
+
+        final replaced = await c
+            .read(activePlaylistEditorProvider.notifier)
+            .replaceByKey(_pdfB, replacement);
+        await _flush();
+
+        expect(replaced, isTrue);
+        expect((await repository.getById('p1'))!.entries, [
+          before,
+          replacement,
+          after,
+        ]);
+        expect(c.read(activeEntriesProvider).map((e) => e.entry), [
+          before,
+          replacement,
+          after,
+        ]);
+      },
+    );
+  }
+
   test('reorder aplica a permutação completa, áudio incluído', () async {
     await repository.create(
       nome: 'Ativa',
