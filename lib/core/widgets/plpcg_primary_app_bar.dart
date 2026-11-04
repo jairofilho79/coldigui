@@ -53,8 +53,10 @@ class PlpcgPrimaryAppBar extends StatelessWidget
       _ => null,
     };
 
-    final canPop =
-        router != null ? router.canPop() : Navigator.of(context).canPop();
+    // O sheet preservado sob o leitor não é uma página anterior da Home.
+    final canPop = router != null
+        ? path != RoutePaths.home && router.canPop()
+        : Navigator.of(context).canPop();
 
     return AppBar(
       automaticallyImplyLeading: false,
