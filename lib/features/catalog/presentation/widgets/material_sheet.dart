@@ -40,6 +40,9 @@ typedef MaterialSheetOpener = Future<void> Function(CatalogMaterial material);
 /// [onMaterialSelected] substitui a abertura padrão; a troca de material passa
 /// o seu próprio handler porque, no leitor, escolher outro PDF **substitui** a
 /// entrada do carousel em vez de empilhar uma rota nova.
+///
+/// Na Home, a abertura padrão mantém o sheet sob o leitor: o pop revela o
+/// mesmo louvor, aba e posição de rolagem, sem alterar a URL da pesquisa.
 Future<void> showMaterialSheet(
   BuildContext context,
   WidgetRef ref,
@@ -60,6 +63,10 @@ Future<void> showMaterialSheet(
       (CatalogMaterial material) => ref
           .read(openMaterialProvider)
           .open(context, ref, material, audioQueue: group.audioTracks);
+  final keepOpenForReader =
+      onMaterialSelected == null &&
+      GoRouter.maybeOf(context) != null &&
+      GoRouterState.of(context).uri.path == RoutePaths.home;
 
   return showModalBottomSheet<void>(
     context: context,
@@ -73,6 +80,7 @@ Future<void> showMaterialSheet(
         initialKind: initialKind,
         currentMaterialId: currentMaterialId,
         currentEntryKey: currentEntryKey,
+        keepOpenForReader: keepOpenForReader,
       );
     },
   );
@@ -87,6 +95,7 @@ class MaterialSheet extends ConsumerStatefulWidget {
     this.initialKind,
     this.currentMaterialId,
     this.currentEntryKey,
+    this.keepOpenForReader = false,
     super.key,
   });
 
@@ -96,6 +105,7 @@ class MaterialSheet extends ConsumerStatefulWidget {
   final MaterialKind? initialKind;
   final String? currentMaterialId;
   final String? currentEntryKey;
+  final bool keepOpenForReader;
 
   @override
   ConsumerState<MaterialSheet> createState() => _MaterialSheetState();
@@ -103,6 +113,9 @@ class MaterialSheet extends ConsumerStatefulWidget {
 
 class _MaterialSheetState extends ConsumerState<MaterialSheet> {
   late LouvorGroup _currentGroup;
+  late final TutorialController _tutorialController;
+  var _portalRegistered = false;
+  var _openingReader = false;
   final SpotlightGuidePortalController _portalController =
       SpotlightGuidePortalController();
 
@@ -110,27 +123,54 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
   void initState() {
     super.initState();
     _currentGroup = widget.group;
-    try {
-      ref
-          .read(tutorialControllerProvider)
-          .pushPortalController(_portalController);
-    } catch (_) {}
+    _tutorialController = ref.read(tutorialControllerProvider);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isCurrent = ModalRoute.isCurrentOf(context) ?? true;
+    if (isCurrent == _portalRegistered) return;
+    if (isCurrent) {
+      _tutorialController.pushPortalController(_portalController);
+    } else {
+      if (_portalController.isShowing) _portalController.hide();
+      _tutorialController.popPortalController(_portalController);
+    }
+    _portalRegistered = isCurrent;
   }
 
   @override
   void dispose() {
-    try {
-      if (_portalController.isShowing) {
-        _portalController.hide();
-      }
-      ref
-          .read(tutorialControllerProvider)
-          .popPortalController(_portalController);
-    } catch (_) {}
+    if (_portalController.isShowing) _portalController.hide();
+    if (_portalRegistered) {
+      _tutorialController.popPortalController(_portalController);
+    }
     super.dispose();
   }
 
+  Future<void> _openKeepingSheet(CatalogMaterial material) async {
+    _openingReader = true;
+    try {
+      await widget.onMaterialSelected(material);
+      // Aguarda o push do GoRouter antes de detectar uma abertura sem navegação.
+      await WidgetsBinding.instance.endOfFrame;
+      if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+        // Revela a snackbar da Home quando o resolve falha.
+        Navigator.of(context).pop();
+      }
+    } finally {
+      _openingReader = false;
+    }
+  }
+
   void _handleTap(CatalogMaterial material) {
+    if (_openingReader) return;
+    if (widget.keepOpenForReader && material is! YoutubeMaterialRef) {
+      unawaited(_openKeepingSheet(material));
+      return;
+    }
+
     Navigator.of(context).pop();
 
     if (material is AudioMaterial) {
@@ -378,5 +418,3 @@ class _SheetHeader extends StatelessWidget {
     );
   }
 }
-
-

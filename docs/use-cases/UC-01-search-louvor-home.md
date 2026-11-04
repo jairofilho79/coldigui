@@ -19,6 +19,15 @@ Manifest carregado; app online ou offline com catálogo cacheado (PLPCG em Louvo
 
 Busca vazia → lista vazia. Número exato → match prioritário. Texto → busca tolerante (acentos, stop words PT). Sem rede → «Em cache · sem ligação» (remoto não é chamado). Remoto falha → «Em cache · não foi possível verificar» (toque = tentar de novo); lista local intacta. Remoto com menos itens que o local → nada é removido (só o sync substitui).
 
+Ao abrir um material pelo bottom sheet da Home, o sheet permanece sob a rota
+de leitura (PDF, cifra, gestos, letra ou áudio). Voltar pela seta ou pelo
+sistema revela o mesmo louvor, versão, aba e posição de rolagem, preservando
+a pesquisa e os filtros. Trocar de leitor não empilha novos sheets. Fechar o
+sheet encerra essa seleção, sem reabertura automática. Links diretos no leitor,
+YouTube externo, sheets de outras telas e handlers de troca de material
+mantêm o comportamento anterior. Se a abertura falhar antes da navegação,
+o sheet fecha para deixar visível a mensagem de erro.
+
 ## Pós-condições
 
 URL atualizada com pesquisa=; resultados visíveis
