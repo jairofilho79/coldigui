@@ -58,9 +58,11 @@ python3 scripts/task_delivery.py install
 ```
 
 Inicie uma nova sessão Copilot para carregar os hooks do repositório. A proteção
-remota exige PR e checks `web`/`worker`, inclusive para administradores; aprovação
-conversacional de merge e autorização de deploy são decisões separadas. A skill
-documenta os comandos, estado idempotente e limites das proteções locais.
+remota exige PR inclusive para administradores. Os checks `web` e `worker`
+continuam executando, mas não bloqueiam o merge: confira seus resultados e informe
+os testes locais e eventuais pendências antes da aprovação. A aprovação de merge e
+a autorização de deploy são decisões separadas. A skill documenta os comandos,
+estado idempotente e limites das proteções locais.
 
 ### Deploy Unificado (Web, iPad e Android)
 Deploy em todas as plataformas com abertura automática da pasta do APK no Finder ao concluir:
