@@ -73,58 +73,81 @@ void main() {
       expect(item.kind, MaterialKind.chord);
     });
 
-    test('resolve faixa de audio quando presente no audioPlayerSessionProvider', () {
-      const track = AudioTrack(
-        audioId: 'audio-123',
-        r2Key: 'assets/praises/005.mp3',
-        groupId: 'grp-1',
-        nome: 'Faixa Teste',
-        numero: '005',
-        categoria: 'Coro',
-        classificacao: 'ColAdultos',
-      );
-      (container.read(audioPlayerSessionProvider.notifier) as _FakeAudioSessionNotifier)
-          .setTrack(track);
-
-      final item = container.read(currentlyOpenItemProvider);
-      expect(item, isNotNull);
-      expect(item!.materialId, 'audio-123');
-      expect(item.nome, 'Faixa Teste');
-      expect(item.numero, '005');
-      expect(item.kind, MaterialKind.audio);
-    });
-
-    test('isCurrentItemInActivePlaylistProvider reflete pertinencia a lista ativa', () {
-      final pdfId = encodePdfId('assets/ColAdultos/001.pdf');
+    test('resolve letra pelo praiseId e preserva título e número da rota', () {
       container.read(readerRouteParamsProvider.notifier).update({
-        UrlSyncParams.pdfId: pdfId,
-        UrlSyncParams.titulo: 'Louvor 1',
+        UrlSyncParams.praiseId: 'p1',
+        UrlSyncParams.titulo: 'Letra do louvor',
+        UrlSyncParams.subtitulo: '001',
       });
-
-      // Inicialmente fora da lista ativa
-      expect(container.read(isCurrentItemInActivePlaylistProvider), isFalse);
-
-      // Criamos override com a lista contendo o louvor
-      final containerWithList = ProviderContainer(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          activeEntriesProvider.overrideWithValue([
-            ActiveEntry(
-              index: 0,
-              entry: PlaylistEntry(id: pdfId, kind: MaterialKind.pdf),
-              key: pdfId,
-            ),
-          ]),
-        ],
-      );
-      addTearDown(containerWithList.dispose);
-
-      containerWithList.read(readerRouteParamsProvider.notifier).update({
-        UrlSyncParams.pdfId: pdfId,
-        UrlSyncParams.titulo: 'Louvor 1',
-      });
-
-      expect(containerWithList.read(isCurrentItemInActivePlaylistProvider), isTrue);
+      final item = container.read(currentlyOpenItemProvider)!;
+      expect(item.materialId, 'lyrics:p1');
+      expect(item.kind, MaterialKind.lyrics);
+      expect(item.nome, 'Letra do louvor');
+      expect(item.numero, '001');
     });
+
+    test(
+      'resolve faixa de audio quando presente no audioPlayerSessionProvider',
+      () {
+        const track = AudioTrack(
+          audioId: 'audio-123',
+          r2Key: 'assets/praises/005.mp3',
+          groupId: 'grp-1',
+          nome: 'Faixa Teste',
+          numero: '005',
+          categoria: 'Coro',
+          classificacao: 'ColAdultos',
+        );
+        (container.read(
+          audioPlayerSessionProvider.notifier,
+        ) as _FakeAudioSessionNotifier).setTrack(track);
+
+        final item = container.read(currentlyOpenItemProvider);
+        expect(item, isNotNull);
+        expect(item!.materialId, 'audio-123');
+        expect(item.nome, 'Faixa Teste');
+        expect(item.numero, '005');
+        expect(item.kind, MaterialKind.audio);
+      },
+    );
+
+    test(
+      'isCurrentItemInActivePlaylistProvider reflete pertinencia a lista ativa',
+      () {
+        final pdfId = encodePdfId('assets/ColAdultos/001.pdf');
+        container.read(readerRouteParamsProvider.notifier).update({
+          UrlSyncParams.pdfId: pdfId,
+          UrlSyncParams.titulo: 'Louvor 1',
+        });
+
+        // Inicialmente fora da lista ativa
+        expect(container.read(isCurrentItemInActivePlaylistProvider), isFalse);
+
+        // Criamos override com a lista contendo o louvor
+        final containerWithList = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            activeEntriesProvider.overrideWithValue([
+              ActiveEntry(
+                index: 0,
+                entry: PlaylistEntry(id: pdfId, kind: MaterialKind.pdf),
+                key: pdfId,
+              ),
+            ]),
+          ],
+        );
+        addTearDown(containerWithList.dispose);
+
+        containerWithList.read(readerRouteParamsProvider.notifier).update({
+          UrlSyncParams.pdfId: pdfId,
+          UrlSyncParams.titulo: 'Louvor 1',
+        });
+
+        expect(
+          containerWithList.read(isCurrentItemInActivePlaylistProvider),
+          isTrue,
+        );
+      },
+    );
   });
 }

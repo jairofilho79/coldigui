@@ -7,6 +7,8 @@ import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/providers/offline_core_providers.dart';
@@ -77,6 +79,39 @@ void main() {
     absolutePath: '/tmp/comigo-habita.pdf',
     fromCache: true,
   );
+
+  for (final cached in [false, true]) {
+    test('letra resolve rota sem tentar abrir PDF (cache: $cached)', () async {
+      final resolver = _FixedResolvePdfForReader(source);
+      final container = ProviderContainer(
+        overrides: [resolvePdfForReaderProvider.overrideWithValue(resolver)],
+      );
+      addTearDown(container.dispose);
+      if (cached) {
+        container.read(coldigomLyricsCacheProvider.notifier).mergeLyrics([
+          const LyricsMaterial(
+            praiseId: 'p1',
+            nome: 'Comigo habita',
+            numero: '692',
+          ),
+        ]);
+      }
+
+      final location = await container
+          .read(readerCarouselActionsProvider.notifier)
+          .navigateToPdfId(targetPdfId: 'lyrics:p1');
+
+      expect(location, isNotNull);
+      final uri = Uri.parse(location!);
+      expect(uri.path, RoutePaths.lyrics);
+      expect(uri.queryParameters['praiseId'], 'p1');
+      if (cached) {
+        expect(uri.queryParameters['titulo'], 'Comigo habita');
+        expect(uri.queryParameters['subtitulo'], '692');
+      }
+      expect(resolver.resolvedPdfIds, isEmpty);
+    });
+  }
 
   group('navigateToPdfId — warmup Coldigom nunca bloqueia nem impede', () {
     test('warmup que nunca completa não atrasa a troca de louvor', () {

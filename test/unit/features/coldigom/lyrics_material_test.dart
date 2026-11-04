@@ -37,7 +37,7 @@ void main() {
     expect(lyrics.groupId, 'p-001');
     expect(lyrics.categoria, 'Letra');
     expect(lyrics.materialKindId, isNull);
-    expect(canAddMaterialToPlaylist(lyrics), isFalse);
+    expect(canAddMaterialToPlaylist(lyrics), isTrue);
     expect(LouvorMaterialIcons.forMaterial(lyrics), Icons.subject);
   });
 

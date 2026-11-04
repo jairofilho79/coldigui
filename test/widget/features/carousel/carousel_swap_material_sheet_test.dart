@@ -10,6 +10,7 @@ import 'package:coldigui/features/audio_player/presentation/providers/audio_play
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
@@ -409,6 +410,29 @@ void main() {
     expect(harness.carousel.added, isEmpty);
     expect(harness.readerActions.navigated, ['gesture1']);
     expect(harness.location, '${RoutePaths.reader}?pdfId=gesture1');
+  });
+
+  testWidgets('letra extraída troca a entrada sem anexar outra ocorrência', (
+    tester,
+  ) async {
+    final group = LouvorGroup.fromLouvores(
+      [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
+      lyricsByGroupId: const {
+        'g1': LyricsMaterial(
+          praiseId: 'g1',
+          nome: 'Comigo habita',
+          numero: '692',
+        ),
+      },
+    ).single;
+    final harness = await _pumpSwapSheet(tester, group: group);
+    await tester.tap(find.text('Letra'));
+    await tester.pumpAndSettle();
+    expect(harness.carousel.replaced, [
+      ('pdf1', const PlaylistEntry(id: 'lyrics:g1', kind: MaterialKind.lyrics)),
+    ]);
+    expect(harness.carousel.added, isEmpty);
+    expect(harness.readerActions.navigated, ['lyrics:g1']);
   });
 
   testWidgets('áudio toca com a fila do grupo e fica no leitor', (

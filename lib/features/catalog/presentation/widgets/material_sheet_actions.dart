@@ -91,7 +91,7 @@ Future<void> addMaterialToActivePlaylist({
 }) async {
   final l10n = AppLocalizations.of(context)!;
 
-  // canAddMaterialToPlaylist barra cifra e YouTube antes de chegar aqui.
+  // YouTube não tem leitor nem player interno na playlist.
   if (!canAddMaterialToPlaylist(material)) return;
 
   final outcome = await ref

@@ -4,6 +4,9 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_items
     show fallbackCarouselNome;
 import 'package:coldigui/features/carousel/presentation/widgets/chip_parts/chip_buttons.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
@@ -39,6 +42,88 @@ final _pdfA = encodePdfId('ColAdultos/001.pdf');
 final _audioA = encodePdfId('ColAdultos/001.mp3');
 
 void main() {
+  testWidgets('extraídos usam metadados do catálogo nos chips salvos', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [...standardTestOverrides(prefs: prefs)],
+    );
+    addTearDown(container.dispose);
+    container.read(coldigomChordMaterialsCacheProvider.notifier).mergeChords([
+      const ChordMaterial(
+        chordId: 'chord1',
+        r2Key: 'm1.chord',
+        groupId: 'p1',
+        nome: 'Cifra do louvor',
+        numero: '001',
+        categoria: 'Cifra',
+        classificacao: 'Básico',
+      ),
+    ]);
+    container
+        .read(coldigomGestureMaterialsCacheProvider.notifier)
+        .mergeGestures([
+          const GestureMaterial(
+            gestureId: 'gesture1',
+            r2Key: 'm1.gestures',
+            groupId: 'p1',
+            nome: 'Gestos do louvor',
+            numero: '001',
+            categoria: 'Gestos',
+            classificacao: 'Básico',
+          ),
+        ]);
+    container.read(coldigomLyricsCacheProvider.notifier).mergeLyrics([
+      const LyricsMaterial(
+        praiseId: 'p1',
+        nome: 'Letra do louvor',
+        numero: '001',
+      ),
+    ]);
+    final tapped = <String>[];
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: PlaylistTileDetailChips(
+              item: PlaylistViewItem(
+                playlist: SavedPlaylist(
+                  playlistId: 'list1',
+                  nome: 'Culto',
+                  salva: true,
+                  createdAt: DateTime(2026, 11, 4),
+                  entries: const [
+                    PlaylistEntry(id: 'chord1', kind: MaterialKind.chord),
+                    PlaylistEntry(id: 'gesture1', kind: MaterialKind.gesture),
+                    PlaylistEntry(id: 'lyrics:p1', kind: MaterialKind.lyrics),
+                  ],
+                ),
+                pdfLabels: const ['chord1', 'gesture1', 'lyrics:p1'],
+              ),
+              loading: false,
+              onPdfTap: (id) async => tapped.add(id),
+              onAudioTap: (_) async {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    for (final name in [
+      'Cifra do louvor',
+      'Gestos do louvor',
+      'Letra do louvor',
+    ]) {
+      expect(find.textContaining(name), findsOneWidget);
+      await tester.tap(find.textContaining(name));
+    }
+    expect(tapped, ['chord1', 'gesture1', 'lyrics:p1']);
+  });
   testWidgets('mostra chips de partitura e de áudio na ordem da lista', (
     tester,
   ) async {

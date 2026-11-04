@@ -7,6 +7,7 @@ import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catal
 import 'package:coldigui/features/lyrics/domain/entities/lyrics_reader_font_size.dart';
 import 'package:coldigui/features/lyrics/presentation/pages/lyrics_reader_screen.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -77,6 +78,10 @@ void main() {
     expect(find.text('Ainda há tempo'), findsOneWidget);
     expect(find.textContaining('de voltar ao Senhor'), findsOneWidget);
     expect(find.byType(SelectableText), findsOneWidget);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(LyricsReaderScreen)),
+    );
+    expect(container.read(readerRouteParamsProvider)['praiseId'], 'p1');
   });
 
   testWidgets('A+ / A− mudam o corpo e persistem a preferência', (

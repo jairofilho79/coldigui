@@ -79,8 +79,7 @@ typedef LyricsMaterialOpener = Future<void> Function({
   required LyricsMaterial lyrics,
 });
 
-/// Abertura padrão da letra: só navegação — o texto já está no Isar e a
-/// letra não entra na lista ativa (O6).
+/// Abertura padrão da letra: só navegação — o texto já está no catálogo local.
 Future<void> openLyricsInReader({
   required BuildContext context,
   required LyricsMaterial lyrics,

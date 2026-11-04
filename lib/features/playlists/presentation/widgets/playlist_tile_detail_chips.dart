@@ -1,9 +1,8 @@
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart'
-    show fallbackCarouselNome;
+    show enrichMaterialToCarouselItem, fallbackCarouselNome;
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -62,7 +61,7 @@ class PlaylistTileDetailChips extends ConsumerWidget {
           label: pdfCursor < item.pdfLabels.length
               ? item.pdfLabels[pdfCursor]
               : entry.id,
-          findLouvor: lookup.louvor,
+          lookup: lookup,
         );
         pdfCursor++;
       }
@@ -143,46 +142,19 @@ class PlaylistTileDetailChips extends ConsumerWidget {
   static CarouselItem _carouselItemFor({
     required ActiveEntry entry,
     required String label,
-    required Louvor? Function(String pdfId) findLouvor,
+    required CatalogMaterialLookup lookup,
   }) {
-    final pdfId = entry.id;
-    final louvor = findLouvor(pdfId);
-    if (louvor != null) {
-      return CarouselItem(
-        materialId: pdfId,
-        kind: entry.kind,
-        index: entry.index,
-        key: entry.key,
-        numero: louvor.numero,
-        nome: louvor.nome,
-        categoria: louvor.categoria,
-        classificacao: louvor.classificacao,
-      );
-    }
-
     final dashIndex = label.indexOf(' — ');
-    if (dashIndex > 0) {
-      return CarouselItem(
-        materialId: pdfId,
-        kind: entry.kind,
-        index: entry.index,
-        key: entry.key,
-        numero: label.substring(0, dashIndex).trim(),
-        nome: label.substring(dashIndex + 3).trim(),
-        categoria: '',
-        classificacao: '',
-      );
-    }
-
-    return CarouselItem(
-      materialId: pdfId,
+    return enrichMaterialToCarouselItem(
+      materialId: entry.id,
       kind: entry.kind,
       index: entry.index,
       key: entry.key,
-      numero: '',
-      nome: label,
-      categoria: '',
-      classificacao: '',
+      lookup: lookup,
+      fallbackNumero: dashIndex > 0 ? label.substring(0, dashIndex).trim() : '',
+      fallbackNome: dashIndex > 0
+          ? label.substring(dashIndex + 3).trim()
+          : label,
     );
   }
 }

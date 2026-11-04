@@ -4,11 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dart';
 
+import '../../../../core/utils/material_id_kind.dart';
+
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../../carousel/presentation/providers/carousel_items_provider.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../chords/presentation/utils/open_chord_in_reader.dart';
 import '../../../gestures/presentation/utils/open_gesture_in_reader.dart';
+import '../../../lyrics/presentation/utils/lyrics_reader_url_builder.dart';
 import '../../../offline/data/providers/offline_core_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
@@ -36,7 +39,7 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
     return navigateToPdfId(targetPdfId: items[index].materialId);
   }
 
-  /// Resolve rota `/leitor` (ou `/cifra`, `/gestos`) para [targetPdfId], ou `null`.
+  /// Resolve rota de leitura (`/leitor`, `/cifra`, `/gestos`, `/letra`).
   ///
   /// Usado por [openCarouselPdfInReader] (shell/modal) e por [navigateToKey].
   Future<String?> navigateToPdfId({required String targetPdfId}) async {
@@ -45,6 +48,15 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
     // em vez de passar pelo `openMaterialProvider` (que abre, não roteia).
     // Cifra com cache frio não tem para onde ir — não vira busca de PDF.
     final lookup = ref.read(catalogMaterialLookupProvider);
+
+    if (materialIdKindOf(targetPdfId) == MaterialKind.lyrics) {
+      final lyrics = lookup.lyrics(targetPdfId);
+      return buildLyricsReaderLocation(
+        praiseId: targetPdfId.substring('lyrics:'.length),
+        titulo: lyrics?.nome,
+        subtitulo: lyrics?.numero,
+      );
+    }
 
     final chordRoute = chordRouteFor(targetPdfId, lookup.chordsById);
     if (chordRoute.isChord) return chordRoute.location;

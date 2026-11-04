@@ -317,7 +317,7 @@ void main() {
       expect(find.text('Partitura'), findsNothing);
     });
 
-    testWidgets('aba com 1 material abre direto no leitor ao tocar na aba', (
+    testWidgets('sem edição, aba com 1 material continua abrindo direto', (
       tester,
     ) async {
       final opener = _OpenMaterialSpy();
@@ -335,6 +335,7 @@ void main() {
         tester,
         group: group,
         opener: opener,
+        canAddToPlaylist: false,
         overrides: [chordSongProvider.overrideWith((ref, r2Key) async => song)],
       );
 
@@ -821,6 +822,124 @@ void main() {
   });
 
   group('ações de trailing', () {
+    final extracted = <CatalogMaterial>[
+      ChordMaterialRef(_chord('Cifra extraída', 'm1.chord')),
+      const GestureMaterialRef(
+        GestureMaterial(
+          gestureId: 'gesture-1',
+          r2Key: 'm1.gestures',
+          nome: 'Comigo habita',
+          numero: '692',
+          groupId: 'g1',
+          categoria: 'Gesto extraído',
+          classificacao: 'Básico',
+        ),
+      ),
+      const LyricsMaterial(
+        praiseId: 'g1',
+        nome: 'Comigo habita',
+        numero: '692',
+      ),
+    ];
+
+    for (final material in extracted) {
+      LouvorGroup extractedGroup() => LouvorGroup(
+        groupId: 'g1',
+        numero: '692',
+        nome: 'Comigo habita',
+        sections: LouvorGroup.fromLouvores([
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+        ]).single.sections,
+        extras: [material],
+      );
+
+      final tabLabel = switch (material.kind) {
+        MaterialKind.chord => 'Cifras',
+        MaterialKind.gesture => 'Gestos',
+        MaterialKind.lyrics => 'Letra',
+        _ => throw StateError('não é extraído'),
+      };
+
+      testWidgets('${material.kind}: aba unitária permite adicionar e abrir', (
+        tester,
+      ) async {
+        final editor = _RecordingActiveEditor();
+        final opener = _OpenMaterialSpy();
+        await _pumpSheet(
+          tester,
+          group: extractedGroup(),
+          editor: () => editor,
+          opener: opener,
+        );
+
+        await tester.tap(find.text(tabLabel));
+        await tester.pumpAndSettle();
+        expect(opener.opened, isNull);
+        expect(find.byType(CarouselLouvorAddButton), findsOneWidget);
+
+        await tester.tap(find.byType(CarouselLouvorAddButton));
+        await tester.pumpAndSettle();
+        expect(editor.added.single, (
+          id: material.id,
+          kind: material.kind,
+          allowDuplicate: false,
+        ));
+        expect(find.byType(MaterialSheet), findsOneWidget);
+
+        await tester.tap(find.widgetWithText(ListTile, material.categoria));
+        await tester.pumpAndSettle();
+        expect(opener.opened?.id, material.id);
+      });
+
+      testWidgets('${material.kind}: já adicionado permite remover', (
+        tester,
+      ) async {
+        final editor = _RecordingActiveEditor();
+        await _pumpSheet(
+          tester,
+          group: extractedGroup(),
+          editor: () => editor,
+          activeEntries: [
+            ActiveEntry(
+              index: 0,
+              entry: PlaylistEntry(id: material.id, kind: material.kind),
+              key: material.id,
+            ),
+          ],
+        );
+
+        await tester.tap(find.text(tabLabel));
+        await tester.pumpAndSettle();
+        expect(find.byType(CarouselLouvorAddButton), findsNothing);
+        await tester.tap(find.byTooltip('Remover da lista'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Confirmar'));
+        await tester.pumpAndSettle();
+        expect(editor.removed, [material.id]);
+      });
+
+      testWidgets('${material.kind}: sem edição não mostra ações', (
+        tester,
+      ) async {
+        await _pumpSheet(
+          tester,
+          group: LouvorGroup(
+            groupId: 'g1',
+            numero: '692',
+            nome: 'Comigo habita',
+            sections: const [],
+            extras: [material],
+          ),
+          canAddToPlaylist: false,
+        );
+        expect(
+          find.widgetWithText(ListTile, material.categoria),
+          findsOneWidget,
+        );
+        expect(find.byType(CarouselLouvorAddButton), findsNothing);
+        expect(find.byTooltip('Remover da lista'), findsNothing);
+      });
+    }
     testWidgets('+ do PDF e do áudio entram pelo editor com o kind certo', (
       tester,
     ) async {

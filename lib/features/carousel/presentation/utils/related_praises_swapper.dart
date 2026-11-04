@@ -171,7 +171,8 @@ Future<void> swapToRelatedPraise({
   final onReader =
       path == RoutePaths.reader ||
       path == RoutePaths.chords ||
-      path == RoutePaths.gestos;
+      path == RoutePaths.gestos ||
+      path == RoutePaths.lyrics;
 
   if (onReader) {
     await openCarouselPdfInReader(
