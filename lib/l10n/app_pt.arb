@@ -1889,5 +1889,64 @@
   "profileDeleteAccountDialogContent": "Esta ação é irreversível. Sua conta, playlists sincronizadas, marcações e preferências serão permanentemente excluídas dos servidores do PLPCG.",
   "profileDeleteAccountConfirm": "Excluir definitivamente",
   "profileDeleteAccountSuccess": "Sua conta e todos os dados foram excluídos com sucesso.",
-  "profileDeleteAccountError": "Não foi possível excluir sua conta. Verifique sua conexão e tente novamente."
+  "profileDeleteAccountError": "Não foi possível excluir sua conta. Verifique sua conexão e tente novamente.",
+  "scoreMaterialLabel": "Partitura interativa",
+  "scoreMaterialSection": "Interativas",
+  "scoreReaderTitle": "Leitor de partitura",
+  "scoreReaderEmpty": "Partitura não encontrada",
+  "scoreReaderUnavailable": "Partitura indisponível · tentar de novo",
+  "scoreReaderPlay": "Tocar",
+  "scoreReaderPause": "Pausar",
+  "scoreReaderStop": "Voltar ao início",
+  "scoreReaderTransposeUp": "Subir meio tom",
+  "scoreReaderTransposeDown": "Descer meio tom",
+  "scoreReaderTransposeReset": "Voltar ao tom original",
+  "scoreReaderTempo": "Andamento",
+  "scoreReaderBpm": "{bpm} bpm",
+  "@scoreReaderBpm": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreReaderTempoReset": "Andamento original",
+  "scoreReaderLoopStart": "Loop A-B: marcar início no compasso atual",
+  "scoreReaderLoopEnd": "Loop A-B: marcar fim no compasso atual",
+  "scoreReaderLoopClear": "Desligar loop A-B",
+  "scoreReaderLoopRange": "Loop: compassos {start}–{end}",
+  "@scoreReaderLoopRange": {
+    "placeholders": {
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreReaderLoopHint": "Toque numa nota e marque o início; depois o fim. Segurar um compasso também marca.",
+  "scoreReaderMixer": "Vozes e volume",
+  "scoreReaderInstrument": "Instrumento GM",
+  "scoreReaderBasicInstruments": "Som básico: apenas piano. A seleção será usada com os timbres reais.",
+  "scoreReaderInstrumentFailed": "Não foi possível trocar o instrumento. Selecione novamente para tentar de novo.",
+  "scoreReaderMute": "Silenciar",
+  "scoreReaderSolo": "Solo",
+  "scoreReaderZoomIn": "Aumentar partitura",
+  "scoreReaderZoomOut": "Diminuir partitura",
+  "scoreReaderModePages": "Ver em páginas",
+  "scoreReaderModeContinuous": "Ver em rolagem contínua",
+  "scoreReaderSoundMinimal": "Som básico · baixar timbres reais",
+  "scoreReaderSoundDownloading": "Baixando timbres reais…",
+  "scoreReaderSoundDownloadingPercent": "Baixando timbres reais… {percent}%",
+  "@scoreReaderSoundDownloadingPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreReaderSoundFull": "Timbres reais",
+  "scoreReaderSoundFailed": "Não foi possível baixar os timbres reais · tentar de novo",
+  "scoreReaderAudioUnavailable": "Áudio indisponível neste dispositivo"
 }

@@ -21,6 +21,7 @@ import '../../features/contributions/presentation/pages/contribution_detail_scre
 import '../../features/contributions/presentation/pages/my_contributions_screen.dart';
 import '../../features/contributions/presentation/utils/open_contribute.dart';
 import '../../features/gestures/presentation/pages/gesture_reader_screen.dart';
+import '../../features/score_reader/presentation/pages/score_reader_screen.dart';
 import '../../features/library/presentation/pages/library_screen.dart';
 import '../../features/live/presentation/pages/live_room_screen.dart';
 import '../../features/lyrics/presentation/pages/lyrics_reader_screen.dart';
@@ -167,6 +168,12 @@ StatefulShellBranch _branchFor(AppTab tab, FeatureFlags flags) {
             GoRoute(
               path: 'gestos',
               builder: (context, state) => GestureReaderScreen(
+                queryParams: safeQueryParameters(state.uri),
+              ),
+            ),
+            GoRoute(
+              path: 'partitura',
+              builder: (context, state) => ScoreReaderScreen(
                 queryParams: safeQueryParameters(state.uri),
               ),
             ),

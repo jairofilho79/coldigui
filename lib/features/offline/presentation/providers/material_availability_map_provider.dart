@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/pdf_id_codec.dart';
 import '../../../chords/data/providers/chord_providers.dart';
+import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../../gestures/data/providers/gesture_providers.dart';
 import '../../../pdf_opening/domain/entities/pdf_offline_availability.dart';
+import '../../../score_reader/data/providers/score_providers.dart';
 import '../../data/providers/offline_audio_providers.dart';
 import 'offline_availability_map_provider.dart';
 import 'offline_coldigom_stats_provider.dart'
@@ -22,6 +24,7 @@ import 'offline_coldigom_stats_provider.dart'
 /// mudança, `select` por card, como o mapa de PDF (A5). Uma cifra aberta
 /// on-demand (fora do download) só entra aqui na próxima revisão — o
 /// `chordSongProvider` não sobe nenhuma; é o download em lote quem sobe.
+/// Partituras idem, via [_scoreLocalPresenceProvider] (store assíncrono).
 final materialAvailabilityMapProvider =
     Provider<Map<String, PdfOfflineAvailability>>((ref) {
       final pdfs = ref.watch(offlineAvailabilityMapProvider);
@@ -30,6 +33,7 @@ final materialAvailabilityMapProvider =
       final audio = ref.watch(offlineAudioLocalDatasourceProvider);
       final chords = ref.watch(chordContentLocalDatasourceProvider);
       final gestures = ref.watch(gestureContentLocalDatasourceProvider);
+      final scoreIsLocal = ref.watch(_scoreLocalPresenceProvider).value;
 
       final map = <String, PdfOfflineAvailability>{...pdfs};
       for (final entry in audio.findAllSync()) {
@@ -41,5 +45,21 @@ final materialAvailabilityMapProvider =
       for (final r2Key in gestures.allKeysWithContent()) {
         map[encodePdfId(r2Key)] = PdfOfflineAvailability.persistentOffline;
       }
+      if (scoreIsLocal != null) {
+        for (final score
+            in ref.watch(coldigomScoreMaterialsCacheProvider).values) {
+          if (scoreIsLocal(score.r2Key)) {
+            map[score.scoreId] = PdfOfflineAvailability.persistentOffline;
+          }
+        }
+      }
       return Map.unmodifiable(map);
     });
+
+/// Predicado de presença local das partituras (uma listagem do store).
+final _scoreLocalPresenceProvider = FutureProvider<bool Function(String r2Key)>(
+  (ref) {
+    ref.watch(chordGestureCacheRevisionProvider);
+    return ref.watch(scoreFileRepositoryProvider).localPresence();
+  },
+);

@@ -42,11 +42,7 @@ jobs:
       - name: Chrome smoke tests
         env:
           CHROME_EXECUTABLE: ${{ steps.setup-chrome.outputs.chrome-path }}
-        run: |
-          flutter test \
-            --platform chrome \
-            --dart-define-from-file=dart_defines/plpcjf.json \
-            test/web/
+        run: python3 scripts/test_score_audio_web.py test/web/
 
       - name: Build web (WASM)
         run: |

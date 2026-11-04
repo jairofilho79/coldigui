@@ -14,6 +14,8 @@ import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/utils/open_chord_in_reader.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../../gestures/presentation/utils/open_gesture_in_reader.dart';
+import '../../../score_reader/domain/entities/score_material.dart';
+import '../../../score_reader/presentation/utils/open_score_in_reader.dart';
 import '../../../lyrics/presentation/utils/lyrics_reader_url_builder.dart';
 import '../../../offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import '../../../offline/presentation/utils/pdf_offline_error_ui.dart';
@@ -48,6 +50,14 @@ typedef GestureMaterialOpener = Future<void> Function({
   required WidgetRef ref,
   required BuildContext context,
   required GestureMaterial gesture,
+});
+
+/// Abre uma partitura editável em `/partitura` (`openScoreInReader` em
+/// produção).
+typedef ScoreMaterialOpener = Future<void> Function({
+  required WidgetRef ref,
+  required BuildContext context,
+  required ScoreMaterial score,
 });
 
 /// Toca uma faixa e abre `/audio` (`openAudioInPlayer` em produção).
@@ -107,6 +117,7 @@ class OpenMaterial {
     this.openPdf = openLouvorInReader,
     this.openChord = openChordInReader,
     this.openGesture = openGestureInReader,
+    this.openScore = openScoreInReader,
     this.openAudio = openAudioInPlayer,
     this.openYoutube = openYoutubeMaterial,
     this.openLyrics = openLyricsInReader,
@@ -115,6 +126,7 @@ class OpenMaterial {
   final PdfMaterialOpener openPdf;
   final ChordMaterialOpener openChord;
   final GestureMaterialOpener openGesture;
+  final ScoreMaterialOpener openScore;
   final AudioMaterialOpener openAudio;
   final YoutubeMaterialOpener openYoutube;
   final LyricsMaterialOpener openLyrics;
@@ -143,6 +155,8 @@ class OpenMaterial {
           await openChord(ref: ref, context: context, chord: chord);
         case GestureMaterialRef(:final gesture):
           await openGesture(ref: ref, context: context, gesture: gesture);
+        case ScoreMaterialRef(:final score):
+          await openScore(ref: ref, context: context, score: score);
         case AudioMaterial(:final track):
           await openAudio(
             ref: ref,

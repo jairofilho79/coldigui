@@ -8,6 +8,7 @@ import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 import 'package:coldigui/features/coldigom/domain/utils/youtube_url.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
+import 'package:coldigui/features/score_reader/domain/entities/score_material.dart';
 
 import '../models/praise_dto.dart';
 
@@ -160,6 +161,34 @@ abstract final class ColdigomLouvorAdapter {
           numero: praise.number,
           groupId: praise.id,
           categoria: material.materialKindName ?? 'Gestos',
+          classificacao: praise.rhythm,
+          author: praise.author,
+          materialKindId: material.materialKindId,
+          notes: material.notes,
+        ),
+      );
+    }
+    return items;
+  }
+
+  /// Um [ScoreMaterial] por `type: mscz`/`mxl`/`musicxml` com `r2_key`
+  /// válido.
+  static List<ScoreMaterial> toScoreMaterials(PraiseDetailDto praise) {
+    final items = <ScoreMaterial>[];
+    for (final material in praise.materials) {
+      if (materialKindOfRawType(material.type) != MaterialKind.score) {
+        continue;
+      }
+      final r2Key = material.r2Key;
+      if (r2Key == null || r2Key.isEmpty) continue;
+      items.add(
+        ScoreMaterial(
+          scoreId: encodePdfId(r2Key),
+          r2Key: r2Key,
+          nome: praise.name,
+          numero: praise.number,
+          groupId: praise.id,
+          categoria: material.materialKindName ?? 'Partitura',
           classificacao: praise.rhythm,
           author: praise.author,
           materialKindId: material.materialKindId,

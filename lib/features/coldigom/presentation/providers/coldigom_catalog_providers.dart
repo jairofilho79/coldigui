@@ -15,6 +15,7 @@ import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
+import '../../../score_reader/domain/entities/score_material.dart';
 import '../../data/adapters/coldigom_louvor_adapter.dart';
 import '../../data/datasources/coldigom_catalog_sync_metadata_store.dart'
     show coldigomCatalogSchemaVersion;
@@ -94,6 +95,7 @@ final coldigomCatalogHydrationProvider = FutureProvider<ColdigomSearchIndex>((
   final audioTracks = <AudioTrack>[];
   final chords = <ChordMaterial>[];
   final gestures = <GestureMaterial>[];
+  final scores = <ScoreMaterial>[];
   final youtube = <YoutubeMaterial>[];
   final lyrics = <LyricsMaterial>[];
   final meta = <String, ColdigomPraiseMetadata>{};
@@ -111,6 +113,7 @@ final coldigomCatalogHydrationProvider = FutureProvider<ColdigomSearchIndex>((
     final praiseTracks = ColdigomLouvorAdapter.toAudioTracks(detail);
     final praiseChords = ColdigomLouvorAdapter.toChordMaterials(detail);
     final praiseGestures = ColdigomLouvorAdapter.toGestureMaterials(detail);
+    final praiseScores = ColdigomLouvorAdapter.toScoreMaterials(detail);
     final praiseYoutube = ColdigomLouvorAdapter.toYoutubeMaterials(detail);
     final praiseLyrics = ColdigomLouvorAdapter.toLyricsMaterial(
       detail,
@@ -122,12 +125,13 @@ final coldigomCatalogHydrationProvider = FutureProvider<ColdigomSearchIndex>((
     audioTracks.addAll(praiseTracks);
     chords.addAll(praiseChords);
     gestures.addAll(praiseGestures);
+    scores.addAll(praiseScores);
     youtube.addAll(praiseYoutube);
     if (praiseLyrics != null) lyrics.add(praiseLyrics);
     meta[row.praiseId] = praiseMeta;
 
     // Um praise sem material endereçável (nem PDF, nem áudio, nem cifra, nem
-    // gesto, nem letra) não sustenta um grupo — mesma checagem de
+    // gesto, nem partitura, nem letra) não sustenta um grupo — mesma checagem de
     // `ColdigomCatalogSource.findGroupById`. YouTube sozinho não conta:
     // `LouvorGroup.fromLouvores` monta grupo a partir de `youtubeByGroup`
     // também, então sem este `if` explícito um praise só-YouTube entraria no
@@ -138,6 +142,7 @@ final coldigomCatalogHydrationProvider = FutureProvider<ColdigomSearchIndex>((
         praiseTracks.isNotEmpty ||
         praiseChords.isNotEmpty ||
         praiseGestures.isNotEmpty ||
+        praiseScores.isNotEmpty ||
         praiseLyrics != null;
     if (hasAddressableMaterial) {
       final groups = LouvorGroup.fromLouvores(
@@ -145,6 +150,7 @@ final coldigomCatalogHydrationProvider = FutureProvider<ColdigomSearchIndex>((
         audioTracks: praiseTracks,
         chordMaterials: praiseChords,
         gestureMaterials: praiseGestures,
+        scoreMaterials: praiseScores,
         youtubeMaterials: praiseYoutube,
         lyricsByGroupId: praiseLyrics == null
             ? null
@@ -178,6 +184,7 @@ final coldigomCatalogHydrationProvider = FutureProvider<ColdigomSearchIndex>((
         audioTracks: audioTracks,
         chordMaterials: chords,
         gestureMaterials: gestures,
+        scoreMaterials: scores,
         youtubeMaterials: youtube,
         lyrics: lyrics,
         metaByGroupId: meta,

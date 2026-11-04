@@ -24,6 +24,7 @@ abstract final class LouvorMaterialIcons {
     return switch (kind) {
       MaterialKind.chord => Icons.music_note,
       MaterialKind.gesture => Icons.pan_tool_outlined,
+      MaterialKind.score => Icons.queue_music,
       MaterialKind.audio => audio,
       MaterialKind.youtube => youtube,
       MaterialKind.lyrics => Icons.subject,
@@ -65,6 +66,7 @@ abstract final class LouvorMaterialIcons {
       PdfMaterial(:final louvor) => forKind(kindForCategory(louvor.categoria)),
       ChordMaterialRef() ||
       GestureMaterialRef() ||
+      ScoreMaterialRef() ||
       AudioMaterial() ||
       YoutubeMaterialRef() ||
       LyricsMaterial() => forKind(material.kind),

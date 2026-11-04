@@ -9,6 +9,7 @@ import '../../../catalog/domain/ports/catalog_source.dart';
 import '../../../catalog/domain/ports/search_cancellation.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
+import '../../../score_reader/domain/entities/score_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
 import '../../domain/search/coldigom_search_index.dart';
@@ -21,6 +22,7 @@ final class ColdigomGroupParts {
     required this.audioTracks,
     required this.chords,
     required this.gestures,
+    this.scores = const [],
     required this.youtube,
     this.lyrics,
     this.meta,
@@ -38,6 +40,7 @@ final class ColdigomGroupParts {
   final List<AudioTrack> audioTracks;
   final List<ChordMaterial> chords;
   final List<GestureMaterial> gestures;
+  final List<ScoreMaterial> scores;
   final List<YoutubeMaterial> youtube;
   final LyricsMaterial? lyrics;
   final ColdigomPraiseMetadata? meta;
@@ -49,6 +52,7 @@ final class ColdigomGroupParts {
       audioTracks.isEmpty &&
       chords.isEmpty &&
       gestures.isEmpty &&
+      scores.isEmpty &&
       lyrics == null;
 }
 
@@ -66,6 +70,7 @@ class ColdigomCatalogSource implements CatalogSource {
     this.audioTracks = const {},
     this.chords = const {},
     this.gestures = const {},
+    this.scores = const {},
     this.praiseMeta = const {},
     this.youtube = const {},
     this.lyrics = const {},
@@ -84,6 +89,9 @@ class ColdigomCatalogSource implements CatalogSource {
 
   /// Documentos de gestos Coldigom em cache, por `gestureId`.
   final Map<String, GestureMaterial> gestures;
+
+  /// Partituras editáveis Coldigom em cache, por `scoreId`.
+  final Map<String, ScoreMaterial> scores;
 
   /// Metadados do praise em cache, por `groupId`.
   final Map<String, ColdigomPraiseMetadata> praiseMeta;
@@ -127,6 +135,10 @@ class ColdigomCatalogSource implements CatalogSource {
         for (final gesture in gestures.values)
           if (gesture.groupId == praiseId) gesture,
       ],
+      scores: [
+        for (final score in scores.values)
+          if (score.groupId == praiseId) score,
+      ],
       youtube: youtube[praiseId] ?? const [],
       lyrics: lyrics[praiseId],
       meta: praiseMeta[praiseId],
@@ -149,6 +161,7 @@ class ColdigomCatalogSource implements CatalogSource {
       audioTracks: parts.audioTracks,
       chordMaterials: parts.chords,
       gestureMaterials: parts.gestures,
+      scoreMaterials: parts.scores,
       youtubeMaterials: parts.youtube,
       lyricsByGroupId: parts.lyrics == null ? null : {groupId: parts.lyrics!},
       coldigomMetaByGroupId: praiseMeta,
@@ -171,6 +184,9 @@ class ColdigomCatalogSource implements CatalogSource {
       case MaterialKind.gesture:
         final gesture = gestures[materialId];
         return gesture == null ? null : GestureMaterialRef(gesture);
+      case MaterialKind.score:
+        final score = scores[materialId];
+        return score == null ? null : ScoreMaterialRef(score);
       case MaterialKind.lyrics:
         // `lyrics:<praiseId>` — o praise é o groupId.
         return lyrics[materialId.substring('lyrics:'.length)];
@@ -196,6 +212,7 @@ class ColdigomCatalogSource implements CatalogSource {
         audioTracks[materialId]?.groupId ??
         chords[materialId]?.groupId ??
         gestures[materialId]?.groupId ??
+        scores[materialId]?.groupId ??
         coldigomPraiseIdFromPdfId(materialId);
     if (praiseId == null) return null;
     return findGroupById(praiseId);

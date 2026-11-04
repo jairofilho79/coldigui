@@ -3660,4 +3660,122 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get profileDeleteAccountError =>
       'Não foi possível excluir sua conta. Verifique sua conexão e tente novamente.';
+
+  @override
+  String get scoreMaterialLabel => 'Partitura interativa';
+
+  @override
+  String get scoreMaterialSection => 'Interativas';
+
+  @override
+  String get scoreReaderTitle => 'Leitor de partitura';
+
+  @override
+  String get scoreReaderEmpty => 'Partitura não encontrada';
+
+  @override
+  String get scoreReaderUnavailable =>
+      'Partitura indisponível · tentar de novo';
+
+  @override
+  String get scoreReaderPlay => 'Tocar';
+
+  @override
+  String get scoreReaderPause => 'Pausar';
+
+  @override
+  String get scoreReaderStop => 'Voltar ao início';
+
+  @override
+  String get scoreReaderTransposeUp => 'Subir meio tom';
+
+  @override
+  String get scoreReaderTransposeDown => 'Descer meio tom';
+
+  @override
+  String get scoreReaderTransposeReset => 'Voltar ao tom original';
+
+  @override
+  String get scoreReaderTempo => 'Andamento';
+
+  @override
+  String scoreReaderBpm(int bpm) {
+    return '$bpm bpm';
+  }
+
+  @override
+  String get scoreReaderTempoReset => 'Andamento original';
+
+  @override
+  String get scoreReaderLoopStart =>
+      'Loop A-B: marcar início no compasso atual';
+
+  @override
+  String get scoreReaderLoopEnd => 'Loop A-B: marcar fim no compasso atual';
+
+  @override
+  String get scoreReaderLoopClear => 'Desligar loop A-B';
+
+  @override
+  String scoreReaderLoopRange(int start, int end) {
+    return 'Loop: compassos $start–$end';
+  }
+
+  @override
+  String get scoreReaderLoopHint =>
+      'Toque numa nota e marque o início; depois o fim. Segurar um compasso também marca.';
+
+  @override
+  String get scoreReaderMixer => 'Vozes e volume';
+
+  @override
+  String get scoreReaderInstrument => 'Instrumento GM';
+
+  @override
+  String get scoreReaderBasicInstruments =>
+      'Som básico: apenas piano. A seleção será usada com os timbres reais.';
+
+  @override
+  String get scoreReaderInstrumentFailed =>
+      'Não foi possível trocar o instrumento. Selecione novamente para tentar de novo.';
+
+  @override
+  String get scoreReaderMute => 'Silenciar';
+
+  @override
+  String get scoreReaderSolo => 'Solo';
+
+  @override
+  String get scoreReaderZoomIn => 'Aumentar partitura';
+
+  @override
+  String get scoreReaderZoomOut => 'Diminuir partitura';
+
+  @override
+  String get scoreReaderModePages => 'Ver em páginas';
+
+  @override
+  String get scoreReaderModeContinuous => 'Ver em rolagem contínua';
+
+  @override
+  String get scoreReaderSoundMinimal => 'Som básico · baixar timbres reais';
+
+  @override
+  String get scoreReaderSoundDownloading => 'Baixando timbres reais…';
+
+  @override
+  String scoreReaderSoundDownloadingPercent(int percent) {
+    return 'Baixando timbres reais… $percent%';
+  }
+
+  @override
+  String get scoreReaderSoundFull => 'Timbres reais';
+
+  @override
+  String get scoreReaderSoundFailed =>
+      'Não foi possível baixar os timbres reais · tentar de novo';
+
+  @override
+  String get scoreReaderAudioUnavailable =>
+      'Áudio indisponível neste dispositivo';
 }

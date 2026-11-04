@@ -5,7 +5,16 @@ import 'pdf_path_normalizer.dart';
 /// Substitui o antigo `MaterialIdKind` (pdf/chord/unknown) e o enum privado do
 /// sheet Coldigom: catálogo, carousel, playlist, adapter Coldigom e ícones
 /// falam todos deste enum.
-enum MaterialKind { pdf, chord, audio, youtube, gesture, lyrics, unknown }
+enum MaterialKind {
+  pdf,
+  chord,
+  audio,
+  youtube,
+  gesture,
+  score,
+  lyrics,
+  unknown,
+}
 
 /// Classifica [id] pela extensão do path que ele codifica.
 ///
@@ -30,7 +39,9 @@ enum MaterialKind { pdf, chord, audio, youtube, gesture, lyrics, unknown }
 /// decodifica e portanto classifica [MaterialKind.unknown] — ou seja, **um id
 /// de YouTube aparece em `pdfIds`**, junto com os ids legados e com
 /// [MaterialKind.gesture] (documento JSON de gestos, `.gestures`, que abre em
-/// `/gestos`). Nenhuma família fica invisível às duas faces da playlist (A7).
+/// `/gestos`) e [MaterialKind.score] (partitura editável `.mscz`/`.mxl`/
+/// `.musicxml`, que abre em `/partitura`). Nenhuma família fica invisível às
+/// duas faces da playlist (A7).
 ///
 /// Retorna [MaterialKind.unknown] para id inválido — nunca lança.
 MaterialKind materialIdKindOf(String id) {
@@ -56,6 +67,9 @@ MaterialKind materialIdKindOf(String id) {
   if (lower.endsWith('.chord')) return MaterialKind.chord;
   if (lower.endsWith('.gestures')) return MaterialKind.gesture;
   final dot = lower.lastIndexOf('.');
+  if (dot != -1 && kScoreMaterialExtensions.contains(lower.substring(dot))) {
+    return MaterialKind.score;
+  }
   if (dot != -1 && kAudioMaterialExtensions.contains(lower.substring(dot))) {
     return MaterialKind.audio;
   }
@@ -63,7 +77,7 @@ MaterialKind materialIdKindOf(String id) {
 }
 
 /// Classifica o `type` bruto do Worker Coldigom (`pdf`/`chord`/`mp3`/
-/// `audio`/`youtube`/`gestures`) em [MaterialKind].
+/// `audio`/`youtube`/`gestures`/`mscz`/`mxl`/`musicxml`) em [MaterialKind].
 ///
 /// Ao contrário de [materialIdKindOf] (heurística de extensão do id), este é
 /// o `type` que o Worker de fato gravou — a fonte da verdade para favoritos
@@ -74,6 +88,7 @@ MaterialKind materialKindOfRawType(String type) {
     'pdf' => MaterialKind.pdf,
     'chord' => MaterialKind.chord,
     'gestures' => MaterialKind.gesture,
+    'mscz' || 'mxl' || 'musicxml' => MaterialKind.score,
     'mp3' || 'audio' => MaterialKind.audio,
     'youtube' => MaterialKind.youtube,
     'lyrics' => MaterialKind.lyrics,
@@ -102,3 +117,9 @@ const Set<String> kAudioMaterialExtensions = {
   '.aiff',
   '.aif',
 };
+
+/// Extensões que [materialIdKindOf] reconhece como [MaterialKind.score].
+///
+/// No Worker o `type` é a própria extensão do `r2_key` (`mscz`, `mxl`,
+/// `musicxml`); todas abrem no leitor `/partitura`.
+const Set<String> kScoreMaterialExtensions = {'.mscz', '.mxl', '.musicxml'};

@@ -6271,6 +6271,216 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não foi possível excluir sua conta. Verifique sua conexão e tente novamente.'**
   String get profileDeleteAccountError;
+
+  /// No description provided for @scoreMaterialLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Partitura interativa'**
+  String get scoreMaterialLabel;
+
+  /// No description provided for @scoreMaterialSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Interativas'**
+  String get scoreMaterialSection;
+
+  /// No description provided for @scoreReaderTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Leitor de partitura'**
+  String get scoreReaderTitle;
+
+  /// No description provided for @scoreReaderEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Partitura não encontrada'**
+  String get scoreReaderEmpty;
+
+  /// No description provided for @scoreReaderUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Partitura indisponível · tentar de novo'**
+  String get scoreReaderUnavailable;
+
+  /// No description provided for @scoreReaderPlay.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocar'**
+  String get scoreReaderPlay;
+
+  /// No description provided for @scoreReaderPause.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pausar'**
+  String get scoreReaderPause;
+
+  /// No description provided for @scoreReaderStop.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar ao início'**
+  String get scoreReaderStop;
+
+  /// No description provided for @scoreReaderTransposeUp.
+  ///
+  /// In pt, this message translates to:
+  /// **'Subir meio tom'**
+  String get scoreReaderTransposeUp;
+
+  /// No description provided for @scoreReaderTransposeDown.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descer meio tom'**
+  String get scoreReaderTransposeDown;
+
+  /// No description provided for @scoreReaderTransposeReset.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar ao tom original'**
+  String get scoreReaderTransposeReset;
+
+  /// No description provided for @scoreReaderTempo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Andamento'**
+  String get scoreReaderTempo;
+
+  /// No description provided for @scoreReaderBpm.
+  ///
+  /// In pt, this message translates to:
+  /// **'{bpm} bpm'**
+  String scoreReaderBpm(int bpm);
+
+  /// No description provided for @scoreReaderTempoReset.
+  ///
+  /// In pt, this message translates to:
+  /// **'Andamento original'**
+  String get scoreReaderTempoReset;
+
+  /// No description provided for @scoreReaderLoopStart.
+  ///
+  /// In pt, this message translates to:
+  /// **'Loop A-B: marcar início no compasso atual'**
+  String get scoreReaderLoopStart;
+
+  /// No description provided for @scoreReaderLoopEnd.
+  ///
+  /// In pt, this message translates to:
+  /// **'Loop A-B: marcar fim no compasso atual'**
+  String get scoreReaderLoopEnd;
+
+  /// No description provided for @scoreReaderLoopClear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desligar loop A-B'**
+  String get scoreReaderLoopClear;
+
+  /// No description provided for @scoreReaderLoopRange.
+  ///
+  /// In pt, this message translates to:
+  /// **'Loop: compassos {start}–{end}'**
+  String scoreReaderLoopRange(int start, int end);
+
+  /// No description provided for @scoreReaderLoopHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque numa nota e marque o início; depois o fim. Segurar um compasso também marca.'**
+  String get scoreReaderLoopHint;
+
+  /// No description provided for @scoreReaderMixer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vozes e volume'**
+  String get scoreReaderMixer;
+
+  /// No description provided for @scoreReaderInstrument.
+  ///
+  /// In pt, this message translates to:
+  /// **'Instrumento GM'**
+  String get scoreReaderInstrument;
+
+  /// No description provided for @scoreReaderBasicInstruments.
+  ///
+  /// In pt, this message translates to:
+  /// **'Som básico: apenas piano. A seleção será usada com os timbres reais.'**
+  String get scoreReaderBasicInstruments;
+
+  /// No description provided for @scoreReaderInstrumentFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível trocar o instrumento. Selecione novamente para tentar de novo.'**
+  String get scoreReaderInstrumentFailed;
+
+  /// No description provided for @scoreReaderMute.
+  ///
+  /// In pt, this message translates to:
+  /// **'Silenciar'**
+  String get scoreReaderMute;
+
+  /// No description provided for @scoreReaderSolo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Solo'**
+  String get scoreReaderSolo;
+
+  /// No description provided for @scoreReaderZoomIn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aumentar partitura'**
+  String get scoreReaderZoomIn;
+
+  /// No description provided for @scoreReaderZoomOut.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diminuir partitura'**
+  String get scoreReaderZoomOut;
+
+  /// No description provided for @scoreReaderModePages.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver em páginas'**
+  String get scoreReaderModePages;
+
+  /// No description provided for @scoreReaderModeContinuous.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver em rolagem contínua'**
+  String get scoreReaderModeContinuous;
+
+  /// No description provided for @scoreReaderSoundMinimal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Som básico · baixar timbres reais'**
+  String get scoreReaderSoundMinimal;
+
+  /// No description provided for @scoreReaderSoundDownloading.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixando timbres reais…'**
+  String get scoreReaderSoundDownloading;
+
+  /// No description provided for @scoreReaderSoundDownloadingPercent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixando timbres reais… {percent}%'**
+  String scoreReaderSoundDownloadingPercent(int percent);
+
+  /// No description provided for @scoreReaderSoundFull.
+  ///
+  /// In pt, this message translates to:
+  /// **'Timbres reais'**
+  String get scoreReaderSoundFull;
+
+  /// No description provided for @scoreReaderSoundFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível baixar os timbres reais · tentar de novo'**
+  String get scoreReaderSoundFailed;
+
+  /// No description provided for @scoreReaderAudioUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Áudio indisponível neste dispositivo'**
+  String get scoreReaderAudioUnavailable;
 }
 
 class _AppLocalizationsDelegate

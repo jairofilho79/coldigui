@@ -3,6 +3,7 @@ import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metad
 
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
+import '../../../score_reader/domain/entities/score_material.dart';
 import '../constants/louvor_category_order.dart';
 import '../utils/louvor_classification.dart';
 import 'catalog_material.dart';
@@ -39,10 +40,10 @@ class LouvorMaterialSection {
 class LouvorGroup {
   /// [extras] é a lista canônica dos materiais que não são PDF de seção.
   ///
-  /// Os parâmetros [chordMaterials]/[gestureMaterials]/[audioTracks]/
-  /// [youtubeMaterials] continuam aceitos por compatibilidade: quando [extras]
-  /// não vem, eles são convertidos em [CatalogMaterial] na ordem canônica
-  /// (cifras, gestos, áudios, YouTube) — a mesma que [materials] sempre expôs.
+  /// Os parâmetros [chordMaterials]/[gestureMaterials]/[scoreMaterials]/
+  /// [audioTracks]/[youtubeMaterials] continuam aceitos por compatibilidade:
+  /// quando [extras] não vem, eles são convertidos em [CatalogMaterial] na
+  /// ordem canônica (cifras, gestos, partituras, áudios, YouTube) — a mesma que [materials] sempre expôs.
   /// Passar [extras] tem precedência: ele já é o vocabulário único e define a
   /// ordem.
   LouvorGroup({
@@ -55,6 +56,7 @@ class LouvorGroup {
     List<YoutubeMaterial> youtubeMaterials = const [],
     List<ChordMaterial> chordMaterials = const [],
     List<GestureMaterial> gestureMaterials = const [],
+    List<ScoreMaterial> scoreMaterials = const [],
     LyricsMaterial? lyrics,
     this.coldigomMeta,
   }) : extras =
@@ -63,6 +65,7 @@ class LouvorGroup {
              for (final chord in chordMaterials) ChordMaterialRef(chord),
              for (final gesture in gestureMaterials)
                GestureMaterialRef(gesture),
+             for (final score in scoreMaterials) ScoreMaterialRef(score),
              for (final track in audioTracks) AudioMaterial(track),
              for (final item in youtubeMaterials) YoutubeMaterialRef(item),
              // A letra fecha a lista: é o material «sempre presente» e o
@@ -107,6 +110,12 @@ class LouvorGroup {
   List<GestureMaterial> get gestureMaterials => [
     for (final material in extras)
       if (material is GestureMaterialRef) material.gesture,
+  ];
+
+  /// Partituras editáveis Coldigom do mesmo [groupId] — de [extras].
+  List<ScoreMaterial> get scoreMaterials => [
+    for (final material in extras)
+      if (material is ScoreMaterialRef) material.score,
   ];
 
   /// Letra Coldigom do grupo — de [extras]; `null` sem letra.
@@ -207,6 +216,7 @@ class LouvorGroup {
     List<YoutubeMaterial> youtubeMaterials = const [],
     List<ChordMaterial> chordMaterials = const [],
     List<GestureMaterial> gestureMaterials = const [],
+    List<ScoreMaterial> scoreMaterials = const [],
     Map<String, LyricsMaterial>? lyricsByGroupId,
     Map<String, ColdigomPraiseMetadata>? coldigomMetaByGroupId,
     bool sortByNumber = true,
@@ -245,12 +255,20 @@ class LouvorGroup {
       gestureByGroup.putIfAbsent(gid, () => []).add(item);
     }
 
+    final scoreByGroup = <String, List<ScoreMaterial>>{};
+    for (final item in scoreMaterials) {
+      final gid = item.groupId.trim();
+      if (gid.isEmpty) continue;
+      scoreByGroup.putIfAbsent(gid, () => []).add(item);
+    }
+
     final allGroupIds = <String>{
       ...byGroup.keys,
       ...audioByGroup.keys,
       ...youtubeByGroup.keys,
       ...chordByGroup.keys,
       ...gestureByGroup.keys,
+      ...scoreByGroup.keys,
       ...?lyricsByGroupId?.keys,
     };
     final groups = allGroupIds.map((gid) {
@@ -261,6 +279,7 @@ class LouvorGroup {
         youtubeByGroup[gid] ?? const [],
         chordByGroup[gid] ?? const [],
         gestureByGroup[gid] ?? const [],
+        scoreByGroup[gid] ?? const [],
         lyricsByGroupId?[gid],
         coldigomMetaByGroupId?[gid],
       );
@@ -276,7 +295,8 @@ class LouvorGroup {
     List<AudioTrack> tracks,
     List<YoutubeMaterial> youtube,
     List<ChordMaterial> chords,
-    List<GestureMaterial> gestures, [
+    List<GestureMaterial> gestures,
+    List<ScoreMaterial> scores, [
     LyricsMaterial? lyrics,
     ColdigomPraiseMetadata? coldigomMeta,
   ]) {
@@ -329,6 +349,9 @@ class LouvorGroup {
     } else if (gestures.isNotEmpty) {
       nome = gestures.first.nome;
       numero = gestures.first.numero.trim();
+    } else if (scores.isNotEmpty) {
+      nome = scores.first.nome;
+      numero = scores.first.numero.trim();
     } else if (lyrics != null) {
       nome = lyrics.nome;
       numero = lyrics.numero.trim();
@@ -346,6 +369,7 @@ class LouvorGroup {
       youtubeMaterials: List<YoutubeMaterial>.from(youtube),
       chordMaterials: List<ChordMaterial>.from(chords),
       gestureMaterials: List<GestureMaterial>.from(gestures),
+      scoreMaterials: List<ScoreMaterial>.from(scores),
       lyrics: lyrics,
       coldigomMeta: coldigomMeta,
     );

@@ -19,6 +19,7 @@ String offlineMaterialKindLabel(AppLocalizations l10n, MaterialKind kind) {
     MaterialKind.pdf => 'PDF',
     MaterialKind.chord => l10n.materialKindChordExtracted,
     MaterialKind.gesture => l10n.materialKindGestureExtracted,
+    MaterialKind.score => l10n.scoreMaterialLabel,
     MaterialKind.audio => l10n.audioMaterialSection,
     MaterialKind.youtube => l10n.youtubeMaterialSection,
     MaterialKind.lyrics => l10n.lyricsTab,

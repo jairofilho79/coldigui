@@ -299,15 +299,16 @@ Future<void> showCarouselSwapMaterialSheet({
     canAddToPlaylist: false,
     currentMaterialId: currentMaterialId,
     currentEntryKey: currentEntryKey,
-    // O que se lê (PDF, cifra, gestos) **troca** a entrada da lista ativa —
-    // é o mesmo louvor com outro material — em vez de empilhar uma rota nova
-    // ou entrar no fim da lista; áudio toca sem tirar o usuário da partitura
+    // O que se lê (PDF, cifra, gestos, partitura) **troca** a entrada da
+    // lista ativa — é o mesmo louvor com outro material — em vez de empilhar
+    // uma rota nova ou entrar no fim da lista; áudio toca sem tirar o usuário da partitura
     // (ouvir enquanto lê); YouTube segue pelo opener único.
     onMaterialSelected: (material) async {
       switch (material) {
         case PdfMaterial() ||
             ChordMaterialRef() ||
             GestureMaterialRef() ||
+            ScoreMaterialRef() ||
             LyricsMaterial():
           await _onReadableMaterialSelected(
             ref: ref,
@@ -375,6 +376,7 @@ Future<void> _onReadableMaterialSelected({
       path == RoutePaths.reader ||
       path == RoutePaths.chords ||
       path == RoutePaths.gestos ||
+      path == RoutePaths.partitura ||
       path == RoutePaths.lyrics;
 
   if (currentMaterialId != null &&

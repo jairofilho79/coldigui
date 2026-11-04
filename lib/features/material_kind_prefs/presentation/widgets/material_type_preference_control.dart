@@ -138,6 +138,7 @@ class MaterialTypePreferenceControl extends ConsumerWidget {
       MaterialKind.pdf => l10n.favoriteMaterialKindsPdfFormat,
       MaterialKind.chord => l10n.favoriteMaterialKindsChordFormat,
       MaterialKind.gesture => l10n.gesturesMaterialSection,
+      MaterialKind.score => l10n.scoreMaterialLabel,
       MaterialKind.audio => l10n.audioMaterialSection,
       MaterialKind.youtube => l10n.youtubeMaterialSection,
       MaterialKind.lyrics => l10n.lyricsTab,

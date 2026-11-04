@@ -160,6 +160,10 @@ abstract final class ColdigomPraiseCacheMapper {
         PdfMaterial() => _entryFromId(material, 'pdf'),
         ChordMaterialRef() => _entryFromId(material, 'chord'),
         GestureMaterialRef() => _entryFromId(material, 'gestures'),
+        ScoreMaterialRef(:final score) => _entryFromId(
+          material,
+          _extensionOf(score.r2Key),
+        ),
         AudioMaterial(:final track) => ColdigomCatalogMaterialEntry(
           id: _basenameWithoutExt(track.r2Key),
           kindId: material.materialKindId,
@@ -218,6 +222,12 @@ abstract final class ColdigomPraiseCacheMapper {
       r2Key: r2Key,
       notes: material.notes,
     );
+  }
+
+  /// `type` de partitura = extensão do `r2_key` (`mscz`/`mxl`/`musicxml`).
+  static String _extensionOf(String path) {
+    final dot = path.lastIndexOf('.');
+    return dot == -1 ? 'mscz' : path.substring(dot + 1).toLowerCase();
   }
 
   static String _basenameWithoutExt(String path) {
