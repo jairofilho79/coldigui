@@ -235,6 +235,8 @@ def read_only_command(words):
 def deploy_permission(words):
     if not words or words[0] not in ("./deploy.sh", "./scripts/deploy_all.sh"):
         return None
+    if words[1:] in (["--help"], ["-h"]):
+        return {}
     flags = set(words[1:])
     allowed = {
         "--skip-web", "--skip-ios", "--skip-android", "--skip-build-web",
@@ -285,7 +287,7 @@ def hook(event, payload):
         if shell:
             words = shell_words(args)
             deploy = deploy_permission(words)
-            if deploy:
+            if deploy is not None:
                 return deploy
             if bootstrap_command(words) or read_only_command(words):
                 return {}

@@ -259,6 +259,11 @@ class DeliveryTests(unittest.TestCase):
             result = self.hook("preToolUse", toolName="bash", toolArgs={"command": cmd})
             self.assertEqual(result["permissionDecision"], "deny")
 
+    def test_deploy_help_remains_available_without_a_task(self):
+        for cmd in ("./deploy.sh --help", "./scripts/deploy_all.sh -h"):
+            result = self.hook("preToolUse", toolName="bash", toolArgs={"command": cmd})
+            self.assertEqual(result, {})
+
     def test_git_read_only_queries_do_not_require_a_task(self):
         for cmd in ("git status --short", "git branch --show-current", "gh pr view 42"):
             result = self.hook("preToolUse", toolName="bash", toolArgs={"command": cmd})
