@@ -378,7 +378,7 @@ void main() {
 
     final harness = await _pumpSwapSheet(tester, group: group);
 
-    await tester.tap(find.text('Cifras'));
+    await tester.tap(find.text('Extraídos'));
     await tester.pumpAndSettle();
 
     expect(harness.carousel.replaced, [
@@ -401,7 +401,7 @@ void main() {
 
     final harness = await _pumpSwapSheet(tester, group: group);
 
-    await tester.tap(find.text('Gestos'));
+    await tester.tap(find.text('Extraídos'));
     await tester.pumpAndSettle();
 
     expect(harness.carousel.replaced, [
@@ -426,7 +426,7 @@ void main() {
       },
     ).single;
     final harness = await _pumpSwapSheet(tester, group: group);
-    await tester.tap(find.text('Letra'));
+    await tester.tap(find.text('Extraídos'));
     await tester.pumpAndSettle();
     expect(harness.carousel.replaced, [
       ('pdf1', const PlaylistEntry(id: 'lyrics:g1', kind: MaterialKind.lyrics)),

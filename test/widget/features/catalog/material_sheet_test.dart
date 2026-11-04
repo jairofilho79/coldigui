@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
@@ -210,6 +212,7 @@ Future<void> _pumpSheet(
   ActivePlaylistEditor Function()? editor,
   List<ActiveEntry> activeEntries = const [],
   bool canAddToPlaylist = true,
+  MaterialKind? initialKind,
   IsarStatus isarStatus = IsarStatus.available,
   List<Override> overrides = const [],
 }) async {
@@ -249,6 +252,7 @@ Future<void> _pumpSheet(
                   ref,
                   group,
                   canAddToPlaylist: canAddToPlaylist,
+                  initialKind: initialKind,
                 ),
                 child: const Text('abrir'),
               ),
@@ -312,7 +316,7 @@ void main() {
       expect(find.text('Cifra'), findsOneWidget);
     });
 
-    // Dois tipos → abas «Partituras» | «Cifras»; a seção única de PDF não
+    // Dois tipos → abas «PDFs» | «Extraídos»; a seção única de PDF não
     // ganha rótulo (a aba já diz o que é).
     testWidgets('uma seção de PDF com cifras vira duas abas', (tester) async {
       final group = LouvorGroup(
@@ -332,12 +336,12 @@ void main() {
       );
 
       expect(find.text('Básico'), findsNothing);
-      expect(find.text('Partituras'), findsOneWidget);
-      expect(find.text('Cifras'), findsOneWidget);
+      expect(find.text('PDFs'), findsOneWidget);
+      expect(find.text('Extraídos'), findsOneWidget);
       expect(find.text('Partitura'), findsOneWidget);
       expect(find.text('Cifra I'), findsNothing);
 
-      await tester.tap(find.text('Cifras'));
+      await tester.tap(find.text('Extraídos'));
       await tester.pumpAndSettle();
 
       expect(find.text('Cifra I'), findsOneWidget);
@@ -367,14 +371,14 @@ void main() {
         overrides: [chordSongProvider.overrideWith((ref, r2Key) async => song)],
       );
 
-      await tester.tap(find.text('Cifras'));
+      await tester.tap(find.text('Extraídos'));
       await tester.pumpAndSettle();
 
       expect(opener.opened, isA<ChordMaterialRef>());
       expect(opener.opened!.id, 'chord-Cifra I');
     });
 
-    testWidgets('seção sem classificação usa «Partituras» como rótulo', (
+    testWidgets('seção sem classificação usa «PDFs» como rótulo', (
       tester,
     ) async {
       final group = LouvorGroup.fromLouvores([
@@ -384,7 +388,7 @@ void main() {
 
       await _pumpSheet(tester, group: group);
 
-      expect(find.text('Partituras'), findsOneWidget);
+      expect(find.text('PDFs'), findsOneWidget);
       expect(find.text('Fox'), findsOneWidget);
     });
 
@@ -397,7 +401,7 @@ void main() {
       await _pumpSheet(tester, group: group);
 
       expect(find.text('Básico'), findsNothing);
-      expect(find.text('Partituras'), findsNothing);
+      expect(find.text('PDFs'), findsNothing);
       expect(find.text('Cifras'), findsNothing);
       expect(find.text('Áudio'), findsNothing);
       expect(find.text('YouTube'), findsNothing);
@@ -482,7 +486,7 @@ void main() {
       expect(find.text('CIAS'), findsOneWidget);
       expect(find.text('Ritmo'), findsOneWidget);
       // Só no bloco de meta: a seção única de PDF não ganha rótulo, a aba
-      // «Partituras» já diz o que é.
+      // «PDFs» já diz o que é.
       expect(find.text('Básico'), findsOneWidget);
       // Sem linha «Categoria»: a seção da Coletânea aparece nas tags (spec
       // seções-coletânea §4.1).
@@ -494,7 +498,7 @@ void main() {
       expect(find.text('692 — Comigo habita'), findsNothing);
 
       // Abas: PDF aberta, as outras só com o rótulo.
-      expect(find.text('Partituras'), findsOneWidget);
+      expect(find.text('PDFs'), findsOneWidget);
       expect(find.text('Áudio'), findsOneWidget);
       expect(find.text('YouTube'), findsOneWidget);
       expect(find.text('Partitura'), findsOneWidget);
@@ -543,6 +547,105 @@ void main() {
       );
     }
 
+    testWidgets('cifra que carrega tarde aparece dentro de Extraídos', (
+      tester,
+    ) async {
+      final chordLoad = Completer<ChordProSong?>();
+      final group = LouvorGroup(
+        groupId: 'g1',
+        numero: '692',
+        nome: 'Comigo habita',
+        sections: LouvorGroup.fromLouvores([
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+        ]).first.sections,
+        chordMaterials: [_chord('Cifra I', 'k1')],
+        gestureMaterials: [
+          GestureMaterial(
+            gestureId: 'gesture1',
+            r2Key: 'gesture-key',
+            nome: 'Comigo habita',
+            numero: '692',
+            groupId: 'g1',
+            categoria: 'Gestos CIAs',
+            classificacao: 'Básico',
+          ),
+        ],
+        lyrics: const LyricsMaterial(
+          praiseId: 'g1',
+          nome: 'Comigo habita',
+          numero: '692',
+        ),
+        audioTracks: const [_track],
+        youtubeMaterials: const [_youtube],
+      );
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        overrides: [
+          chordSongProvider.overrideWith((ref, r2Key) => chordLoad.future),
+        ],
+      );
+
+      expect(find.text('PDFs'), findsOneWidget);
+      expect(find.text('Extraídos'), findsOneWidget);
+      expect(find.text('Cifras'), findsNothing);
+      expect(find.text('Áudio'), findsOneWidget);
+      expect(find.text('YouTube'), findsOneWidget);
+
+      await tester.tap(find.text('Extraídos'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Gestos CIAs'), findsOneWidget);
+      expect(find.text('Cifra I'), findsNothing);
+
+      chordLoad.complete(song);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cifra I'), findsOneWidget);
+      expect(find.text('Gestos CIAs'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Letra'), findsOneWidget);
+      expect(find.text('PDFs'), findsOneWidget);
+      expect(find.text('Áudio'), findsOneWidget);
+      expect(find.text('YouTube'), findsOneWidget);
+    });
+
+    testWidgets('cifra lenta abre Extraídos mesmo sem outros materiais', (
+      tester,
+    ) async {
+      final chordLoad = Completer<ChordProSong?>();
+      final group = LouvorGroup(
+        groupId: 'g1',
+        numero: '692',
+        nome: 'Comigo habita',
+        sections: LouvorGroup.fromLouvores([
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+        ]).first.sections,
+        chordMaterials: [_chord('Cifra I', 'k1')],
+      );
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        initialKind: MaterialKind.chord,
+        overrides: [
+          chordSongProvider.overrideWith((ref, r2Key) => chordLoad.future),
+        ],
+      );
+
+      expect(find.text('PDFs'), findsOneWidget);
+      expect(find.text('Extraídos'), findsOneWidget);
+      expect(find.text('Carregando cifras…'), findsOneWidget);
+      expect(find.text('Cifra I'), findsNothing);
+
+      chordLoad.complete(song);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Extraídos'), findsOneWidget);
+      expect(find.text('Cifra I'), findsOneWidget);
+      expect(find.text('Partitura'), findsNothing);
+    });
+
     testWidgets('lista só as cifras disponíveis', (tester) async {
       await _pumpSheet(
         tester,
@@ -557,7 +660,8 @@ void main() {
         ],
       );
 
-      // Tipo único: sem abas nem rótulo.
+      // Tipo único: sem rótulo de aba ou cabeçalho de seção.
+      expect(find.text('Extraídos'), findsNothing);
       expect(find.text('Cifras'), findsNothing);
       expect(find.text('Cifra I'), findsOneWidget);
       expect(find.text('Cifra II'), findsNothing);
@@ -717,7 +821,7 @@ void main() {
     );
 
     testWidgets(
-      'PDF com gestos vira duas abas; a de Gestos lista o documento',
+      'PDF com gestos vira duas abas; Extraídos lista o documento',
       (tester) async {
         final group = LouvorGroup(
           groupId: 'g1',
@@ -734,11 +838,11 @@ void main() {
 
         await _pumpSheet(tester, group: group);
 
-        expect(find.text('Partituras'), findsOneWidget);
-        expect(find.text('Gestos'), findsOneWidget);
+        expect(find.text('PDFs'), findsOneWidget);
+        expect(find.text('Extraídos'), findsOneWidget);
         expect(find.byIcon(Icons.pan_tool_outlined), findsNothing);
 
-        await tester.tap(find.text('Gestos'));
+        await tester.tap(find.text('Extraídos'));
         await tester.pumpAndSettle();
 
         expect(find.byIcon(Icons.pan_tool_outlined), findsNWidgets(2));
@@ -908,9 +1012,9 @@ void main() {
 
         final tab = switch (material.kind) {
           MaterialKind.audio => 'Áudio',
-          MaterialKind.chord => 'Cifras',
-          MaterialKind.gesture => 'Gestos',
-          MaterialKind.lyrics => 'Letra',
+          MaterialKind.chord => 'Extraídos',
+          MaterialKind.gesture => 'Extraídos',
+          MaterialKind.lyrics => 'Extraídos',
           _ => null,
         };
         if (tab != null) {
@@ -1050,9 +1154,9 @@ void main() {
       );
 
       final tabLabel = switch (material.kind) {
-        MaterialKind.chord => 'Cifras',
-        MaterialKind.gesture => 'Gestos',
-        MaterialKind.lyrics => 'Letra',
+        MaterialKind.chord => 'Extraídos',
+        MaterialKind.gesture => 'Extraídos',
+        MaterialKind.lyrics => 'Extraídos',
         _ => throw StateError('não é extraído'),
       };
 

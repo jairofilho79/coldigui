@@ -1061,8 +1061,14 @@ abstract class AppLocalizations {
   /// No description provided for @pdfMaterialSection.
   ///
   /// In pt, this message translates to:
-  /// **'Partituras'**
+  /// **'PDFs'**
   String get pdfMaterialSection;
+
+  /// No description provided for @extractedMaterialSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Extraídos'**
+  String get extractedMaterialSection;
 
   /// No description provided for @audioMaterialSection.
   ///
@@ -1081,6 +1087,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Cifras'**
   String get chordMaterialSection;
+
+  /// No description provided for @chordMaterialsLoading.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregando cifras…'**
+  String get chordMaterialsLoading;
 
   /// No description provided for @chordUnavailableRetry.
   ///

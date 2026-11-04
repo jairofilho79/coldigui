@@ -30,9 +30,9 @@ typedef MaterialSheetOpener = Future<void> Function(CatalogMaterial material);
 ///
 /// Substitui `showLouvorMaterialSheet` e `showColdigomMaterialSheet`: o acervo
 /// deixou de decidir o layout. O grupo é renderizado sempre igual — uma aba por
-/// tipo presente (PDF, cifras, gestos, áudio, YouTube) quando há mais de
-/// um, senão a lista direta — e o cabeçalho de metadados e prévia da letra
-/// aparecem quando disponíveis.
+/// grupo presente (PDFs, extraídos, áudio, YouTube) quando há mais de um,
+/// senão a lista direta — e o cabeçalho de metadados e prévia da letra aparecem
+/// quando disponíveis.
 ///
 /// [canAddToPlaylist] `false` esconde os `+` — é o caso da troca de material no
 /// leitor, onde o louvor já está na lista.
