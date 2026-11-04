@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "command": "python3 -B scripts/task_delivery.py hook sessionStart",
+        "timeoutSec": 10
+      }
+    ],
+    "preToolUse": [
+      {
+        "type": "command",
+        "command": "python3 -B scripts/task_delivery.py hook preToolUse",
+        "timeoutSec": 10
+      }
+    ],
+    "agentStop": [
+      {
+        "type": "command",
+        "command": "python3 -B scripts/task_delivery.py hook agentStop",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

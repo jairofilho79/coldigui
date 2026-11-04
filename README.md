@@ -43,6 +43,25 @@ samples, guidance on mobile development, and a full API reference.
 
 ## Deploy e Execução
 
+### Entrega de tarefas com Copilot
+
+A skill [task-delivery](.github/skills/task-delivery/SKILL.md) orienta o fluxo:
+aprovação da tarefa → branch `feature/` ou `fix/` antes das alterações →
+validação → incremento minor/patch e build → PR → aprovação explícita de merge →
+oferta de deploy completo ou com skips de plataformas.
+
+Em cada clone, instale os bloqueios Git de commits/merges e pushes diretos na
+`main` (Git e Python 3.9+, macOS/Linux):
+
+```bash
+python3 scripts/task_delivery.py install
+```
+
+Inicie uma nova sessão Copilot para carregar os hooks do repositório. A proteção
+remota exige PR e checks `web`/`worker`, inclusive para administradores; aprovação
+conversacional de merge e autorização de deploy são decisões separadas. A skill
+documenta os comandos, estado idempotente e limites das proteções locais.
+
 ### Deploy Unificado (Web, iPad e Android)
 Deploy em todas as plataformas com abertura automática da pasta do APK no Finder ao concluir:
 
