@@ -39,7 +39,9 @@ GestureRoute gestureRouteFor(
   );
 }
 
-/// Abre [gesture] em `/gestos`, entrando na lista ativa como o PDF faz.
+/// Abre [gesture] em `/gestos` sem alterar a lista ativa.
+///
+/// A adição à lista ativa é uma ação separada, pelo botão `+`.
 ///
 /// Espelha `openChordInReader`: o documento é buscado pelo
 /// `gestureDocumentProvider` na própria tela. Os gestos do grupo entram no

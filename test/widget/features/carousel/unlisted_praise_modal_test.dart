@@ -1,6 +1,7 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/active_list_panel.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -84,6 +85,7 @@ void main() {
         final container = ProviderScope.containerOf(
           tester.element(find.byType(ActiveListPanel)),
         );
+        container.read(carouselFocusedIndexProvider.notifier).focusKey('b');
         container.read(readerRouteParamsProvider.notifier).update({
           UrlSyncParams.pdfId: 'unlisted_id',
           UrlSyncParams.titulo: 'Louvor Fora da Lista',
@@ -101,7 +103,21 @@ void main() {
         final addButtons = find.byType(CarouselLouvorAddButton);
         expect(addButtons, findsOneWidget);
 
-        expect(find.byType(ZebradaHighlight), findsNothing);
+        expect(find.byType(CurrentLouvorHighlight), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('activeListPanelItem-b')),
+            matching: find.byType(CurrentLouvorHighlight),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('activeListPanelItem-a')),
+            matching: find.byType(CurrentLouvorHighlight),
+          ),
+          findsNothing,
+        );
 
         await tester.tap(addButtons);
         await tester.pumpAndSettle();

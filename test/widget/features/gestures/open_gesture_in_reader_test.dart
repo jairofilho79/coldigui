@@ -114,8 +114,7 @@ void main() {
     // Garante a lista ativa carregada antes de abrir o gesto.
     capturedRef.read(playlistsProvider);
     // Quem grava o gesto no cache é quem monta o grupo (pelo
-    // `coldigomCacheWriter`) antes de o tile abrir; `openGestureInReader` só
-    // entra na lista e navega.
+    // `coldigomCacheWriter`) antes de o tile abrir; o opener só navega.
     capturedRef.read(coldigomCacheWriterProvider).mergeGestures([_gesture]);
     await tester.pumpAndSettle();
     return capturedRef;
@@ -124,10 +123,6 @@ void main() {
   testWidgets('gesto já na lista ativa abre /gestos sem regravar a lista', (
     tester,
   ) async {
-    // O tile passou a abrir o gesto pelo `openMaterialProvider`, que em
-    // produção é o `openGestureInReader` — e ele entra na lista ativa como o
-    // PDF faz. Este teste fixa o efeito colateral do caminho composto: o
-    // gesto que já está na lista **não** regrava a lista (só foca o chip).
     await repository.create(
       nome: 'Ensaio',
       pdfIds: [_gestureId],
@@ -152,11 +147,9 @@ void main() {
     );
   });
 
-  testWidgets('gesto fora da lista ativa entra na lista (controle)', (
+  testWidgets('gesto fora da lista ativa abre sem alterar a lista', (
     tester,
   ) async {
-    // Controle do teste acima: com o gesto ausente o mesmo caminho **grava**
-    // a lista, o que prova que as asserções de "não regravou" pegam a escrita.
     await repository.create(
       nome: 'Ensaio',
       pdfIds: [_pdfA],
@@ -171,8 +164,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final after = await repository.getById('p1');
-    expect(after!.items, [_pdfA, _gestureId]);
-    expect(after.updatedAt.isAfter(before!.updatedAt), isTrue);
+    expect(after!.items, [_pdfA]);
+    expect(after.updatedAt, before!.updatedAt);
+    expect(after.version, before.version);
     expect(find.text('gesto:$_gestureId'), findsOneWidget);
   });
 }
