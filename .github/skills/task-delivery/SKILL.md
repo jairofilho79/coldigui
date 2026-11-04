@@ -85,7 +85,11 @@ description: 'Use ao iniciar e finalizar tarefas no coldigui: criar branch featu
 
 1. Consulte PR, diff, HEAD e checks:
    `gh pr view <numero> --repo jairofilho79/coldigui` e `gh pr checks <numero>`.
-   Aguarde checks obrigatorios verdes e resolucao de conflitos.
+   Os jobs `web` e `worker` continuam executando, mas nao sao obrigatorios para
+   o merge. Informe ao usuario seus resultados ou se estao pendentes, juntamente
+   com os testes locais realizados e eventuais falhas ou limitacoes. Resolva
+   conflitos antes do merge; checks que venham a ser configurados como
+   obrigatorios devem estar verdes.
 2. Mostre o numero/URL e SHA atual e solicite aprovacao explicita usando a
    ferramenta de perguntas. Nao interprete aprovacao da implementacao como
    aprovacao de merge. Sem resposta, negacao ou cancelamento: nao faca merge.
@@ -96,8 +100,9 @@ description: 'Use ao iniciar e finalizar tarefas no coldigui: criar branch featu
    gh pr merge <numero> --repo jairofilho79/coldigui --squash --match-head-commit <SHA-aprovado>
    ```
 
-   Nunca use `--admin`, `--auto`, desative checks ou remova protecoes para contornar
-   uma falha. A protecao remota exige PR e checks, inclusive para administradores.
+   Nunca use `--admin`, `--auto`, desative workflows ou altere protecoes para
+   contornar uma falha. A protecao remota exige PR inclusive para administradores;
+   os jobs opcionais nao sao uma garantia de validacao antes do merge.
    A aprovacao conversacional e uma regra da skill; ela nao e um review GitHub
    autenticado e nao e comprovada pelo hook.
 4. Confirme estado `MERGED` pelo GitHub antes de oferecer execucao de deploy.
