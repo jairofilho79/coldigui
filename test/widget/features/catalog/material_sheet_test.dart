@@ -22,6 +22,8 @@ import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
 import 'package:coldigui/features/chords/presentation/providers/available_chords_provider.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_catalog_source_provider.dart';
+import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
 import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
@@ -137,6 +139,9 @@ class _RecordingActiveEditor extends ActivePlaylistEditor {
   _RecordingActiveEditor({
     this.outcome = AddToActiveOutcome.added,
     this.removeThrows = false,
+    this.initialEntries,
+    this.replaceResult = true,
+    this.replaceThrows = false,
   });
 
   /// O que o editor responde — o sheet só traduz o resultado em snackbar.
@@ -144,11 +149,16 @@ class _RecordingActiveEditor extends ActivePlaylistEditor {
 
   /// `removeById` sem storage: lança como o editor real.
   final bool removeThrows;
+  final List<PlaylistEntry>? initialEntries;
+  final bool replaceResult;
+  final bool replaceThrows;
   final List<({String id, MaterialKind? kind, bool allowDuplicate})> added = [];
   final List<String> removed = [];
+  final List<({String key, PlaylistEntry entry})> replaced = [];
+  List<PlaylistEntry>? get entries => state;
 
   @override
-  List<PlaylistEntry>? build() => null;
+  List<PlaylistEntry>? build() => initialEntries;
 
   @override
   Future<AddToActiveOutcome> addToActive(
@@ -157,7 +167,22 @@ class _RecordingActiveEditor extends ActivePlaylistEditor {
     bool allowDuplicate = false,
   }) async {
     added.add((id: materialId, kind: kind, allowDuplicate: allowDuplicate));
+    if (state != null && outcome == AddToActiveOutcome.added) {
+      state = [...state!, PlaylistEntry(id: materialId, kind: kind!)];
+    }
     return outcome;
+  }
+
+  @override
+  Future<bool> replaceByKey(String key, PlaylistEntry replacement) async {
+    replaced.add((key: key, entry: replacement));
+    if (replaceThrows) throw const StorageUnavailableException('teste');
+    if (!replaceResult) return false;
+    if (state != null) {
+      final index = activeEntriesOf(state!).indexWhere((e) => e.key == key);
+      state = [...state!]..[index] = replacement;
+    }
+    return true;
   }
 
   @override
@@ -199,7 +224,10 @@ Future<void> _pumpSheet(
     ProviderScope(
       overrides: [
         isarStatusProvider.overrideWithValue(isarStatus),
-        activeEntriesProvider.overrideWithValue(activeEntries),
+        activeEntriesProvider.overrideWith((ref) {
+          final entries = ref.watch(activePlaylistEditorProvider);
+          return entries == null ? activeEntries : activeEntriesOf(entries);
+        }),
         if (editor != null) activePlaylistEditorProvider.overrideWith(editor),
         if (playlists != null) playlistsProvider.overrideWith(playlists),
         if (opener != null) openMaterialProvider.overrideWithValue(opener),
@@ -841,6 +869,174 @@ void main() {
         numero: '692',
       ),
     ];
+
+    for (final material in [
+      PdfMaterial(_pdf(categoria: 'Cifra', pdfId: 'pdf2')),
+      const AudioMaterial(_track),
+      ...extracted,
+    ]) {
+      testWidgets('${material.kind}: troca preserva a posição e não adiciona', (
+        tester,
+      ) async {
+        const before = PlaylistEntry(id: 'before', kind: MaterialKind.pdf);
+        const current = PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf);
+        const after = PlaylistEntry(id: 'after', kind: MaterialKind.audio);
+        final editor = _RecordingActiveEditor(
+          initialEntries: [before, current, after],
+        );
+        final group = LouvorGroup(
+          groupId: 'g1',
+          numero: '692',
+          nome: 'Comigo habita',
+          sections: LouvorGroup.fromLouvores([
+            _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+            if (material case PdfMaterial(:final louvor)) louvor,
+          ]).single.sections,
+          extras: [if (material is! PdfMaterial) material],
+        );
+        await _pumpSheet(
+          tester,
+          group: group,
+          editor: () => editor,
+          opener: _OpenMaterialSpy(),
+          overrides: [
+            availableChordsProvider.overrideWith(
+              (ref, groupId) async => group.chordMaterials,
+            ),
+          ],
+        );
+
+        final tab = switch (material.kind) {
+          MaterialKind.audio => 'Áudio',
+          MaterialKind.chord => 'Cifras',
+          MaterialKind.gesture => 'Gestos',
+          MaterialKind.lyrics => 'Letra',
+          _ => null,
+        };
+        if (tab != null) {
+          await tester.tap(find.text(tab));
+          await tester.pumpAndSettle();
+        }
+
+        expect(find.byType(CarouselLouvorAddButton), findsNothing);
+        final swap = find.descendant(
+          of: find.widgetWithText(ListTile, material.categoria),
+          matching: find.byTooltip('Trocar material'),
+        );
+        expect(swap, findsOneWidget);
+        expect(
+          find.descendant(
+            of: swap,
+            matching: find.byIcon(Icons.change_circle_outlined),
+          ),
+          findsOneWidget,
+        );
+        await tester.tap(swap);
+        await tester.pumpAndSettle();
+
+        final replacement = PlaylistEntry(id: material.id, kind: material.kind);
+        expect(editor.replaced, [(key: 'pdf1', entry: replacement)]);
+        expect(editor.entries, [before, replacement, after]);
+        expect(editor.added, isEmpty);
+        expect(find.byTooltip('Remover da lista'), findsOneWidget);
+        expect(find.byType(MaterialSheet), findsOneWidget);
+      });
+    }
+
+    testWidgets('adicionar atualiza as alternativas para troca sem fechar', (
+      tester,
+    ) async {
+      const other = PlaylistEntry(id: 'other', kind: MaterialKind.audio);
+      final editor = _RecordingActiveEditor(initialEntries: [other]);
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+        _pdf(categoria: 'Cifra', pdfId: 'pdf2'),
+      ]).single;
+      await _pumpSheet(tester, group: group, editor: () => editor);
+      expect(find.byType(CarouselLouvorAddButton), findsNWidgets(2));
+
+      await tester.tap(find.byType(CarouselLouvorAddButton).first);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CarouselLouvorAddButton), findsNothing);
+      expect(find.byTooltip('Remover da lista'), findsOneWidget);
+      expect(find.byTooltip('Trocar material'), findsOneWidget);
+      await tester.tap(find.byTooltip('Trocar material'));
+      await tester.pumpAndSettle();
+      expect(editor.entries, [
+        other,
+        const PlaylistEntry(id: 'pdf2', kind: MaterialKind.pdf),
+      ]);
+      expect(editor.added, hasLength(1));
+    });
+
+    testWidgets('reconhece material do praise mesmo fora do grupo exibido', (
+      tester,
+    ) async {
+      final editor = _RecordingActiveEditor(
+        initialEntries: const [
+          PlaylistEntry(id: 'audio1', kind: MaterialKind.audio),
+        ],
+      );
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+      ]).single;
+      await _pumpSheet(
+        tester,
+        group: group,
+        editor: () => editor,
+        overrides: [
+          coldigomCatalogSourceProvider.overrideWithValue(
+            const ColdigomCatalogSource(audioTracks: {'audio1': _track}),
+          ),
+        ],
+      );
+
+      expect(find.byType(CarouselLouvorAddButton), findsNothing);
+      await tester.tap(find.byTooltip('Trocar material'));
+      await tester.pumpAndSettle();
+      expect(editor.entries, [
+        const PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
+      ]);
+      expect(editor.added, isEmpty);
+    });
+
+    for (final storageUnavailable in [false, true]) {
+      testWidgets(
+        'troca sem ${storageUnavailable ? 'storage' : 'entrada'} informa falha sem adicionar',
+        (tester) async {
+          const current = PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf);
+          final editor = _RecordingActiveEditor(
+            initialEntries: [current],
+            replaceResult: false,
+            replaceThrows: storageUnavailable,
+          );
+          await _pumpSheet(
+            tester,
+            group: LouvorGroup.fromLouvores([
+              _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+              _pdf(categoria: 'Cifra', pdfId: 'pdf2'),
+            ]).single,
+            editor: () => editor,
+          );
+          await tester.tap(find.byTooltip('Trocar material'));
+          await tester.pumpAndSettle();
+
+          expect(editor.entries, [current]);
+          expect(editor.added, isEmpty);
+          expect(
+            find.text(
+              storageUnavailable
+                  ? 'Armazenamento local indisponível. Listas não podem ser salvas.'
+                  : 'Não foi possível encontrar. O item pode ter sido removido.',
+            ),
+            findsOneWidget,
+          );
+          expect(find.byType(CircularProgressIndicator), findsNothing);
+          expect(find.byTooltip('Trocar material'), findsOneWidget);
+        },
+      );
+    }
 
     for (final material in extracted) {
       LouvorGroup extractedGroup() => LouvorGroup(

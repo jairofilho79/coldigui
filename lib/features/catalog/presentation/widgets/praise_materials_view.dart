@@ -5,23 +5,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/database/storage_unavailable_exception.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
-import '../../../../core/utils/material_id_kind.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
-import '../../../carousel/presentation/providers/carousel_items_provider.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/providers/available_chords_provider.dart';
+import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
+import '../../../coldigom/data/sources/coldigom_catalog_source.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../../material_kind_prefs/domain/usecases/order_by_favorite_kinds.dart';
 import '../../../material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import '../../../offline/presentation/providers/material_availability_map_provider.dart';
 import '../../../pdf_opening/domain/entities/pdf_offline_availability.dart';
+import '../../../playlists/domain/entities/playlist_entry.dart';
+import '../../../playlists/domain/exceptions/playlist_not_found_exception.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/catalog_material.dart';
 import '../../domain/entities/louvor_group.dart';
@@ -76,7 +79,8 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
   }
 
   void _handleTap(CatalogMaterial material) {
-    final open = widget.onMaterialSelected ??
+    final open =
+        widget.onMaterialSelected ??
         (CatalogMaterial m) => ref
             .read(openMaterialProvider)
             .open(context, ref, m, audioQueue: widget.group.audioTracks);
@@ -84,15 +88,62 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
     unawaited(open(material));
   }
 
-  Future<void> _handleAdd(CatalogMaterial material) async {
+  ActiveEntry? _entryForGroup(
+    List<ActiveEntry> entries,
+    ColdigomCatalogSource source,
+  ) {
+    final materialIds = {for (final m in widget.group.materials) m.id};
+    return entries
+        .where(
+          (entry) =>
+              materialIds.contains(entry.id) ||
+              source.findGroupForMaterial(entry.id)?.groupId ==
+                  widget.group.groupId,
+        )
+        .firstOrNull;
+  }
+
+  Future<void> _handleAddOrReplace(CatalogMaterial material) async {
     if (_addingId != null) return;
     setState(() => _addingId = material.id);
     try {
-      await addMaterialToActivePlaylist(
-        context: context,
-        ref: ref,
-        material: material,
+      final entry = _entryForGroup(
+        ref.read(activeEntriesProvider),
+        ref.read(coldigomCatalogSourceProvider),
       );
+      if (entry == null) {
+        await addMaterialToActivePlaylist(
+          context: context,
+          ref: ref,
+          material: material,
+        );
+      } else {
+        final replaced = await ref
+            .read(activePlaylistEditorProvider.notifier)
+            .replaceByKey(
+              entry.key,
+              PlaylistEntry(id: material.id, kind: material.kind),
+            );
+        if (!replaced && mounted) {
+          showAppSnackbar(
+            context,
+            AppLocalizations.of(context)!.failureNotFound,
+          );
+        }
+      }
+    } on StorageUnavailableException catch (error) {
+      AppLogger.of('playlists').warn('sem storage ao trocar material', error);
+      if (mounted) {
+        showAppSnackbar(
+          context,
+          AppLocalizations.of(context)!.playlistStorageUnavailable,
+        );
+      }
+    } on PlaylistNotFoundException catch (error) {
+      AppLogger.of('playlists').warn('lista ausente ao trocar material', error);
+      if (mounted) {
+        showAppSnackbar(context, AppLocalizations.of(context)!.failureNotFound);
+      }
     } finally {
       if (mounted) setState(() => _addingId = null);
     }
@@ -139,6 +190,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
     required CatalogMaterial material,
     required Color iconColor,
     required Set<String> activeMaterialIds,
+    required bool hasActiveGroupEntry,
     required AppLocalizations l10n,
     IconData? icon,
     String? subtitle,
@@ -154,7 +206,10 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
             isAdded: isAdded,
             isAdding: _addingId == material.id,
             removeTooltip: l10n.materialRemoveTooltip,
-            onAdd: () => _handleAdd(material),
+            onAdd: () => _handleAddOrReplace(material),
+            onReplace: hasActiveGroupEntry
+                ? () => _handleAddOrReplace(material)
+                : null,
             onRemove: () => _handleRemove(material),
           )
         : null;
@@ -162,18 +217,16 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
     final effectiveTrailing = trailingButton == null
         ? null
         : (targetAdd
-            ? SpotlightGuideTarget(
-                id: 'material-sheet-add-playlist',
-                child: trailingButton,
-              )
-            : trailingButton);
+              ? SpotlightGuideTarget(
+                  id: 'material-sheet-add-playlist',
+                  child: trailingButton,
+                )
+              : trailingButton);
 
     return ListTile(
       enabled: enabled,
       tileColor: shaded ? const Color(0x0A6A2F2F) : null,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       leading: Icon(
         icon ?? LouvorMaterialIcons.forMaterial(material),
         color: iconColor,
@@ -222,7 +275,12 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final group = widget.group;
-    final activeMaterialIds = ref.watch(activeMaterialIdsProvider);
+    final activeEntries = ref.watch(activeEntriesProvider);
+    final activeMaterialIds = {for (final entry in activeEntries) entry.id};
+    final activeGroupEntry = _entryForGroup(
+      activeEntries,
+      ref.watch(coldigomCatalogSourceProvider),
+    );
     final rank = ref.watch(favoriteMaterialKindRankProvider);
     final preferredTypes = ref.watch(favoriteMaterialTypePreferencesProvider);
     final taxonomy = ref.watch(coldigomKindTaxonomyProvider);
@@ -255,6 +313,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
         icon: icon,
         iconColor: iconColor,
         activeMaterialIds: activeMaterialIds,
+        hasActiveGroupEntry: activeGroupEntry != null,
         l10n: l10n,
         enabled: state.enabled,
         subtitle: state.subtitle ?? subtitle,
@@ -303,24 +362,19 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       return switch (kind) {
         MaterialKind.pdf => [
           for (final section in group.sections)
-            for (final entry in section.materials)
-              PdfMaterial(entry.louvor),
+            for (final entry in section.materials) PdfMaterial(entry.louvor),
         ],
         MaterialKind.chord => [
-          for (final chord in availableChords)
-            ChordMaterialRef(chord),
+          for (final chord in availableChords) ChordMaterialRef(chord),
         ],
         MaterialKind.gesture => [
-          for (final gesture in gestureMaterials)
-            GestureMaterialRef(gesture),
+          for (final gesture in gestureMaterials) GestureMaterialRef(gesture),
         ],
         MaterialKind.audio => [
-          for (final track in audioTracks)
-            AudioMaterial(track),
+          for (final track in audioTracks) AudioMaterial(track),
         ],
         MaterialKind.youtube => [
-          for (final y in youtubeMaterials)
-            YoutubeMaterialRef(y),
+          for (final y in youtubeMaterials) YoutubeMaterialRef(y),
         ],
         MaterialKind.lyrics => [?lyrics],
         MaterialKind.unknown => const <CatalogMaterial>[],
@@ -343,13 +397,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       shrinkWrap: widget.shrinkWrap,
       physics: widget.physics,
       children: switch (selectedKind) {
-        MaterialKind.pdf => _pdfTiles(
-          group,
-          taxonomy,
-          l10n,
-          rank,
-          tileFor,
-        ),
+        MaterialKind.pdf => _pdfTiles(group, taxonomy, l10n, rank, tileFor),
         MaterialKind.chord => _chordTiles(
           group,
           availableChords,
@@ -423,12 +471,15 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
               onSelected: (index) {
                 final tappedKind = kinds[index];
                 final materials = materialsForKind(tappedKind);
-                // Extraídos unitários precisam expor a linha com o botão +.
-                final showExtractedActions = widget.canAddToPlaylist &&
-                    (tappedKind == MaterialKind.chord ||
+                // Com entrada ativa, a aba unitária precisa expor a troca.
+                final showPlaylistActions =
+                    widget.canAddToPlaylist &&
+                    (activeGroupEntry != null ||
+                        tappedKind == MaterialKind.chord ||
                         tappedKind == MaterialKind.gesture ||
-                        tappedKind == MaterialKind.lyrics);
-                if (materials.length == 1 && !showExtractedActions) {
+                        tappedKind == MaterialKind.lyrics) &&
+                    materials.any(canAddMaterialToPlaylist);
+                if (materials.length == 1 && !showPlaylistActions) {
                   _selectedKind = tappedKind;
                   _handleTap(materials.first);
                 } else {
@@ -474,10 +525,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       return [
         for (final section in taxonomySections) ...[
           if (showHeaders && section.label != null)
-            _ClassHeader(
-              label: section.label!,
-              count: section.items.length,
-            ),
+            _ClassHeader(label: section.label!, count: section.items.length),
           for (final entry in section.items)
             tileFor(
               PdfMaterial(entry.louvor),
@@ -598,15 +646,9 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       return [
         for (final section in taxonomySections) ...[
           if (showHeaders && section.label != null)
-            _ClassHeader(
-              label: section.label!,
-              count: section.items.length,
-            ),
+            _ClassHeader(label: section.label!, count: section.items.length),
           for (final gesture in section.items)
-            tileFor(
-              GestureMaterialRef(gesture),
-              iconColor: AppColors.title,
-            ),
+            tileFor(GestureMaterialRef(gesture), iconColor: AppColors.title),
         ],
       ];
     }
@@ -617,10 +659,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
         rank,
         kindIdOf: (g) => g.materialKindId,
       ))
-        tileFor(
-          GestureMaterialRef(gesture),
-          iconColor: AppColors.title,
-        ),
+        tileFor(GestureMaterialRef(gesture), iconColor: AppColors.title),
     ];
   }
 
@@ -651,10 +690,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       return [
         for (final section in taxonomySections) ...[
           if (showHeaders && section.label != null)
-            _ClassHeader(
-              label: section.label!,
-              count: section.items.length,
-            ),
+            _ClassHeader(label: section.label!, count: section.items.length),
           for (final track in section.items)
             tileFor(
               AudioMaterial(track),
@@ -706,15 +742,9 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       return [
         for (final section in taxonomySections) ...[
           if (showHeaders && section.label != null)
-            _ClassHeader(
-              label: section.label!,
-              count: section.items.length,
-            ),
+            _ClassHeader(label: section.label!, count: section.items.length),
           for (final item in section.items)
-            tileFor(
-              YoutubeMaterialRef(item),
-              iconColor: AppColors.youtube,
-            ),
+            tileFor(YoutubeMaterialRef(item), iconColor: AppColors.youtube),
         ],
       ];
     }
@@ -725,10 +755,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
         rank,
         kindIdOf: (y) => y.materialKindId,
       ))
-        tileFor(
-          YoutubeMaterialRef(item),
-          iconColor: AppColors.youtube,
-        ),
+        tileFor(YoutubeMaterialRef(item), iconColor: AppColors.youtube),
     ];
   }
 

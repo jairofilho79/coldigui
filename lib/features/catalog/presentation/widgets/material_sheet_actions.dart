@@ -20,7 +20,7 @@ bool canAddMaterialToPlaylist(CatalogMaterial material) {
   };
 }
 
-/// Trailing `+` / spinner / `×` de uma linha do sheet.
+/// Trailing de adição, troca, remoção ou escrita em voo.
 ///
 /// Com [isAdded] a linha vira um `×` que tira o material da lista: o ✓ com
 /// «Adicionar de novo» repetia a entrada sem que ninguém quisesse (onda 4.4),
@@ -33,15 +33,17 @@ class MaterialAddTrailing extends StatelessWidget {
     required this.onAdd,
     required this.onRemove,
     required this.removeTooltip,
+    this.onReplace,
     super.key,
   });
 
   final bool isAdded;
 
-  /// Escrita em voo (adição ou remoção): vira spinner.
+  /// Escrita em voo (adição, troca ou remoção): vira spinner.
   final bool isAdding;
   final VoidCallback onAdd;
   final VoidCallback onRemove;
+  final VoidCallback? onReplace;
 
   /// Tooltip do `×` (`l10n.materialRemoveTooltip`).
   final String removeTooltip;
@@ -66,6 +68,15 @@ class MaterialAddTrailing extends StatelessWidget {
           onPressed: onRemove,
           backgroundColor: AppColors.title,
           iconColor: AppColors.textLight,
+        ),
+      );
+    }
+    if (onReplace case final replace?) {
+      return Tooltip(
+        message: AppLocalizations.of(context)!.cardSwapMaterialAction,
+        child: CircleActionButton(
+          icon: Icons.change_circle_outlined,
+          onPressed: replace,
         ),
       );
     }
