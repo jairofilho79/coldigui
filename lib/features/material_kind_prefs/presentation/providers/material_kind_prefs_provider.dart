@@ -40,7 +40,7 @@ class MaterialKindPrefsNotifier extends AsyncNotifier<MaterialKindPrefs> {
   Future<void> save(List<String> kindIds) async {
     final user = ref.read(authStateProvider).asData?.value;
     if (user == null) return;
-    final current = state.asData?.value;
+    final current = state.value;
     final next = MaterialKindPrefs.validated(
       kindIds: kindIds,
       preferredTypeByKind: current?.preferredTypeByKind ?? const {},
@@ -56,7 +56,7 @@ class MaterialKindPrefsNotifier extends AsyncNotifier<MaterialKindPrefs> {
   Future<void> setPreferredType(String kindId, String type) async {
     final user = ref.read(authStateProvider).asData?.value;
     if (user == null) return;
-    final current = state.asData?.value ?? MaterialKindPrefs.empty;
+    final current = state.value ?? MaterialKindPrefs.empty;
     final next = MaterialKindPrefs.validated(
       kindIds: current.kindIds,
       preferredTypeByKind: {...current.preferredTypeByKind, kindId: type},
@@ -69,8 +69,14 @@ class MaterialKindPrefsNotifier extends AsyncNotifier<MaterialKindPrefs> {
   Future<void> _writeAndSync(String googleSub, MaterialKindPrefs next) async {
     final repository = ref.read(materialKindPrefsRepositoryProvider);
     final syncNotifier = ref.read(materialKindPrefsSyncProvider.notifier);
+    final previous = state;
     state = AsyncData(next);
-    await repository.write(googleSub, next);
+    try {
+      await repository.write(googleSub, next);
+    } on Object {
+      if (ref.mounted && identical(state.value, next)) state = previous;
+      rethrow;
+    }
     unawaited(_syncQuietly(syncNotifier));
   }
 
@@ -95,6 +101,13 @@ final favoriteMaterialKindRankProvider = Provider<Map<String, int>>((ref) {
   return ref.watch(materialKindPrefsProvider).value?.rank ?? const {};
 });
 
+final favoriteMaterialTypePreferencesProvider = Provider<Map<String, String>>((
+  ref,
+) {
+  return ref.watch(materialKindPrefsProvider).value?.preferredTypeByKind ??
+      const {};
+});
+
 /// Prazo para os favoritos no import de um link por praise (spec
 /// fim-fonte-plpcg §4.3).
 const favoriteRankImportTimeout = Duration(seconds: 5);
@@ -111,13 +124,21 @@ Future<Map<String, int>> awaitFavoriteMaterialKindRank(
   Ref ref, {
   Duration timeout = favoriteRankImportTimeout,
 }) async {
+  return (await awaitFavoriteMaterialPreferences(ref, timeout: timeout)).rank;
+}
+
+/// Lê categoria e formato do mesmo snapshot, inclusive no import a frio.
+Future<MaterialKindPrefs> awaitFavoriteMaterialPreferences(
+  Ref ref, {
+  Duration timeout = favoriteRankImportTimeout,
+}) async {
   try {
     final prefs = await ref
         .read(materialKindPrefsProvider.future)
         .timeout(timeout);
-    return prefs.rank;
+    return prefs;
   } on Object catch (e) {
     debugPrint('[material-kind-prefs] favoritos indisponíveis no import: $e');
-    return const {};
+    return MaterialKindPrefs.empty;
   }
 }

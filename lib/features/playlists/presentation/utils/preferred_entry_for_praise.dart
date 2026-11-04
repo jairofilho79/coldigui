@@ -8,16 +8,21 @@ import '../../domain/entities/playlist_entry.dart';
 /// o «+» adicione, cai na primeira cifra do praise e depois no primeiro
 /// documento de gestos — as listas guardam os dois (`kind` `chord`/`gesture`,
 /// como `openChordInReader`/`openGestureInReader` os gravam). `null` quando o
-/// token não está no [index] ou o praise não tem nada adicionável (ex.: só
-/// letra ou só YouTube).
+/// token não está no [index] ou o praise não tem nada adicionável (ex.:
+/// só YouTube). Categoria e formato preferido seguem a mesma regra do card.
 PlaylistEntry? preferredEntryForPraise(
   ColdigomSearchIndex index,
   String praiseShortId, {
   Map<String, int> rank = const {},
+  Map<String, String> preferredTypes = const {},
 }) {
   final group = index.groupByShortId(praiseShortId);
   if (group == null) return null;
-  final material = preferredMaterialForGroup(group, rank: rank);
+  final material = preferredMaterialForGroup(
+    group,
+    rank: rank,
+    preferredTypes: preferredTypes,
+  );
   if (material != null) {
     return PlaylistEntry(id: material.id, kind: material.kind);
   }

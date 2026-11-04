@@ -1,8 +1,12 @@
 import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/chords/presentation/providers/available_chords_provider.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -72,6 +76,9 @@ LouvorGroup _group() => LouvorGroup(
 Future<void> _pumpSheet(
   WidgetTester tester, {
   required Map<String, int> rank,
+  Map<String, String> preferredTypes = const {},
+  LouvorGroup? group,
+  MaterialKind? initialKind,
 }) async {
   tester.view.physicalSize = const Size(800, 1600);
   tester.view.devicePixelRatio = 1.0;
@@ -82,6 +89,12 @@ Future<void> _pumpSheet(
         isarStatusProvider.overrideWithValue(IsarStatus.unavailable),
         activeEntriesProvider.overrideWithValue(const []),
         favoriteMaterialKindRankProvider.overrideWithValue(rank),
+        favoriteMaterialTypePreferencesProvider.overrideWithValue(
+          preferredTypes,
+        ),
+        if (group != null)
+          availableChordsProvider(group.groupId)
+              .overrideWith((ref) async => group.chordMaterials),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -93,8 +106,9 @@ Future<void> _pumpSheet(
               onPressed: () => showMaterialSheet(
                 context,
                 ref,
-                _group(),
+                group ?? _group(),
                 canAddToPlaylist: false,
+                initialKind: initialKind,
               ),
               child: const Text('abrir'),
             ),
@@ -142,16 +156,78 @@ void main() {
     ]);
   });
 
-  testWidgets('favoritos sobem na aba de áudio; sem kind fica onde está', (
+  testWidgets('favorito de áudio legado não altera a ordem da aba', (
     tester,
   ) async {
     await _pumpSheet(tester, rank: const {'k-soprano': 0});
     await tester.tap(find.text('Áudio'));
     await tester.pumpAndSettle();
     expect(_visibleOrder(tester, ['Coro', 'Voz soprano', 'Playback']), [
-      'Voz soprano',
       'Coro',
+      'Voz soprano',
       'Playback',
     ]);
+  });
+
+  final cifra = ChordMaterial(
+    chordId: 'c1',
+    r2Key: 'c1.chord',
+    nome: 'Comigo habita',
+    numero: '692',
+    groupId: 'g1',
+    categoria: 'Cifra editável',
+    classificacao: 'Coletânea',
+    materialKindId: 'k-cifra',
+  );
+  LouvorGroup mixedGroup() => LouvorGroup.fromLouvores(
+    [_pdf('Cifra PDF', 'p1', kind: 'k-cifra')],
+    chordMaterials: [cifra],
+    lyricsByGroupId: const {
+      'g1': LyricsMaterial(
+        praiseId: 'g1',
+        nome: 'Comigo habita',
+        numero: '692',
+      ),
+    },
+  ).first;
+
+  testWidgets('abre na aba do formato preferido da categoria favorita', (
+    tester,
+  ) async {
+    await _pumpSheet(
+      tester,
+      rank: const {'k-cifra': 0},
+      preferredTypes: const {'k-cifra': 'chord'},
+      group: mixedGroup(),
+    );
+    expect(find.text('Cifra editável'), findsOneWidget);
+    expect(find.text('Cifra PDF'), findsNothing);
+  });
+
+  testWidgets('aba explícita do usuário vence o formato preferido', (
+    tester,
+  ) async {
+    await _pumpSheet(
+      tester,
+      rank: const {'k-cifra': 0},
+      preferredTypes: const {'k-cifra': 'chord'},
+      group: mixedGroup(),
+      initialKind: MaterialKind.pdf,
+    );
+    expect(find.text('Cifra PDF'), findsOneWidget);
+    expect(find.text('Cifra editável'), findsNothing);
+  });
+
+  testWidgets('Letra favorita abre a aba de letra sem inventar kind real', (
+    tester,
+  ) async {
+    await _pumpSheet(
+      tester,
+      rank: const {'type:lyrics': 0},
+      group: mixedGroup(),
+    );
+    expect(find.text('Cifra PDF'), findsNothing);
+    expect(find.text('Cifra editável'), findsNothing);
+    expect(find.widgetWithText(ListTile, 'Letra'), findsOneWidget);
   });
 }

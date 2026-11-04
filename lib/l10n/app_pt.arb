@@ -847,7 +847,7 @@
     "description": "Aviso da página inicial sem resultado quando a busca remota não foi chamada por falta de rede e o catálogo local está vazio (spec fim-fonte §9.2)"
   },
   "favoriteMaterialKindsTitle": "Materiais favoritos",
-  "favoriteMaterialKindsHelp": "Escolha até {max} tipos de material. Eles aparecem primeiro ao abrir um louvor.",
+  "favoriteMaterialKindsHelp": "Ordene até {max} categorias e escolha seu formato preferido. Use as setas ou arraste pelo número para mudar a prioridade.",
   "@favoriteMaterialKindsHelp": {
     "placeholders": {
       "max": {
@@ -868,7 +868,7 @@
   },
   "favoriteMaterialKindsEmpty": "Nenhum favorito ainda",
   "favoriteMaterialKindsAdd": "Adicionar",
-  "favoriteMaterialKindsSearchHint": "Buscar tipo de material",
+  "favoriteMaterialKindsSearchHint": "Buscar categoria ou formato",
   "favoriteMaterialKindsLimitReached": "Limite de {max} — remova um para trocar",
   "@favoriteMaterialKindsLimitReached": {
     "placeholders": {
@@ -884,7 +884,16 @@
   "favoriteMaterialKindsUnknownKind": "Desconhecido",
   "favoriteMaterialKindsLoadError": "Não foi possível carregar os tipos de material",
   "favoriteMaterialKindsRetry": "Tentar de novo",
-  "favoriteMaterialKindsNoMatch": "Nenhum tipo com esse nome",
+  "favoriteMaterialKindsNoMatch": "Nenhum material encontrado. Tente outra categoria ou formato.",
+  "favoriteMaterialKindsPreferredFormat": "Formato preferido",
+  "favoriteMaterialKindsPdfFormat": "PDF",
+  "favoriteMaterialKindsChordFormat": "Cifra editável",
+  "favoriteMaterialKindsSingleFormat": "Único formato",
+  "favoriteMaterialKindsNoFormats": "Nenhum formato elegível disponível. Remova este favorito ou atualize o catálogo.",
+  "favoriteMaterialKindsFormatsLoadError": "Não foi possível carregar os formatos.",
+  "favoriteMaterialKindsExcluded": "Áudios e YouTube não participam dos favoritos.",
+  "favoriteMaterialKindsMoveUp": "Subir prioridade",
+  "favoriteMaterialKindsMoveDown": "Descer prioridade",
   "favoriteMaterialKindsTypePreferenceTooltip": "Escolher formato preferido",
   "favoriteMaterialKindsTypePreferenceTitle": "Formato preferido de {kind}",
   "@favoriteMaterialKindsTypePreferenceTitle": {
@@ -894,7 +903,7 @@
       }
     }
   },
-  "favoriteMaterialKindsTypePreferenceHelp": "Arraste para ordenar — o primeiro da lista é o formato preferido.",
+  "favoriteMaterialKindsTypePreferenceHelp": "Toque no formato que você prefere abrir. Os demais continuam disponíveis.",
   "liveFollowing": "Seguindo {owner} · {list}",
   "@liveFollowing": {
     "description": "Banner do consumidor numa sessão ao vivo",
@@ -1694,11 +1703,11 @@
   "tutorialExtractedMaterialEditorStep6Title": "Ajuda & Tutoriais",
   "tutorialExtractedMaterialEditorStep6Message": "Toque neste ícone a qualquer momento para rever este **guia passo a passo** do editor de materiais.",
   "tutorialFavoriteMaterialKindsStep1Title": "Prioridade de Materiais",
-  "tutorialFavoriteMaterialKindsStep1Message": "Defina até **4 materiais favoritos** para priorizar seus instrumentos e vozes no topo dos resultados de busca e no leitor.",
+  "tutorialFavoriteMaterialKindsStep1Message": "Defina até **5 categorias favoritas**, incluindo Letra. Só áudios e YouTube ficam fora.",
   "tutorialFavoriteMaterialKindsStep2Title": "Seus Favoritos e Ordem",
-  "tutorialFavoriteMaterialKindsStep2Message": "Acompanhe seus materiais selecionados. Arraste pela **alça lateral** para definir a prioridade, alterne o **formato preferido** ou toque no **(X)** para remover.",
+  "tutorialFavoriteMaterialKindsStep2Message": "Use as **setas** ou arraste pelo **número** para definir a prioridade. Toque em um dos **formatos visíveis** para escolhê-lo como preferido ou no **(X)** para remover a categoria.",
   "tutorialFavoriteMaterialKindsStep3Title": "Adicionar Novos Materiais",
-  "tutorialFavoriteMaterialKindsStep3Message": "Busque por instrumentos (ex: **violão**, **baixo**, **órgão**) ou vozes e toque no ícone **(+)** para adicioná-los à sua lista de prioridades.",
+  "tutorialFavoriteMaterialKindsStep3Message": "Busque por **categoria ou formato**, como violão, Letra ou PDF, e toque no **(+)** para adicionar aos favoritos.",
   "tutorialFavoriteMaterialKindsStep4Title": "Sincronização na Nuvem",
   "tutorialFavoriteMaterialKindsStep4Message": "Entre com sua **conta Google** para salvar e sincronizar suas preferências de materiais em qualquer aparelho.",
   "tutorialFavoriteMaterialKindsStep5Title": "Ajuda & Tutoriais",

@@ -52,14 +52,14 @@ void main() {
     );
   });
 
-  test('com favoritos: o material do favorito mais bem colocado', () {
+  test('áudio favorito legado não ultrapassa categoria elegível', () {
     expect(
       preferredEntryForPraise(
         index,
         '0a1',
         rank: const {'k-audio': 0, 'k-part': 1},
       ),
-      PlaylistEntry(id: audioId, kind: MaterialKind.audio),
+      PlaylistEntry(id: pdfId, kind: MaterialKind.pdf),
     );
   });
 
@@ -91,8 +91,18 @@ void main() {
     );
   });
 
-  test('praise só com letra → null', () {
-    expect(preferredEntryForPraise(index, '5e5'), isNull);
+  test('praise só com letra → entrada de letra', () {
+    expect(
+      preferredEntryForPraise(index, '5e5'),
+      const PlaylistEntry(id: 'lyrics:p5', kind: MaterialKind.lyrics),
+    );
+  });
+
+  test('Letra favorita é escolhida antes de cifra e gestos no import', () {
+    expect(
+      preferredEntryForPraise(index, 'fff', rank: const {'type:lyrics': 0}),
+      const PlaylistEntry(id: 'lyrics:p3', kind: MaterialKind.lyrics),
+    );
   });
 
   test('token desconhecido → null', () {

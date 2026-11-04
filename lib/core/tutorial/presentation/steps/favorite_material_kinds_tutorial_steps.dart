@@ -25,7 +25,7 @@ List<SpotlightGuideStep> buildFavoriteMaterialKindsTutorialSteps(
           title: l10n?.tutorialFavoriteMaterialKindsStep1Title ?? 'Prioridade de Materiais',
           message:
               l10n?.tutorialFavoriteMaterialKindsStep1Message ??
-              'Defina até **4 materiais favoritos** para priorizar seus instrumentos e vozes no topo dos resultados de busca e no leitor.',
+              'Defina até **5 categorias favoritas**, incluindo Letra. Só áudios e YouTube ficam fora.',
         ),
       ),
     ),
@@ -45,7 +45,7 @@ List<SpotlightGuideStep> buildFavoriteMaterialKindsTutorialSteps(
           title: l10n?.tutorialFavoriteMaterialKindsStep2Title ?? 'Seus Favoritos e Ordem',
           message:
               l10n?.tutorialFavoriteMaterialKindsStep2Message ??
-              'Acompanhe seus materiais selecionados. Arraste pela **alça lateral** para definir a prioridade, alterne o **formato preferido** ou toque no **(X)** para remover.',
+              'Use as **setas** ou arraste pelo **número** para definir a prioridade. Toque em um dos **formatos visíveis** para escolhê-lo como preferido ou no **(X)** para remover a categoria.',
         ),
       ),
     ),
@@ -65,7 +65,7 @@ List<SpotlightGuideStep> buildFavoriteMaterialKindsTutorialSteps(
           title: l10n?.tutorialFavoriteMaterialKindsStep3Title ?? 'Adicionar Novos Materiais',
           message:
               l10n?.tutorialFavoriteMaterialKindsStep3Message ??
-              'Busque por instrumentos (ex: **violão**, **baixo**, **órgão**) ou vozes e toque no ícone **(+)** para adicioná-los à sua lista de prioridades.',
+              'Busque por **categoria ou formato**, como violão, Letra ou PDF, e toque no **(+)** para adicionar aos favoritos.',
         ),
       ),
     ),

@@ -4,6 +4,12 @@ API do catálogo PLPCG (público), autenticação Google e sync de playlists.
 
 ## Endpoints
 
+As preferências de materiais mantêm o contrato
+`{ kindIds: string[], preferredTypes?: Record<string, string>, updatedAt }`.
+`kindIds` aceita até cinco UUIDs ou chaves sintéticas como `type:lyrics`;
+o app oferece os formatos do catálogo local e exclui áudio/YouTube.
+`preferredTypes` guarda o formato preferido de cada categoria, sem migração.
+
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
 | `GET` | `/api/catalog/louvores` | Não | Array JSON de louvores (`groupId` e `shortId` incluídos) |

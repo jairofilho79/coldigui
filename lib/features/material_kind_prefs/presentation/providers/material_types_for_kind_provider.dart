@@ -1,14 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../coldigom/data/providers/coldigom_remote_providers.dart';
+import 'favorite_material_options_provider.dart';
 
-/// Material types (`pdf`/`chord`/...) que de fato existem para um material
-/// kind (`GET /api/materials/kinds/:kindId/types`), calculado sob demanda
-/// pelo Worker — só usado ao abrir o menu de preferência de type do card
-/// (nada mantém isso "vivo" como [coldigomMaterialKindsProvider]).
+/// Formatos elegíveis reais, calculados em bloco sobre o catálogo local.
 final materialTypesForKindProvider =
-    FutureProvider.family<List<String>, String>((ref, kindId) {
-      return ref
-          .watch(coldigomRemoteDatasourceProvider)
-          .fetchMaterialTypesForKind(kindId);
+    FutureProvider.family<List<String>, String>((ref, kindId) async {
+      final options = await ref.watch(favoriteMaterialOptionsProvider.future);
+      return options
+              .where((option) => option.id == kindId)
+              .firstOrNull
+              ?.types ??
+          const [];
     });

@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Três propostas interativas para escolher categorias e formatos de materiais favoritos na Coletânea Digital.">
+  <title>Materiais favoritos · 3 propostas · Coletânea Digital</title>
+  <style>
+    @font-face {
+      font-family: "Open Sans";
+      src: url("../assets/fonts/OpenSans[wght].ttf") format("truetype");
+      font-weight: 300 800;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "EB Garamond";
+      src: url("../assets/fonts/EBGaramond[wght].ttf") format("truetype");
+      font-weight: 400 800;
+      font-display: swap;
+    }
+    :root {
+      --wine: #4b2d2b;
+      --wine-raised: #6a3b39;
+      --ink: #6a2f2f;
+      --cream: #fff8e1;
+      --gold: #d4af37;
+      --paper: #f7f3eb;
+      --muted: #715e57;
+      --rule: #d7cac0;
+      --on-wine: #fff8ee;
+      --muted-on-wine: #e4ccc0;
+      --selected: #f5df99;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+    body { margin: 0; background: var(--paper); color: var(--wine); font: 14px/1.55 "Open Sans", sans-serif; }
+    button, input { font: inherit; }
+    button, a, input { -webkit-tap-highlight-color: transparent; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .4; }
+    button, input, a { touch-action: manipulation; }
+    button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible {
+      outline: 3px solid var(--gold); outline-offset: 3px;
+    }
+    button:hover:not(:disabled) { filter: brightness(1.09); }
+    ::selection { background: var(--selected); color: var(--wine); }
+    a { color: inherit; text-underline-offset: 4px; }
+    svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    .svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+    .page { max-width: 1440px; margin: auto; padding: 0 40px 48px; }
+    .masthead { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 0; border-bottom: 1px solid var(--rule); }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 8px; background: var(--wine); color: var(--gold); }
+    .brand-name { font: 600 24px/1.1 "EB Garamond", Georgia, serif; }
+    .brand small { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .quiet-button { display: inline-flex; gap: 8px; align-items: center; justify-content: center; min-height: 44px; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 8px; color: var(--wine); background: transparent; }
+    .intro { padding: 36px 0 28px; display: grid; grid-template-columns: 1fr 340px; gap: 48px; align-items: end; }
+    h1 { margin: 0 0 12px; font: 600 44px/1.1 "EB Garamond", Georgia, serif; letter-spacing: -.025em; text-wrap: balance; }
+    .intro p { max-width: 70ch; margin: 0; font-size: 15px; color: var(--muted); }
+    .scope { border-top: 1px solid var(--rule); padding-top: 12px; }
+    .scope strong { display: block; font-size: 13px; margin-bottom: 4px; }
+    .scope p { font-size: 12px; }
+    .jump-nav { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 28px; }
+    .jump-nav a { display: inline-flex; align-items: center; min-height: 44px; border: 1px solid var(--rule); padding: 8px 16px; border-radius: 24px; text-decoration: none; font-size: 13px; }
+    .jump-nav a:hover { background: var(--cream); border-color: var(--ink); }
+    .proposals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start; }
+    .proposal { min-width: 0; }
+    .proposal-heading { min-height: 112px; }
+    .proposal-heading h2 { font-size: 18px; letter-spacing: -.02em; margin: 0 0 8px; display: flex; align-items: center; gap: 10px; }
+    .letter { display: inline-grid; place-items: center; height: 28px; width: 28px; border: 1px solid var(--rule); border-radius: 50%; font-size: 12px; flex-shrink: 0; }
+    .proposal-heading p { margin: 0 0 16px; font-size: 13px; color: var(--muted); max-width: 48ch; }
+    .app { background: var(--wine); color: var(--on-wine); border-radius: 16px; overflow: hidden; min-height: 760px; }
+    .app-head { display: flex; align-items: center; gap: 12px; padding: 20px 16px; border-bottom: 1px solid #91694d; }
+    .app-head h3 { margin: 0; font-size: 16px; font-weight: 600; flex: 1; }
+    .app-head > svg:last-child { color: var(--gold); }
+    .app-body { padding: 16px; }
+    .app-intro { margin: 0 0 20px; font-size: 12px; color: var(--muted-on-wine); }
+    .section-heading { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin: 20px 0 12px; }
+    .section-heading h4 { margin: 0; font-size: 13px; font-weight: 600; }
+    .count { color: var(--muted-on-wine); font-size: 11px; }
+    .favorites { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .favorite { border: 1px solid #ba9561; border-radius: var(--radius); background: var(--wine-raised); padding: 10px; }
+    .favorite.selected { border-color: var(--gold); background: #75433e; }
+    .favorite-top { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+    .rank { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--selected); min-width: 16px; }
+    .kind-name { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; }
+    .icon-button { min-width: 44px; height: 44px; padding: 10px; display: inline-grid; place-items: center; color: inherit; border: 0; border-radius: 8px; background: transparent; }
+    .icon-button svg { width: 16px; height: 16px; }
+    .icon-button:hover:not(:disabled) { background: #ffffff12; }
+    .movement { display: inline-flex; flex-shrink: 0; }
+    .type-caption { margin: 8px 0; font-size: 11px; color: var(--muted-on-wine); }
+    .type-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+    .type-choice { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 8px 10px; border: 1px solid #cbad9b; border-radius: 8px; color: var(--on-wine); background: transparent; font-size: 12px; }
+    .type-choice svg { width: 16px; height: 16px; }
+    .type-choice[aria-pressed="true"] { background: var(--selected); color: var(--wine); border-color: var(--selected); font-weight: 700; }
+    .single-type { display: flex; align-items: center; gap: 8px; color: var(--muted-on-wine); font-size: 12px; min-height: 36px; }
+    .single-type svg { width: 16px; height: 16px; }
+    .single-type small { margin-left: auto; font-size: 10px; }
+    .search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--gold); background: var(--cream); color: var(--ink); border-radius: 8px; padding: 0 12px; }
+    .search input { width: 100%; min-width: 0; height: 44px; border: 0; background: transparent; color: var(--ink); font-size: 12px; caret-color: var(--ink); }
+    .search input::placeholder { color: var(--muted); opacity: 1; }
+    .search input:focus-visible { outline-offset: 0; }
+    .candidates { display: grid; gap: 4px; margin-top: 8px; }
+    .candidate { display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 4px 0 4px 4px; border-bottom: 1px solid #825c51; }
+    .candidate-info { flex: 1; min-width: 0; }
+    .candidate-info strong { display: block; font-size: 12px; font-weight: 600; }
+    .candidate-info small { display: block; font-size: 11px; color: var(--muted-on-wine); }
+    .candidate .icon-button { color: var(--gold); }
+    .exclusion { display: flex; align-items: flex-start; gap: 8px; margin: 20px 0 0; color: var(--muted-on-wine); font-size: 11px; }
+    .exclusion svg { width: 16px; height: 16px; margin-top: 2px; }
+    .model-status { display: block; color: var(--muted-on-wine); min-height: 36px; margin: 12px 0 0; font-size: 11px; }
+    .empty { margin: 12px 0; padding: 12px; border: 1px dashed #cbad9b; border-radius: 8px; color: var(--muted-on-wine); font-size: 12px; }
+    .select-kind { display: flex; align-items: center; flex: 1; min-width: 0; gap: 8px; color: inherit; padding: 6px 0; text-align: left; background: none; border: 0; min-height: 44px; }
+    .select-kind strong { display: block; font-size: 13px; }
+    .select-kind small { display: block; font-size: 11px; font-weight: 400; color: var(--muted-on-wine); }
+    .editor { background: var(--cream); color: var(--ink); margin-top: 16px; border-radius: var(--radius); padding: 16px; }
+    .editor h4 { margin: 0 0 4px; font-size: 14px; }
+    .editor p { margin: 0 0 12px; font-size: 11px; color: var(--muted); }
+    .radio-option { display: flex; align-items: center; gap: 8px; min-height: 48px; border-top: 1px solid var(--rule); font-size: 12px; cursor: pointer; }
+    .radio-option input { width: 18px; height: 18px; accent-color: var(--ink); }
+    .radio-option span { flex: 1; }
+    .radio-option small { font-size: 10px; font-weight: 700; }
+    .format-button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #cbad9b; border-radius: 8px; color: var(--on-wine); background: transparent; font-size: 12px; text-align: left; }
+    .format-button span { display: flex; align-items: center; gap: 6px; }
+    .format-button b { color: var(--selected); font-size: 11px; font-weight: 600; }
+    .reason { margin: 16px 0 0; padding-top: 16px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--muted); }
+    .reason strong { color: var(--wine); }
+    .reset-model { padding: 0; margin-top: 12px; min-height: 44px; border: 0; background: none; color: var(--ink); text-decoration: underline; text-underline-offset: 4px; font-size: 12px; }
+    .comparison { margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 28px; }
+    .comparison h2 { font-size: 20px; margin: 0 0 12px; }
+    .comparison > p { max-width: 78ch; color: var(--muted); font-size: 13px; }
+    details { border-top: 1px solid var(--rule); margin-top: 20px; padding-top: 16px; }
+    summary { cursor: pointer; min-height: 44px; font-size: 13px; font-weight: 600; }
+    details p, details li { max-width: 90ch; font-size: 12px; color: var(--muted); }
+    .footer { margin-top: 28px; display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 11px; }
+    dialog { position: fixed; inset: auto 16px 24px; margin: 0 auto; width: min(460px, calc(100% - 32px)); max-height: calc(100dvh - 48px); overflow: auto; border: 0; border-radius: 16px; background: var(--cream); color: var(--ink); padding: 24px; box-shadow: 0 16px 48px #00000040; }
+    dialog::backdrop { background: #24100ec9; }
+    dialog[open] { animation: reveal .2s ease-out; }
+    .dialog-head { display: flex; align-items: center; gap: 12px; }
+    .dialog-head h2 { flex: 1; font-size: 20px; margin: 0; }
+    dialog p { color: var(--muted); font-size: 13px; }
+    .format-list { display: grid; gap: 12px; list-style: none; margin: 20px 0; padding: 0; }
+    .format-row { display: flex; align-items: center; gap: 12px; border: 1px solid var(--rule); border-radius: var(--radius); padding: 12px; }
+    .format-row.first { border-color: var(--ink); background: #f3e5c4; }
+    .format-row > span { flex: 1; }
+    .format-row .rank { color: var(--ink); }
+    .format-row strong, .format-row small { display: block; }
+    .format-row small { font-size: 11px; color: var(--muted); }
+    .format-row .quiet-button { font-size: 12px; border-color: #b6a18b; padding: 8px; }
+    .primary { width: 100%; border: 0; background: var(--ink); color: var(--cream); min-height: 48px; border-radius: 8px; font-weight: 600; }
+    .dialog-status { min-height: 20px; font-size: 12px; }
+    .skip { position: absolute; top: -80px; left: 16px; padding: 12px; background: var(--cream); z-index: 3; }
+    .skip:focus { top: 8px; }
+    @keyframes reveal { from { transform: translateY(16px); opacity: .6; } to { transform: translateY(0); opacity: 1; } }
+    @media (min-width: 1600px) { dialog { inset: 0; margin: auto; } }
+    @media (max-width: 1150px) {
+      .page { padding-inline: 24px; }
+      .proposals { gap: 16px; }
+      .favorite { padding: 8px; }
+      .app-body { padding: 12px; }
+    }
+    @media (max-width: 960px) {
+      .intro { grid-template-columns: 1fr; gap: 20px; }
+      .scope { max-width: 640px; }
+      .proposals { grid-template-columns: 1fr; gap: 32px; max-width: 620px; margin: auto; }
+      .proposal-heading { min-height: auto; }
+      .app { min-height: 0; }
+      .app-body { padding: 20px; }
+    }
+    @media (max-width: 480px) {
+      .page { padding: 0 16px 32px; }
+      .masthead { padding-block: 16px; }
+      .brand-name { font-size: 20px; }
+      .brand small { font-size: 10px; }
+      .masthead .quiet-button { width: 44px; padding: 10px; flex-shrink: 0; }
+      .masthead .quiet-button span { display: none; }
+      h1 { font-size: 36px; }
+      .intro { padding-top: 28px; }
+      .jump-nav { gap: 6px; }
+      .jump-nav a { font-size: 11px; padding-inline: 12px; }
+      .app-body { padding: 12px; }
+      .favorite-top { gap: 4px; }
+      .favorite { padding: 8px; }
+      .kind-name { font-size: 13px; }
+      .footer { flex-direction: column; gap: 4px; }
+      .format-row { gap: 8px; padding: 8px; }
+      dialog { padding: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      dialog[open] { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <svg class="svg-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 8l12-2"/><ellipse cx="6" cy="18" rx="3" ry="2.5"/><ellipse cx="18" cy="16" rx="3" ry="2.5"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7M7 12h14"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 10 6 6 6-6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6"/></symbol>
+    <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6ZM14 3v5h4M9 12h6M9 16h6"/></symbol>
+    <symbol id="i-lyrics" viewBox="0 0 24 24"><path d="M4 5h16M8 5v15M16 5v15M5 20h6M13 20h6"/></symbol>
+    <symbol id="i-gestures" viewBox="0 0 24 24"><path d="M8 13V6a1.5 1.5 0 0 1 3 0v5-7a1.5 1.5 0 0 1 3 0v7-5a1.5 1.5 0 0 1 3 0v6-3a1.5 1.5 0 0 1 3 0v6c0 4-2 7-6 7-3 0-5-2-7-5l-3-4a1.5 1.5 0 0 1 2-2Z"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  </svg>
+  <a class="skip" href="#propostas">Ir para os três modelos</a>
+  <div class="page">
+    <header class="masthead">
+      <div class="brand">
+        <span class="brand-mark"><svg aria-hidden="true"><use href="#i-note"/></svg></span>
+        <div class="brand-name">Coletânea Digital<small>Estudo de interface · Materiais favoritos</small></div>
+      </div>
+      <button class="quiet-button" id="reset-all" aria-label="Reiniciar os três exemplos">
+        <svg aria-hidden="true"><use href="#i-reset"/></svg><span>Reiniciar exemplos</span>
+      </button>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <h1>Favoritos, sem formatos escondidos.</h1>
+          <p>Três maneiras de dizer <strong>qual material vem primeiro</strong> e <strong>em qual formato</strong>.
+            Experimente trocar Cifra editável por PDF e reorganizar seus favoritos.</p>
+        </div>
+        <aside class="scope" aria-label="Regras compartilhadas">
+          <strong>Todos os materiais. Só duas exclusões.</strong>
+          <p>PDF, Cifra, Gestos, Letra e outros tipos disponíveis entram na escolha. Áudios e YouTube ficam fora.</p>
+        </aside>
+      </div>
+      <nav class="jump-nav" aria-label="Ir para uma proposta">
+        <a href="#modelo-a">A · Na própria lista</a>
+        <a href="#modelo-b">B · Painel de edição</a>
+        <a href="#modelo-c">C · Folha de formatos</a>
+      </nav>
+      <div class="proposals" id="propostas">
+        <section class="proposal" id="modelo-a" aria-labelledby="title-inline">
+          <div class="proposal-heading">
+            <h2 id="title-inline"><span class="letter">A</span>Escolha na própria lista</h2>
+            <p>Os formatos ficam expostos. Um toque escolhe o preferido, sem abrir outra tela.</p>
+          </div>
+          <div class="app" id="app-inline"></div>
+          <p class="reason"><strong>Mais direta.</strong> Melhor descoberta e comparação. A lista ocupa mais espaço quando há vários formatos.</p>
+          <button class="reset-model" data-reset="inline">Reiniciar modelo A</button>
+        </section>
+        <section class="proposal" id="modelo-b" aria-labelledby="title-panel">
+          <div class="proposal-heading">
+            <h2 id="title-panel"><span class="letter">B</span>Lista + painel de edição</h2>
+            <p>Selecione uma categoria. Um painel dedicado mostra os formatos e a escolha atual.</p>
+          </div>
+          <div class="app" id="app-panel"></div>
+          <p class="reason"><strong>Mais organizada.</strong> Separa a ordem das categorias da escolha do formato. Exige selecionar a categoria antes.</p>
+          <button class="reset-model" data-reset="panel">Reiniciar modelo B</button>
+        </section>
+        <section class="proposal" id="modelo-c" aria-labelledby="title-sheet">
+          <div class="proposal-heading">
+            <h2 id="title-sheet"><span class="letter">C</span>Lista + folha de formatos</h2>
+            <p>A lista fica compacta. O botão “Alterar formato” abre uma escolha com prioridade explícita.</p>
+          </div>
+          <div class="app" id="app-sheet"></div>
+          <p class="reason"><strong>Mais próxima da tela atual.</strong> Preserva a lista compacta, mas substitui o ícone escondido por uma ação textual.</p>
+          <button class="reset-model" data-reset="sheet">Reiniciar modelo C</button>
+        </section>
+      </div>
+      <section class="comparison" aria-labelledby="recommendation">
+        <h2 id="recommendation">Minha recomendação: modelo A</h2>
+        <p>Para resolver a dificuldade de descobrir e escolher formatos, a opção mais clara é mostrar as alternativas
+          na própria lista. A posição define a prioridade da categoria; o botão marcado define o formato preferido.
+          O modelo C é a alternativa de menor mudança visual.</p>
+        <details>
+          <summary>Regras, dados ilustrativos e limites deste protótipo</summary>
+          <ul>
+            <li><strong>Categoria = material kind</strong> (Cifra, Partitura…). <strong>Formato = material type</strong> (PDF, Cifra editável…).</li>
+            <li>As três propostas usam as mesmas regras: até cinco categorias favoritas, ordem ajustável e um formato preferido por categoria.</li>
+            <li>A lista mostra somente formatos disponíveis no exemplo. Um formato único aparece identificado, sem uma escolha desnecessária.</li>
+            <li>Áudios e YouTube são as únicas exclusões. Tipos adicionais não são barrados por uma lista fechada de formatos.</li>
+            <li>Os nomes e vínculos entre categorias e formatos são ilustrativos, não um levantamento do catálogo de produção.</li>
+            <li>Letra é incluída deliberadamente. Hoje ela é um material sintético, sem material kind; a implementação futura precisará contemplar essa origem.</li>
+            <li>A folha do modelo C coloca o formato escolhido no topo; não propõe salvar uma nova ordem completa de fallback.</li>
+            <li>Use as setas para ordenar, inclusive no celular e por teclado.</li>
+            <li>Os modelos são independentes. As mudanças ficam só na página e são reiniciadas ao recarregar. Não há gravação na conta nem conexão com a API.</li>
+          </ul>
+        </details>
+      </section>
+    </main>
+    <footer class="footer"><span>Protótipo HTML interativo · Nenhuma alteração na aplicação</span><span>Vinho, creme e ouro · Identidade preservada</span></footer>
+  </div>
+  <dialog id="format-dialog" aria-labelledby="dialog-title" aria-describedby="dialog-help">
+    <div class="dialog-head">
+      <h2 id="dialog-title">Formato preferido</h2>
+      <button class="icon-button" id="close-dialog" aria-label="Fechar escolha de formato"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <p id="dialog-help">Coloque no topo o formato que você prefere abrir. Os demais continuam disponíveis.</p>
+    <ol class="format-list" id="format-list"></ol>
+    <p class="dialog-status" id="dialog-status" role="status" aria-live="polite"></p>
+    <button class="primary" id="done-dialog">Concluir escolha</button>
+  </dialog>
+  <script>
+    const maxFavorites = 5;
+    const excludedTypes = new Set([
+      'audio', 'mp3', 'youtube', 'm4a', 'm4b', 'aac', 'ogg', 'oga', 'opus',
+      'wav', 'flac', 'wma', 'weba', 'webm', 'aiff', 'aif'
+    ]);
+    function eligibleTypes(types) {
+      return [...new Set(types)].filter(type => !excludedTypes.has(type.toLowerCase()));
+    }
+    const catalog = [
+      { id: 'cifra', name: 'Cifra', types: eligibleTypes(['chord', 'pdf', 'mp3', 'youtube']) },
+      { id: 'gestos', name: 'Gestos', types: eligibleTypes(['gestures', 'pdf', 'audio']) },
+      { id: 'partitura', name: 'Partitura', types: ['pdf'] },
+      { id: 'letra', name: 'Letra', types: ['lyrics'] },
+      { id: 'clarinete', name: 'Clarinete', types: ['pdf'] },
+      { id: 'violino', name: 'Violino', types: ['pdf'] }
+    ];
+    const labels = { pdf: 'PDF', chord: 'Cifra editável', gestures: 'Gestos', lyrics: 'Letra' };
+    const icons = { pdf: 'pdf', chord: 'note', gestures: 'gestures', lyrics: 'lyrics' };
+    function typeLabel(type) { return labels[type] ?? type; }
+    function itemFor(id) { return catalog.find(item => item.id === id); }
+    function createState() {
+      return {
+        favorites: ['cifra', 'gestos', 'partitura'],
+        typeOrders: Object.fromEntries(catalog.map(item => [item.id, [...item.types]])),
+        selected: 'cifra', query: '', message: 'Demonstração independente · sem salvar na conta.'
+      };
+    }
+    const states = { inline: createState(), panel: createState(), sheet: createState() };
+    function preferredType(state, id) { return state.typeOrders[id][0]; }
+    function chooseType(state, id, type) {
+      if (!state.favorites.includes(id) || !itemFor(id).types.includes(type)) return false;
+      state.typeOrders[id] = [type, ...state.typeOrders[id].filter(value => value !== type)];
+      return true;
+    }
+    function moveFavorite(state, id, delta) {
+      const position = state.favorites.indexOf(id);
+      const target = position + delta;
+      if (position < 0 || target < 0 || target >= state.favorites.length) return false;
+      state.favorites.splice(position, 1);
+      state.favorites.splice(target, 0, id);
+      return true;
+    }
+    function addFavorite(state, id) {
+      const item = itemFor(id);
+      if (!item || !item.types.length || state.favorites.includes(id) || state.favorites.length >= maxFavorites) return false;
+      state.favorites.push(id);
+      state.selected = id;
+      return true;
+    }
+    function removeFavorite(state, id) {
+      const position = state.favorites.indexOf(id);
+      if (position < 0) return false;
+      state.favorites.splice(position, 1);
+      if (state.selected === id) state.selected = state.favorites[0] ?? null;
+      return true;
+    }
+    function normalized(value) {
+      return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    }
+    function matchesQuery(item, query) {
+      return normalized(`${item.name} ${item.types.map(typeLabel).join(' ')}`).includes(normalized(query));
+    }
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    }
+    function icon(name) { return `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`; }
+    function typeIcon(type) { return icon(icons[type] ?? 'pdf'); }
+    function actionButton(action, id, label, name, disabled = false) {
+      return `<button class="icon-button" data-action="${action}" data-id="${id}" aria-label="${label}" title="${label}" ${disabled ? 'disabled' : ''}>${icon(name)}</button>`;
+    }
+    function movement(state, item, index) {
+      return `<span class="movement">
+        ${actionButton('up', item.id, `Subir ${item.name}`, 'up', index === 0)}
+        ${actionButton('down', item.id, `Descer ${item.name}`, 'down', index === state.favorites.length - 1)}
+        ${actionButton('remove', item.id, `Remover ${item.name} dos favoritos`, 'close')}
+      </span>`;
+    }
+    function renderTypeChoices(state, item) {
+      if (item.types.length === 1) return `<div class="single-type">${typeIcon(item.types[0])}${typeLabel(item.types[0])}<small>Único formato</small></div>`;
+      return `<p class="type-caption" id="choices-${item.id}">Formato preferido</p>
+        <div class="type-choices" role="group" aria-labelledby="choices-${item.id}">${item.types.map(type => {
+          const chosen = preferredType(state, item.id) === type;
+          return `<button class="type-choice" data-action="type" data-id="${item.id}" data-type="${type}" aria-pressed="${chosen}"
+            aria-label="${item.name}: preferir ${typeLabel(type)}">${chosen ? icon('check') : typeIcon(type)}${typeLabel(type)}</button>`;
+        }).join('')}</div>`;
+    }
+    function renderFavorite(model, state, id, index) {
+      const item = itemFor(id);
+      const preferred = preferredType(state, id);
+      const heading = model === 'panel'
+        ? `<button class="select-kind" data-action="select" data-id="${id}" aria-pressed="${state.selected === id}"
+             aria-label="Editar formatos de ${item.name}"><span><strong>${item.name}</strong><small>${typeLabel(preferred)}</small></span></button>`
+        : `<span class="kind-name">${item.name}</span>`;
+      let formats = '';
+      if (model === 'inline') formats = renderTypeChoices(state, item);
+      if (model === 'sheet') formats = item.types.length === 1
+        ? `<div class="single-type">${typeIcon(preferred)}${typeLabel(preferred)}<small>Único formato</small></div>`
+        : `<button class="format-button" data-action="sheet" data-id="${id}" aria-label="Alterar formato de ${item.name}">
+            <span>${typeIcon(preferred)}${typeLabel(preferred)}</span><b>Alterar formato</b>${icon('chevron')}</button>`;
+      return `<li class="favorite ${model === 'panel' && state.selected === id ? 'selected' : ''}" data-kind="${id}">
+        <div class="favorite-top"><span class="rank" aria-label="Prioridade ${index + 1}">${index + 1}</span>
+        ${heading}${movement(state, item, index)}</div>${formats}</li>`;
+    }
+    function renderEditor(state) {
+      if (!state.selected) return '';
+      const item = itemFor(state.selected);
+      return `<section class="editor" aria-labelledby="editor-heading"><h4 id="editor-heading">Formato de ${item.name}</h4>
+        <p>${item.types.length > 1 ? 'Escolha o que você prefere abrir.' : 'Este material tem um único formato disponível.'}</p>
+        <div role="radiogroup" aria-label="Formato preferido de ${item.name}">${item.types.map(type => {
+          const checked = preferredType(state, item.id) === type;
+          return `<label class="radio-option"><input type="radio" name="panel-format" value="${type}" data-id="${item.id}"
+            ${checked ? 'checked' : ''}><span>${typeIcon(type)} ${typeLabel(type)}</span>${checked ? '<small>Preferido</small>' : ''}</label>`;
+        }).join('')}</div></section>`;
+    }
+    function renderCandidates(model) {
+      const state = states[model];
+      const container = document.querySelector(`#app-${model} .candidates`);
+      const candidates = catalog.filter(item => !state.favorites.includes(item.id) && matchesQuery(item, state.query));
+      const full = state.favorites.length >= maxFavorites;
+      container.innerHTML = candidates.length ? candidates.map(item =>
+        `<div class="candidate"><div class="candidate-info"><strong>${item.name}</strong><small>${item.types.map(typeLabel).join(' · ')}</small></div>
+        ${actionButton('add', item.id, `Adicionar ${item.name} aos favoritos`, 'plus', full)}</div>`
+      ).join('') : `<p class="empty">${state.query ? 'Nenhum material encontrado. Tente outro nome ou formato.' : 'Todos os materiais do exemplo já estão nos favoritos.'}</p>`;
+      document.querySelector(`#app-${model} .limit-note`).textContent = full
+        ? 'Limite de 5 atingido. Remova um favorito para adicionar outro.' : 'Busque por categoria ou formato.';
+    }
+    function renderModel(model, focusKey) {
+      const state = states[model];
+      const root = document.getElementById(`app-${model}`);
+      root.innerHTML = `<header class="app-head">${icon('back')}<h3>Materiais favoritos</h3>${icon('star')}</header>
+        <div class="app-body"><p class="app-intro">Ordene até 5 categorias e escolha seu formato preferido. Use as setas para mudar a prioridade.</p>
+        <div class="section-heading"><h4>Sua ordem de preferência</h4><span class="count">${state.favorites.length} de 5</span></div>
+        <ol class="favorites" aria-label="Categorias favoritas em ordem de prioridade">${state.favorites.map((id, index) => renderFavorite(model, state, id, index)).join('')}</ol>
+        ${state.favorites.length ? '' : '<p class="empty">Seus favoritos aparecem aqui. Adicione um material abaixo para começar.</p>'}
+        ${model === 'panel' ? renderEditor(state) : ''}
+        <div class="section-heading"><h4>Adicionar material</h4></div>
+        <label class="search">${icon('search')}<input type="search" aria-label="Buscar materiais no modelo ${model === 'inline' ? 'A' : model === 'panel' ? 'B' : 'C'}"
+          placeholder="Buscar categoria ou formato" value="${escapeHtml(state.query)}" aria-describedby="limit-${model}"></label>
+        <p class="type-caption limit-note" id="limit-${model}"></p><div class="candidates"></div>
+        <p class="exclusion">${icon('info')}<span>Áudios e YouTube não participam dos favoritos.</span></p>
+        <output class="model-status" role="status" aria-live="polite">${escapeHtml(state.message)}</output></div>`;
+      renderCandidates(model);
+      if (focusKey) {
+        const target = [...root.querySelectorAll('button, input')].find(element =>
+          element.dataset.action === focusKey.action && element.dataset.id === focusKey.id && element.dataset.type === focusKey.type && !element.disabled);
+        const fallback = root.querySelector(`[data-kind="${state.selected}"] button:not(:disabled)`) ?? root.querySelector('input[type="search"]');
+        (target ?? fallback)?.focus({ preventScroll: true });
+      }
+    }
+    let activeSheet = null;
+    let sheetTriggerId = null;
+    function renderSheet(focusType) {
+      const state = states.sheet;
+      const item = itemFor(activeSheet);
+      document.getElementById('dialog-title').textContent = `Formato de ${item.name}`;
+      document.getElementById('format-list').innerHTML = state.typeOrders[item.id].map((type, index) =>
+        `<li class="format-row ${index === 0 ? 'first' : ''}"><strong class="rank">${index + 1}</strong>${typeIcon(type)}
+          <span><strong>${typeLabel(type)}</strong><small>${index === 0 ? 'Formato preferido' : 'Também disponível'}</small></span>
+          ${index === 0 ? icon('check') : `<button class="quiet-button" data-promote="${type}">Usar primeiro</button>`}</li>`
+      ).join('');
+      if (focusType) document.getElementById('done-dialog').focus();
+    }
+    function handleAction(model, button) {
+      const state = states[model];
+      const { action, id, type } = button.dataset;
+      const name = itemFor(id).name;
+      if (action === 'sheet') {
+        activeSheet = id;
+        sheetTriggerId = id;
+        renderSheet();
+        document.getElementById('dialog-status').textContent = 'Escolha aplicada apenas nesta demonstração.';
+        document.getElementById('format-dialog').showModal();
+        return;
+      }
+      if (action === 'type') {
+        if (!chooseType(state, id, type)) throw new Error('Formato indisponível neste exemplo.');
+        state.message = `${name}: ${typeLabel(type)} agora é o formato preferido.`;
+      } else if (action === 'up' || action === 'down') {
+        if (!moveFavorite(state, id, action === 'up' ? -1 : 1)) throw new Error('Não é possível mover este favorito.');
+        state.message = `${name} está na posição ${state.favorites.indexOf(id) + 1}.`;
+      } else if (action === 'remove') {
+        if (!removeFavorite(state, id)) throw new Error('Favorito não encontrado.');
+        state.message = `${name} removido. Você pode adicioná-lo novamente.`;
+      } else if (action === 'add') {
+        if (!addFavorite(state, id)) throw new Error('Não é possível adicionar este material.');
+        state.message = `${name} adicionado na posição ${state.favorites.length}.`;
+      } else if (action === 'select') {
+        state.selected = id;
+        state.message = `Escolha o formato de ${name} no painel abaixo.`;
+      }
+      renderModel(model, { action, id, type });
+    }
+    function initialize() {
+      for (const model of Object.keys(states)) {
+        renderModel(model);
+        const root = document.getElementById(`app-${model}`);
+        root.addEventListener('click', event => {
+          const button = event.target.closest('button[data-action]');
+          if (button) handleAction(model, button);
+        });
+        root.addEventListener('input', event => {
+          if (!event.target.matches('input[type="search"]')) return;
+          states[model].query = event.target.value;
+          renderCandidates(model);
+        });
+        root.addEventListener('change', event => {
+          if (!event.target.matches('input[type="radio"]')) return;
+          const { id } = event.target.dataset;
+          if (!chooseType(states[model], id, event.target.value)) throw new Error('Formato indisponível neste exemplo.');
+          states[model].message = `${itemFor(id).name}: ${typeLabel(event.target.value)} agora é o formato preferido.`;
+          const type = event.target.value;
+          renderModel(model);
+          root.querySelector(`input[value="${type}"]`).focus({ preventScroll: true });
+        });
+      }
+      document.querySelectorAll('[data-reset]').forEach(button => button.addEventListener('click', () => {
+        states[button.dataset.reset] = createState();
+        renderModel(button.dataset.reset);
+      }));
+      document.getElementById('reset-all').addEventListener('click', () => {
+        for (const model of Object.keys(states)) { states[model] = createState(); renderModel(model); }
+      });
+      const dialog = document.getElementById('format-dialog');
+      dialog.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        event.preventDefault();
+        dialog.close();
+      });
+      document.getElementById('close-dialog').addEventListener('click', () => dialog.close());
+      document.getElementById('done-dialog').addEventListener('click', () => dialog.close());
+      dialog.addEventListener('close', () => {
+        document.querySelector(`#app-sheet [data-action="sheet"][data-id="${sheetTriggerId}"]`)?.focus({ preventScroll: true });
+        activeSheet = null;
+      });
+      document.getElementById('format-list').addEventListener('click', event => {
+        const button = event.target.closest('[data-promote]');
+        if (!button) return;
+        if (!chooseType(states.sheet, activeSheet, button.dataset.promote)) throw new Error('Formato indisponível neste exemplo.');
+        states.sheet.message = `${itemFor(activeSheet).name}: ${typeLabel(button.dataset.promote)} agora é o formato preferido.`;
+        renderModel('sheet');
+        renderSheet(button.dataset.promote);
+        document.getElementById('dialog-status').textContent = `${typeLabel(button.dataset.promote)} colocado no topo.`;
+      });
+    }
+    if (typeof document !== 'undefined') initialize();
+  </script>
+</body>
+</html>

@@ -168,8 +168,9 @@ final class YoutubeMaterialRef extends CatalogMaterial {
 /// Letra do louvor (Coldigom) — abre no leitor `/letra`.
 ///
 /// Material sintético (O6): o texto vem no dump do catálogo e vive no Isar,
-/// nunca no R2. Não tem `material_kind` — logo não entra nos favoritos nem
-/// nas contagens de download — e não é adicionável a playlist nesta entrega.
+/// nunca no R2. Não tem `material_kind`: favoritos usam a chave sintética
+/// `type:lyrics`, sem inventar uma categoria do servidor ou um download.
+/// A playlist referencia o id sintético da letra.
 final class LyricsMaterial extends CatalogMaterial {
   const LyricsMaterial({
     required this.praiseId,

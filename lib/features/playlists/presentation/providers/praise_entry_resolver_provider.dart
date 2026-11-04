@@ -10,7 +10,7 @@ final _log = AppLogger.of('playlists');
 
 /// Import de link por praise (spec fim-fonte-plpcg §4.3): espera o índice
 /// ([awaitColdigomSearchIndex], prazo [sharedPlaylistCatalogTimeout]) e os
-/// favoritos ([awaitFavoriteMaterialKindRank]) em paralelo, e resolve cada
+/// favoritos ([awaitFavoriteMaterialPreferences]) em paralelo, e resolve cada
 /// token por [preferredEntryForPraise]. Token sem entrada vira log.
 ///
 /// Sem `watch` de propósito: o `ref` fica estável durante a espera. Pela
@@ -20,12 +20,17 @@ final praiseEntryResolverLoaderProvider = Provider<PraiseEntryResolverLoader>((
   ref,
 ) {
   return () async {
-    final (index, rank) = await (
+    final (index, prefs) = await (
       awaitColdigomSearchIndex(ref),
-      awaitFavoriteMaterialKindRank(ref),
+      awaitFavoriteMaterialPreferences(ref),
     ).wait;
     return (praiseShortId) {
-      final entry = preferredEntryForPraise(index, praiseShortId, rank: rank);
+      final entry = preferredEntryForPraise(
+        index,
+        praiseShortId,
+        rank: prefs.rank,
+        preferredTypes: prefs.preferredTypeByKind,
+      );
       if (entry == null) {
         _log.warn(
           index.groupByShortId(praiseShortId) == null
