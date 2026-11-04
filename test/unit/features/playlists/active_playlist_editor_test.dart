@@ -181,6 +181,49 @@ void main() {
   });
 
   test(
+    'extraídos persistem, restauram, não duplicam e podem ser removidos',
+    () async {
+      final c = await boot();
+      final editor = c.read(activePlaylistEditorProvider.notifier);
+      final entries = [
+        PlaylistEntry(
+          id: encodePdfId('assets/praises/p1/m1.chord'),
+          kind: MaterialKind.chord,
+        ),
+        PlaylistEntry(
+          id: encodePdfId('assets/praises/p1/m2.gestures'),
+          kind: MaterialKind.gesture,
+        ),
+        const PlaylistEntry(id: 'lyrics:p1', kind: MaterialKind.lyrics),
+      ];
+      for (final entry in entries) {
+        expect(
+          await editor.addToActive(entry.id, kind: entry.kind),
+          AddToActiveOutcome.added,
+        );
+        expect(
+          await editor.addToActive(entry.id, kind: entry.kind),
+          AddToActiveOutcome.alreadyPresent,
+        );
+      }
+
+      final activeId = c.read(activePlaylistIdProvider)!;
+      final restored = await boot(activeId: activeId);
+      expect(
+        restored.read(activeEntriesProvider).map((e) => (e.id, e.kind)),
+        entries.map((e) => (e.id, e.kind)),
+      );
+      for (final entry in entries) {
+        await restored
+            .read(activePlaylistEditorProvider.notifier)
+            .removeById(entry.id);
+      }
+      await _flush();
+      expect(await repository.getById(activeId), isNull);
+    },
+  );
+
+  test(
     'addToActive com allowDuplicate adiciona segunda ocorrência com chave id#1',
     () async {
       await repository.create(

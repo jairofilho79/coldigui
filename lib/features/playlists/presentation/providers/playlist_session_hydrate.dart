@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/isar_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
+import '../../../../core/utils/material_id_kind.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
@@ -16,14 +17,16 @@ import 'active_playlist_provider.dart';
 import 'playlist_session_prefs.dart';
 import 'playlists_provider.dart';
 
-/// Praise IDs Coldigom embutidos em pdfIds/audioIds (mesmo codec Base64).
+/// Praise IDs de materiais por path Base64 ou id sintético de letra.
 Set<String> collectColdigomPraiseIds({
   required Iterable<String> pdfIds,
   required Iterable<String> audioIds,
 }) {
   final ids = <String>{};
   for (final id in pdfIds) {
-    final praiseId = coldigomPraiseIdFromPdfId(id);
+    final praiseId = materialIdKindOf(id) == MaterialKind.lyrics
+        ? id.substring('lyrics:'.length)
+        : coldigomPraiseIdFromPdfId(id);
     if (praiseId != null) ids.add(praiseId);
   }
   for (final id in audioIds) {
@@ -94,6 +97,7 @@ Future<bool> hydratePlaylistSession(Ref ref) async {
     ref,
     collectColdigomPraiseIds(pdfIds: pdfIds, audioIds: audioIds),
   );
+  if (!ref.mounted) return false;
 
   final tracks = ref.read(catalogMaterialLookupProvider).tracksFor(audioIds);
   if (tracks.isEmpty) return true;

@@ -6,6 +6,7 @@ import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../domain/entities/louvor.dart';
+import '../../domain/entities/catalog_material.dart';
 import '../../domain/entities/louvor_group.dart';
 import '../../domain/entities/youtube_material.dart';
 
@@ -26,6 +27,7 @@ final class CatalogMaterialLookup {
     this.gesturesById = const {},
     this.praiseMetaByGroupId = const {},
     this.youtubeByGroupId = const {},
+    this.lyricsByGroupId = const {},
   });
 
   /// PDFs do catálogo coldigom em memória, por `pdfId`.
@@ -46,6 +48,8 @@ final class CatalogMaterialLookup {
   /// Links de YouTube em cache, por `groupId`.
   final Map<String, List<YoutubeMaterial>> youtubeByGroupId;
 
+  final Map<String, LyricsMaterial> lyricsByGroupId;
+
   /// PDF de [materialId], ou `null` se o catálogo em memória ainda não o tem
   /// (antes da hidratação, ou id legado que o crosswalk não conhece).
   Louvor? louvor(String materialId) => coldigomLouvoresByPdfId[materialId];
@@ -58,6 +62,11 @@ final class CatalogMaterialLookup {
 
   /// Documento de gestos em cache, ou `null`.
   GestureMaterial? gesture(String gestureId) => gesturesById[gestureId];
+
+  /// Letra sintética em cache, pelo id `lyrics:<praiseId>`.
+  LyricsMaterial? lyrics(String materialId) => materialId.startsWith('lyrics:')
+      ? lyricsByGroupId[materialId.substring('lyrics:'.length)]
+      : null;
 
   /// Cifras em cache do praise [groupId], ordenadas por categoria.
   ///
@@ -114,5 +123,6 @@ final catalogMaterialLookupProvider = Provider<CatalogMaterialLookup>((ref) {
     gesturesById: ref.watch(coldigomGestureMaterialsCacheProvider),
     praiseMetaByGroupId: ref.watch(coldigomPraiseMetaCacheProvider),
     youtubeByGroupId: ref.watch(coldigomYoutubeCacheProvider),
+    lyricsByGroupId: ref.watch(coldigomLyricsCacheProvider),
   );
 });

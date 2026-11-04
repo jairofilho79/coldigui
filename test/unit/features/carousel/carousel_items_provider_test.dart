@@ -6,6 +6,7 @@ import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart'
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
@@ -236,6 +237,31 @@ void main() {
     expect(item.numero, '');
     expect(item.nome, 'idmuitolongo…');
   });
+
+  test(
+    'letra restaurada usa os metadados do cache e permanece legível',
+    () async {
+      final c = await boot(
+        entries: [
+          const PlaylistEntry(id: 'lyrics:p1', kind: MaterialKind.lyrics),
+        ],
+      );
+      c.read(coldigomLyricsCacheProvider.notifier).mergeLyrics([
+        const LyricsMaterial(
+          praiseId: 'p1',
+          nome: 'Comigo habita',
+          numero: '692',
+        ),
+      ]);
+
+      final item = c.read(readableCarouselItemsProvider).single;
+      expect(item.materialId, 'lyrics:p1');
+      expect(item.kind, MaterialKind.lyrics);
+      expect(item.nome, 'Comigo habita');
+      expect(item.numero, '692');
+      expect(item.categoria, 'Letra');
+    },
+  );
 
   test('repetição do mesmo louvor gera duas chaves distintas', () async {
     final c = await boot(

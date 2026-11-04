@@ -423,7 +423,12 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
               onSelected: (index) {
                 final tappedKind = kinds[index];
                 final materials = materialsForKind(tappedKind);
-                if (materials.length == 1) {
+                // Extraídos unitários precisam expor a linha com o botão +.
+                final showExtractedActions = widget.canAddToPlaylist &&
+                    (tappedKind == MaterialKind.chord ||
+                        tappedKind == MaterialKind.gesture ||
+                        tappedKind == MaterialKind.lyrics);
+                if (materials.length == 1 && !showExtractedActions) {
                   _selectedKind = tappedKind;
                   _handleTap(materials.first);
                 } else {

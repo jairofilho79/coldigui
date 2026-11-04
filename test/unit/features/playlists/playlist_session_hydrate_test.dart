@@ -83,6 +83,21 @@ void main() {
     expect(restoreQueueStartIndex(const [], _audioIdB), 0);
   });
 
+  test('collectColdigomPraiseIds inclui letras e deduplica os praises', () {
+    expect(
+      collectColdigomPraiseIds(
+        pdfIds: [
+          'lyrics:p1',
+          'lyrics:p2',
+          'lyrics:',
+          encodePdfId('assets/praises/p1/part.pdf'),
+        ],
+        audioIds: const [],
+      ),
+      {'p1', 'p2'},
+    );
+  });
+
   test('hydrate restaura fila pausada no audioId persistido', () async {
     SharedPreferences.setMockInitialValues({
       kActivePlaylistIdPrefsKey: 'pl-1',

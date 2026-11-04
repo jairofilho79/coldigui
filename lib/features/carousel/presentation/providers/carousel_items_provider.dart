@@ -71,6 +71,24 @@ CarouselItem enrichMaterialToCarouselItem({
 }) {
   final resolvedKey = key.isNotEmpty ? key : materialId;
 
+  if (kind == MaterialKind.lyrics) {
+    final lyrics = lookup.lyrics(materialId);
+    return CarouselItem(
+      materialId: materialId,
+      kind: kind,
+      index: index,
+      key: resolvedKey,
+      numero: lyrics?.numero ?? fallbackNumero,
+      nome:
+          lyrics?.nome ??
+          (fallbackNome.isNotEmpty
+              ? fallbackNome
+              : fallbackCarouselNome(materialId)),
+      categoria: lyrics?.categoria ?? 'Letra',
+      classificacao: '',
+    );
+  }
+
   if (kind == MaterialKind.audio) {
     final track = lookup.audioTrack(materialId);
     if (track != null) {

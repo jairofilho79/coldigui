@@ -11,11 +11,14 @@ import 'carousel_items_provider.dart';
 /// Item do material atualmente aberto/em reprodução, mesmo quando não está
 /// na lista ativa.
 ///
-/// Lê de [readerRouteParamsProvider] (quando em `/leitor`, `/cifra`, `/gestos`)
+/// Lê de [readerRouteParamsProvider] (em `/leitor`, `/cifra`, `/gestos`, `/letra`)
 /// ou de [audioPlayerSessionProvider] (quando há faixa de áudio carregada/tocando).
 final currentlyOpenItemProvider = Provider<CarouselItem?>((ref) {
   final readerParams = ref.watch(readerRouteParamsProvider);
-  final pdfId = readerParams[UrlSyncParams.pdfId];
+  final praiseId = readerParams[UrlSyncParams.praiseId];
+  final pdfId =
+      readerParams[UrlSyncParams.pdfId] ??
+      (praiseId != null && praiseId.isNotEmpty ? 'lyrics:$praiseId' : null);
 
   final lookup = ref.watch(catalogMaterialLookupProvider);
 

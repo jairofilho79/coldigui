@@ -4,6 +4,7 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
@@ -68,6 +69,59 @@ void main() {
     'c': _louvor('c', '003', 'Louvor C'),
     'd': _louvor('d', '004', 'Louvor D'),
   };
+
+  testWidgets('rota da letra foca a entrada e navega para outra letra', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/letra?praiseId=p1&titulo=Letra%20A',
+      routes: [
+        GoRoute(
+          path: RoutePaths.lyrics,
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    final lyrics = [
+      const LyricsMaterial(praiseId: 'p1', nome: 'Letra A', numero: '001'),
+      const LyricsMaterial(praiseId: 'p2', nome: 'Letra B', numero: '002'),
+    ];
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          activePlaylistEditorProvider.overrideWith(
+            () => FakeActiveEditor([
+              for (final material in lyrics)
+                PlaylistEntry(id: material.id, kind: MaterialKind.lyrics),
+            ]),
+          ),
+          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+        ),
+      ),
+    );
+    final context = tester.element(find.byType(CarouselChips));
+    ProviderScope.containerOf(context)
+        .read(coldigomLyricsCacheProvider.notifier)
+        .mergeLyrics(lyrics);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.queryParameters['praiseId'], 'p2');
+    expect(prefs.getString('carousel_focused_pdf_id'), 'lyrics:p2');
+
+    router.go('/letra?praiseId=p1&titulo=Letra%20A');
+    await tester.pumpAndSettle();
+    expect(prefs.getString('carousel_focused_pdf_id'), 'lyrics:p1');
+  });
 
   testWidgets('a lista re-emitir durante a resolução do PDF não devolve o foco ao '
       'louvor da rota antiga', (tester) async {

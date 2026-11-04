@@ -167,7 +167,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     final path = _routerState?.uri.path;
     return path == RoutePaths.reader ||
         path == RoutePaths.chords ||
-        path == RoutePaths.gestos;
+        path == RoutePaths.gestos ||
+        path == RoutePaths.lyrics;
   }
 
   Map<String, String> _readerRouteParams({required bool readOnly}) {
@@ -181,7 +182,12 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   }
 
   String? _resolveReaderMaterialId({required bool readOnly}) {
-    final fromUrl = _readerRouteParams(readOnly: readOnly)[UrlSyncParams.pdfId];
+    final params = _readerRouteParams(readOnly: readOnly);
+    if (_routerState?.uri.path == RoutePaths.lyrics) {
+      final praiseId = params[UrlSyncParams.praiseId];
+      if (praiseId != null && praiseId.isNotEmpty) return 'lyrics:$praiseId';
+    }
+    final fromUrl = params[UrlSyncParams.pdfId];
     if (fromUrl != null && fromUrl.isNotEmpty) return fromUrl;
 
     if (!_isReaderRoute) return null;

@@ -19,6 +19,7 @@ import '../../../contributions/domain/entities/contribution_kind.dart';
 import '../../../contributions/domain/entities/contribution_target.dart';
 import '../../../contributions/presentation/utils/open_contribute.dart';
 import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
+import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import '../../domain/entities/lyrics_reader_font_size.dart';
 import '../providers/lyrics_autoscroll_provider.dart';
 import '../providers/lyrics_reader_font_size_provider.dart';
@@ -54,6 +55,13 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen>
   var _showSpeedSlider = false;
 
   String get _praiseId => widget.queryParams[UrlSyncParams.praiseId] ?? '';
+
+  void _schedulePublishRouteParams() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(readerRouteParamsProvider.notifier).update(widget.queryParams);
+    });
+  }
 
   void _applySpeedRecommendation() {
     final praiseId = _praiseId;
@@ -92,6 +100,7 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen>
   void initState() {
     super.initState();
     clearSnackbarsOnEnter(context);
+    _schedulePublishRouteParams();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _applySpeedRecommendation();
     });
@@ -100,6 +109,7 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen>
   @override
   void didUpdateWidget(covariant LyricsReaderScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _schedulePublishRouteParams();
     final oldId = oldWidget.queryParams[UrlSyncParams.praiseId];
     final newId = widget.queryParams[UrlSyncParams.praiseId];
     if (oldId != newId) {
@@ -467,13 +477,13 @@ class _LyricsToolbar extends ConsumerWidget {
             onPressed: praiseId.isEmpty
                 ? null
                 : () => openContribute(
-                      context,
-                      target: ContributionTarget(
-                        source: ContributionSource.coldigom,
-                        praiseId: praiseId,
-                        materialId: 'lyrics:$praiseId',
-                      ),
+                    context,
+                    target: ContributionTarget(
+                      source: ContributionSource.coldigom,
+                      praiseId: praiseId,
+                      materialId: 'lyrics:$praiseId',
                     ),
+                  ),
           ),
         ],
       ),

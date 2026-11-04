@@ -92,19 +92,19 @@ Future<_OpenSpy> _pumpSheet(
 }
 
 void main() {
-  testWidgets('grupo com PDF e letra não tem aba de letra, e prévia de 5 linhas abre o leitor', (
-    tester,
-  ) async {
-    final group = LouvorGroup.fromLouvores(
-      [_pdf],
-      lyricsByGroupId: {'p1': _lyrics},
-    ).single;
-    final spy = await _pumpSheet(tester, group);
+  testWidgets(
+    'grupo com PDF e letra tem aba de letra e preserva a prévia dedicada',
+    (tester) async {
+      final group = LouvorGroup.fromLouvores(
+        [_pdf],
+        lyricsByGroupId: {'p1': _lyrics},
+      ).single;
+      final spy = await _pumpSheet(tester, group);
 
-    // Aba de letra não existe no segment bar
-    expect(find.byType(ColdigomMetaBlock), findsOneWidget);
-    expect(find.text('LETRA'), findsOneWidget);
-    expect(find.textContaining('Comigo habita, ó Deus'), findsOneWidget);
+      expect(find.text('Letra'), findsOneWidget);
+      expect(find.byType(ColdigomMetaBlock), findsOneWidget);
+      expect(find.text('LETRA'), findsOneWidget);
+      expect(find.textContaining('Comigo habita, ó Deus'), findsOneWidget);
 
     // Tocar na prévia da letra abre no leitor de letras
     await tester.tap(find.textContaining('Comigo habita, ó Deus'));
@@ -126,8 +126,9 @@ void main() {
     );
     final spy = await _pumpSheet(tester, group);
 
-    expect(find.byType(ColdigomMetaBlock), findsOneWidget);
-    expect(find.text('LETRA'), findsOneWidget);
+      expect(find.byType(ColdigomMetaBlock), findsOneWidget);
+      expect(find.text('LETRA'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Letra'), findsOneWidget);
 
     await tester.tap(find.text('LETRA'));
     await tester.pumpAndSettle();

@@ -25,7 +25,20 @@ Playlist persistida em Isar
 
 ## Regras de negócio
 
-Modelo: id, nome, pdfIds[], createdAt, favorita
+Modelo: id, nome, entries[] (id e tipo do material), createdAt, favorita.
+`pdfIds` e `audioIds` são projeções das entradas legíveis e de áudio.
+
+### Materiais extraídos na playlist
+
+- O seletor de materiais permite adicionar e remover PDFs, cifras extraídas,
+  gestos extraídos, letras e áudios. YouTube continua sendo aberto externamente.
+- A letra aparece entre os materiais selecionáveis, sem substituir a prévia
+  dedicada no cabeçalho do louvor.
+- Abas de extraídos com um único material mostram a linha e o botão de
+  adicionar. No seletor de troca, sem edição, o toque continua abrindo
+  diretamente o material único e substituindo a ocorrência na playlist.
+- Cada entrada preserva seu tipo e identificador ao salvar e restaurar a
+  playlist. Letras usam `lyrics:<praiseId>` e abrem no leitor de letras.
 
 - Abrir uma cifra ou gestos não adiciona o material à playlist nem regrava a
   lista existente. A adição é uma ação explícita pelo botão `+`.

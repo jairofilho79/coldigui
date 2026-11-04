@@ -305,7 +305,10 @@ Future<void> showCarouselSwapMaterialSheet({
     // (ouvir enquanto lê); YouTube segue pelo opener único.
     onMaterialSelected: (material) async {
       switch (material) {
-        case PdfMaterial() || ChordMaterialRef() || GestureMaterialRef():
+        case PdfMaterial() ||
+            ChordMaterialRef() ||
+            GestureMaterialRef() ||
+            LyricsMaterial():
           await _onReadableMaterialSelected(
             ref: ref,
             context: context,
@@ -337,7 +340,7 @@ Future<void> showCarouselSwapMaterialSheet({
               activeQueue: activeListAudioQueue(ref),
             ),
           );
-        case YoutubeMaterialRef() || LyricsMaterial():
+        case YoutubeMaterialRef():
           await ref.read(openMaterialProvider).open(context, ref, material);
       }
     },
@@ -352,7 +355,7 @@ String? _keyForMaterialId(WidgetRef ref, String materialId) {
   return null;
 }
 
-/// Um material que se lê (PDF, cifra ou gestos) escolhido no sheet de troca.
+/// Um material de leitura (PDF, cifra, gestos ou letra) no sheet de troca.
 ///
 /// A lista obedece ao **louvor**, não ao material: a entrada focada é trocada
 /// no lugar (`replaceByKey`) e a rota do leitor é substituída — a cifra e os
@@ -371,7 +374,8 @@ Future<void> _onReadableMaterialSelected({
   final onReader =
       path == RoutePaths.reader ||
       path == RoutePaths.chords ||
-      path == RoutePaths.gestos;
+      path == RoutePaths.gestos ||
+      path == RoutePaths.lyrics;
 
   if (currentMaterialId != null &&
       currentMaterialId.isNotEmpty &&
