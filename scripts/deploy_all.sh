@@ -113,7 +113,8 @@ if [[ "$SKIP_WEB" == false ]]; then
     WEB_DEPLOY_ARGS+=(--skip-build)
   fi
 
-  "$ROOT_DIR/scripts/web_deploy.sh" "${WEB_DEPLOY_ARGS[@]}"
+  # Bash 3.2 com nounset trata um array vazio como variável não definida.
+  "$ROOT_DIR/scripts/web_deploy.sh" ${WEB_DEPLOY_ARGS[@]+"${WEB_DEPLOY_ARGS[@]}"}
   echo ""
 else
   echo -e "${YELLOW}==> [1/3] Deploy Web pulado (--skip-web).${NC}"

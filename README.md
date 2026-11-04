@@ -72,6 +72,9 @@ Deploy em todas as plataformas com abertura automática da pasta do APK no Finde
 ./scripts/deploy_all.sh --help # ver opções (--skip-web, --skip-ios, --skip-android, --release, etc.)
 ```
 
+Para testar o fluxo de deploy sem publicar ou acessar dispositivos:
+`python3 -B -m unittest -v scripts.test_deploy_all`.
+
 ### Scripts Individuais
 - `./scripts/web_deploy.sh` — Deploy Web WASM no Cloudflare Pages (v2.plpcg.com)
 - `./scripts/ios_homolog_install.sh` — Testar no iPad/iPhone físico como usuário final (sem cabo/terminal)
