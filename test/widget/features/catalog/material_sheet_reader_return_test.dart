@@ -342,7 +342,7 @@ void main() {
     await _pumpApp(tester, material: _pdf, extraMaterials: const [_lyrics]);
     await tester.tap(find.text('abrir materiais'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Letra'));
+    await tester.tap(find.text('Extraídos'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, 'Letra'));
     await tester.pumpAndSettle();
@@ -353,7 +353,7 @@ void main() {
     expect(find.widgetWithText(ListTile, 'Letra'), findsOneWidget);
     expect(find.widgetWithText(ListTile, _pdf.categoria), findsNothing);
 
-    await tester.tap(find.text('Partituras'));
+    await tester.tap(find.text('PDFs'));
     await tester.pumpAndSettle();
     expect(find.text('leitura ${RoutePaths.reader}'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.arrow_back));

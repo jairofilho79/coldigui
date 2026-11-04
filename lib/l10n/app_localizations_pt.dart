@@ -592,7 +592,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioPlayerTitle => 'Áudio';
 
   @override
-  String get pdfMaterialSection => 'Partituras';
+  String get pdfMaterialSection => 'PDFs';
+
+  @override
+  String get extractedMaterialSection => 'Extraídos';
 
   @override
   String get audioMaterialSection => 'Áudio';
@@ -602,6 +605,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get chordMaterialSection => 'Cifras';
+
+  @override
+  String get chordMaterialsLoading => 'Carregando cifras…';
 
   @override
   String get chordUnavailableRetry => 'Cifra indisponível · tentar de novo';

@@ -218,7 +218,7 @@ void main() {
     expect(find.text('Cifra editável'), findsNothing);
   });
 
-  testWidgets('Letra favorita abre a aba de letra sem inventar kind real', (
+  testWidgets('Letra favorita abre Extraídos sem inventar kind real', (
     tester,
   ) async {
     await _pumpSheet(
@@ -226,8 +226,9 @@ void main() {
       rank: const {'type:lyrics': 0},
       group: mixedGroup(),
     );
+    expect(find.text('Extraídos'), findsOneWidget);
     expect(find.text('Cifra PDF'), findsNothing);
-    expect(find.text('Cifra editável'), findsNothing);
+    expect(find.text('Cifra editável'), findsOneWidget);
     expect(find.widgetWithText(ListTile, 'Letra'), findsOneWidget);
   });
 }

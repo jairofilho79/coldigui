@@ -1,6 +1,7 @@
 import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/pages/praise_screen.dart';
@@ -11,6 +12,7 @@ import 'package:coldigui/features/coldigom/data/adapters/coldigom_louvor_adapter
 import 'package:coldigui/features/coldigom/data/models/praise_dto.dart';
 import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
@@ -57,6 +59,7 @@ void main() {
     String tonality = 'D',
     String rhythm = 'Básico',
     List<String> tags = const ['Coletânea'],
+    List<GestureMaterial> gestureMaterials = const [],
     Map<String, String> pdfKinds = const {'k-partitura': 'Partitura'},
   }) {
     final detail = PraiseDetailDto(
@@ -83,6 +86,7 @@ void main() {
     return LouvorGroup.fromLouvores(
       ColdigomLouvorAdapter.toLouvores(detail),
       audioTracks: ColdigomLouvorAdapter.toAudioTracks(detail),
+      gestureMaterials: gestureMaterials,
       coldigomMetaByGroupId: {
         praiseId: ColdigomLouvorAdapter.toMetadata(detail),
       },
@@ -128,6 +132,17 @@ void main() {
         name: 'Glória a Deus',
         number: '123',
         shortId: '0a1',
+        gestureMaterials: [
+          GestureMaterial(
+            gestureId: encodePdfId('assets/praises/g1/gestures.gestures'),
+            r2Key: 'assets/praises/g1/gestures.gestures',
+            nome: 'Glória a Deus',
+            numero: '123',
+            groupId: 'g1',
+            categoria: 'Gestos',
+            classificacao: 'Básico',
+          ),
+        ],
       );
       final index = catalogIndexOf([group]);
       final row = createRow(
@@ -187,6 +202,8 @@ void main() {
 
       // Seção de materiais
       expect(find.byType(PraiseMaterialsView), findsOneWidget);
+      expect(find.text('PDFs'), findsOneWidget);
+      expect(find.text('Extraídos'), findsOneWidget);
       expect(find.text('Partitura'), findsOneWidget);
     },
   );

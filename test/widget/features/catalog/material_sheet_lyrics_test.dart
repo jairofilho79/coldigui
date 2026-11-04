@@ -93,7 +93,7 @@ Future<_OpenSpy> _pumpSheet(
 
 void main() {
   testWidgets(
-    'grupo com PDF e letra tem aba de letra e preserva a prévia dedicada',
+    'grupo com PDF e letra tem aba Extraídos e preserva a prévia dedicada',
     (tester) async {
       final group = LouvorGroup.fromLouvores(
         [_pdf],
@@ -101,7 +101,7 @@ void main() {
       ).single;
       final spy = await _pumpSheet(tester, group);
 
-      expect(find.text('Letra'), findsOneWidget);
+      expect(find.text('Extraídos'), findsOneWidget);
       expect(find.byType(ColdigomMetaBlock), findsOneWidget);
       expect(find.text('LETRA'), findsOneWidget);
       expect(find.textContaining('Comigo habita, ó Deus'), findsOneWidget);

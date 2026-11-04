@@ -37,10 +37,22 @@ import '../providers/open_material_provider.dart';
 import '../utils/preferred_material_for_group.dart';
 import 'material_sheet_actions.dart';
 
+enum _MaterialTab { pdf, extracted, audio, youtube }
+
+_MaterialTab? _tabForKind(MaterialKind? kind) => switch (kind) {
+  null || MaterialKind.unknown => null,
+  MaterialKind.pdf => _MaterialTab.pdf,
+  MaterialKind.chord ||
+  MaterialKind.gesture ||
+  MaterialKind.lyrics => _MaterialTab.extracted,
+  MaterialKind.audio => _MaterialTab.audio,
+  MaterialKind.youtube => _MaterialTab.youtube,
+};
+
 /// Abre o material escolhido.
 typedef PraiseMaterialOpener = Future<void> Function(CatalogMaterial material);
 
-/// Exibição dos materiais do louvor (PDFs, Cifras, Gestos, Áudios, YouTube e Letra).
+/// Exibição dos materiais do louvor (PDFs, Extraídos, Áudio e YouTube).
 ///
 /// Compartilhado entre o `MaterialSheet` e a `PraiseScreen`.
 class PraiseMaterialsView extends ConsumerStatefulWidget {
@@ -70,12 +82,13 @@ class PraiseMaterialsView extends ConsumerStatefulWidget {
 
 class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
   String? _addingId;
-  MaterialKind? _selectedKind;
+  _MaterialTab? _selectedTab;
 
   @override
   void initState() {
     super.initState();
-    _selectedKind = widget.initialKind;
+    final initialKind = widget.initialKind;
+    _selectedTab = _tabForKind(initialKind);
   }
 
   void _handleTap(CatalogMaterial material) {
@@ -334,15 +347,21 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
         ? group.youtubeMaterials
         : ref.watch(catalogMaterialLookupProvider).youtube(group.groupId);
 
+    final hasChordItems = availableChords.isNotEmpty || chordsAsync.hasError;
+    final hasChordTab = hasChordItems || chordsAsync.isLoading;
     final kinds = <MaterialKind>[
       if (group.totalPdfs > 0) MaterialKind.pdf,
-      if (availableChords.isNotEmpty || chordsAsync.hasError)
-        MaterialKind.chord,
+      if (hasChordTab) MaterialKind.chord,
       if (gestureMaterials.isNotEmpty) MaterialKind.gesture,
       if (lyrics != null) MaterialKind.lyrics,
       if (audioTracks.isNotEmpty) MaterialKind.audio,
       if (youtubeMaterials.isNotEmpty) MaterialKind.youtube,
     ];
+    final showExtractedSectionHeaders =
+        (hasChordTab ? 1 : 0) +
+            (gestureMaterials.isNotEmpty ? 1 : 0) +
+            (lyrics != null ? 1 : 0) >
+        1;
 
     if (kinds.isEmpty) {
       return Center(
@@ -358,80 +377,90 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       );
     }
 
-    List<CatalogMaterial> materialsForKind(MaterialKind kind) {
-      return switch (kind) {
-        MaterialKind.pdf => [
+    final tabs = <_MaterialTab>[];
+    for (final kind in kinds) {
+      final tab = _tabForKind(kind);
+      if (tab != null && !tabs.contains(tab)) tabs.add(tab);
+    }
+
+    List<CatalogMaterial> materialsForTab(_MaterialTab tab) {
+      return switch (tab) {
+        _MaterialTab.pdf => [
           for (final section in group.sections)
             for (final entry in section.materials) PdfMaterial(entry.louvor),
         ],
-        MaterialKind.chord => [
+        _MaterialTab.extracted => [
           for (final chord in availableChords) ChordMaterialRef(chord),
-        ],
-        MaterialKind.gesture => [
           for (final gesture in gestureMaterials) GestureMaterialRef(gesture),
+          ?lyrics,
         ],
-        MaterialKind.audio => [
+        _MaterialTab.audio => [
           for (final track in audioTracks) AudioMaterial(track),
         ],
-        MaterialKind.youtube => [
+        _MaterialTab.youtube => [
           for (final y in youtubeMaterials) YoutubeMaterialRef(y),
         ],
-        MaterialKind.lyrics => [?lyrics],
-        MaterialKind.unknown => const <CatalogMaterial>[],
       };
     }
 
-    final showSegments = kinds.length > 1;
+    final showSegments = tabs.length > 1;
     final preferred = bestFavoriteMaterialForGroup(
       group,
       rank,
       preferredTypes: preferredTypes,
       where: (material) => kinds.contains(material.kind),
     );
-    final selectedIndex = kinds.indexOf(
-      _selectedKind ?? preferred?.kind ?? kinds.first,
-    );
-    final selectedKind = kinds[selectedIndex < 0 ? 0 : selectedIndex];
+    final requestedTab =
+        _selectedTab ??
+        _tabForKind(preferred?.kind) ??
+        _tabForKind(kinds.first)!;
+    final selectedTab = tabs.contains(requestedTab) ? requestedTab : tabs.first;
 
     final content = ListView(
       shrinkWrap: widget.shrinkWrap,
       physics: widget.physics,
-      children: switch (selectedKind) {
-        MaterialKind.pdf => _pdfTiles(group, taxonomy, l10n, rank, tileFor),
-        MaterialKind.chord => _chordTiles(
-          group,
-          availableChords,
-          chordsAsync.hasError,
-          taxonomy,
-          l10n,
-          rank,
-          tileFor,
-        ),
-        MaterialKind.gesture => _gestureTiles(
-          gestureMaterials,
-          taxonomy,
-          l10n,
-          rank,
-          tileFor,
-        ),
-        MaterialKind.audio => _audioTiles(
+      children: switch (selectedTab) {
+        _MaterialTab.pdf => _pdfTiles(group, taxonomy, l10n, rank, tileFor),
+        _MaterialTab.extracted => [
+          if (chordsAsync.isLoading && availableChords.isEmpty)
+            ListTile(title: Text(l10n.chordMaterialsLoading)),
+          if (hasChordItems) ...[
+            if (showExtractedSectionHeaders)
+              _sectionLabel(l10n.chordMaterialSection),
+            ..._chordTiles(
+              group,
+              availableChords,
+              chordsAsync.hasError,
+              taxonomy,
+              l10n,
+              rank,
+              tileFor,
+            ),
+          ],
+          if (gestureMaterials.isNotEmpty) ...[
+            if (showExtractedSectionHeaders)
+              _sectionLabel(l10n.gesturesMaterialSection),
+            ..._gestureTiles(gestureMaterials, taxonomy, l10n, rank, tileFor),
+          ],
+          if (lyrics != null) ...[
+            if (showExtractedSectionHeaders) _sectionLabel(l10n.lyricsTab),
+            tileFor(lyrics, iconColor: AppColors.title),
+          ],
+        ],
+        _MaterialTab.audio => _audioTiles(
           audioTracks,
           taxonomy,
           l10n,
           const {},
           tileFor,
         ),
-        MaterialKind.youtube => _youtubeTiles(
+        _MaterialTab.youtube => _youtubeTiles(
           youtubeMaterials,
           taxonomy,
           l10n,
           const {},
           tileFor,
         ),
-        MaterialKind.lyrics => [
-          if (lyrics != null) tileFor(lyrics, iconColor: AppColors.title),
-        ],
-        MaterialKind.unknown => const <Widget>[],
       },
     );
 
@@ -466,24 +495,22 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
           SpotlightGuideTarget(
             id: 'material-sheet-tabs',
             child: _KindSegmentBar(
-              labels: [for (final kind in kinds) _kindLabel(l10n, kind)],
-              selectedIndex: kinds.indexOf(selectedKind),
+              labels: [for (final tab in tabs) _tabLabel(l10n, tab)],
+              selectedIndex: tabs.indexOf(selectedTab),
               onSelected: (index) {
-                final tappedKind = kinds[index];
-                final materials = materialsForKind(tappedKind);
+                final tappedTab = tabs[index];
+                final materials = materialsForTab(tappedTab);
                 // Com entrada ativa, a aba unitária precisa expor a troca.
                 final showPlaylistActions =
                     widget.canAddToPlaylist &&
                     (activeGroupEntry != null ||
-                        tappedKind == MaterialKind.chord ||
-                        tappedKind == MaterialKind.gesture ||
-                        tappedKind == MaterialKind.lyrics) &&
+                        tappedTab == _MaterialTab.extracted) &&
                     materials.any(canAddMaterialToPlaylist);
                 if (materials.length == 1 && !showPlaylistActions) {
-                  _selectedKind = tappedKind;
+                  _selectedTab = tappedTab;
                   _handleTap(materials.first);
                 } else {
-                  setState(() => _selectedKind = tappedKind);
+                  setState(() => _selectedTab = tappedTab);
                 }
               },
             ),
@@ -759,15 +786,12 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
     ];
   }
 
-  static String _kindLabel(AppLocalizations l10n, MaterialKind kind) {
-    return switch (kind) {
-      MaterialKind.pdf => l10n.pdfMaterialSection,
-      MaterialKind.chord => l10n.chordMaterialSection,
-      MaterialKind.gesture => l10n.gesturesMaterialSection,
-      MaterialKind.audio => l10n.audioMaterialSection,
-      MaterialKind.youtube => l10n.youtubeMaterialSection,
-      MaterialKind.lyrics => l10n.lyricsTab,
-      MaterialKind.unknown => throw StateError('kind sem aba: $kind'),
+  static String _tabLabel(AppLocalizations l10n, _MaterialTab tab) {
+    return switch (tab) {
+      _MaterialTab.pdf => l10n.pdfMaterialSection,
+      _MaterialTab.extracted => l10n.extractedMaterialSection,
+      _MaterialTab.audio => l10n.audioMaterialSection,
+      _MaterialTab.youtube => l10n.youtubeMaterialSection,
     };
   }
 }

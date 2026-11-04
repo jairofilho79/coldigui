@@ -590,7 +590,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioPlayerTitle => 'Audio';
 
   @override
-  String get pdfMaterialSection => 'Sheet music';
+  String get pdfMaterialSection => 'PDFs';
+
+  @override
+  String get extractedMaterialSection => 'Extracted';
 
   @override
   String get audioMaterialSection => 'Audio';
@@ -600,6 +603,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chordMaterialSection => 'Chords';
+
+  @override
+  String get chordMaterialsLoading => 'Loading chord charts…';
 
   @override
   String get chordUnavailableRetry => 'Chord sheet unavailable · try again';
