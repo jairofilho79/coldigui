@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/chordpro_song.dart';
 import '../../domain/usecases/transpose_chord.dart';
 import '../theme/chord_reader_theme.dart';
@@ -11,10 +12,7 @@ import '../utils/transpose_label_memo.dart';
 ValueKey<String> chordBarKey(int lineIndex, int cellIndex) =>
     ValueKey<String>('chord-bar-$lineIndex-$cellIndex');
 
-/// Key da faixa zebrada da [lyricIndex]-ésima linha de letra.
-///
-/// Indexada só por linhas de letra: estrofes e comentários não entram na
-/// contagem, senão a alternância "pularia" a cada quebra.
+/// Key da faixa da [lyricIndex]-ésima linha de letra (mantida para compatibilidade de testes).
 ValueKey<String> chordStripeKey(int lyricIndex) =>
     ValueKey<String>('chord-stripe-$lyricIndex');
 
@@ -28,27 +26,8 @@ const _columnGap = 16.0;
 
 /// Renderiza [song] com acorde sobre sílaba e barra vermelha no ponto de troca.
 ///
-/// Cada [ChordCell] vira uma coluna — rótulo em cima, texto embaixo — e a linha
-/// é um [Wrap] dessas colunas. A quebra em tela estreita acontece entre células,
-/// nunca dentro de uma, então o alinhamento acorde↔sílaba sobrevive.
-///
-/// A barra só aparece quando [ChordCell.attached]; célula solta fica sem barra e
-/// o espaçamento da fonte é preservado porque os espaços são texto de verdade.
-///
-/// [semitones] transpõe os rótulos na renderização — o modelo parseado continua
-/// com a grafia original, então voltar ao tom é só zerar o deslocamento.
-///
-/// A14: a view em si é um sliver (uma linha por item de [SliverList] em vez de
-/// um [Column] fixo de `song.lines.length` widgets) para não relayoutar a
-/// música inteira a cada transposição/tamanho de fonte — só as linhas visíveis
-/// (re)constroem. [memo] memoiza [transposeChordLabel] por célula; sem ele, cai
-/// para a chamada direta (é o caso dos testes de widget deste arquivo).
-///
-/// C9: com [columns] 2, `song.lines` é dividido por [splitLinesForColumns] e
-/// as duas metades viram [SliverList]s lado a lado via [SliverCrossAxisGroup].
-/// Este widget precisa estar dentro dos `slivers` de um [CustomScrollView]
-/// (nunca dentro de um [Column]/[Scaffold.body] direto) — é assim que
-/// [ChordReaderScreen] o usa.
+/// Tipografia tabular mono-espaçada nítida, acordes em negrito nobre (w800) flutuando
+/// sobre as sílabas sem caixas invasivas, e seções de Coro elegantes com a identidade PLPCG.
 class ChordProView extends StatelessWidget {
   const ChordProView({
     required this.song,
@@ -80,14 +59,20 @@ class ChordProView extends StatelessWidget {
   Widget build(BuildContext context) {
     final defaultStyle = DefaultTextStyle.of(context).style;
     final lyricStyle = defaultStyle.merge(TextStyle(
+      fontFamily: 'Courier',
+      fontFamilyFallback: const ['RobotoMono', 'monospace'],
       fontSize: fontSize,
-      height: 1.35,
+      height: 1.4,
+      fontWeight: FontWeight.w500,
       color: palette.lyric,
     ));
     final chordStyle = defaultStyle.merge(TextStyle(
+      fontFamily: 'Courier',
+      fontFamilyFallback: const ['RobotoMono', 'monospace'],
       fontSize: fontSize * _chordToLyricRatio,
-      height: 1.1,
-      fontWeight: FontWeight.w700,
+      height: 1.15,
+      fontWeight: FontWeight.w800,
+      letterSpacing: -0.2,
       color: palette.chord,
     ));
 
@@ -108,10 +93,6 @@ class ChordProView extends StatelessWidget {
 
     final split = columns == 2 ? splitLinesForColumns(song.lines) : null;
 
-    // `columns == 2` pedido, mas splitLinesForColumns não achou linhas
-    // suficientes para dividir (< 24): sem este fallback o conteúdo ficaria
-    // preso à metade esquerda da largura, com a direita em branco — a coluna
-    // única cheia é o que a spec pede abaixo do mínimo.
     if (split == null || split.right.isEmpty) {
       return SliverList.builder(
         itemCount: song.lines.length,
@@ -160,55 +141,114 @@ class ChordProView extends StatelessWidget {
     required bool preferFlats,
   }) {
     return switch (line) {
-      ChordProStanzaBreak() => SizedBox(height: fontSize * 1.1),
-      ChordProCommentLine(:final text) => Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 6),
-        child: Text(
-          text,
-          style: lyricStyle.copyWith(
-            fontStyle: FontStyle.italic,
-            fontWeight: FontWeight.w600,
-            fontSize: fontSize * 0.875,
-            color: palette.comment,
-          ),
-        ),
-      ),
-      ChordProLyricLine(:final cells) => () {
-        final isChordOnlyLine = cells.isNotEmpty &&
-            !cells.any((c) => c.text.trim().isNotEmpty) &&
-            cells.any((c) => c.chord != null);
+      ChordProStanzaBreak() => SizedBox(height: fontSize * 1.15),
+      ChordProCommentLine(:final text) => () {
+          final normalized = text
+              .trim()
+              .toLowerCase()
+              .replaceAll(RegExp(r'^[~*\s]+|[~*\s:]+$'), '');
+          final isChorus = normalized == 'coro' ||
+              normalized == 'refrão' ||
+              normalized == 'refrao';
 
-        return Container(
-          key: lyricIndex.isOdd ? chordStripeKey(lyricIndex) : null,
-          width: double.infinity,
-          color: lyricIndex.isOdd ? palette.stripe : null,
-          padding: EdgeInsets.symmetric(
-            horizontal: 4,
-            vertical: isChordOnlyLine ? 3 : 1,
-          ),
-          child: Wrap(
-            crossAxisAlignment: isChordOnlyLine
-                ? WrapCrossAlignment.start
-                : WrapCrossAlignment.end,
-            runSpacing: isChordOnlyLine ? 4 : 2,
-            children: [
-              for (var j = 0; j < cells.length; j++)
-                _ChordCellView(
-                  cell: cells[j],
-                  barKey: chordBarKey(index, j),
-                  barColor: palette.bar,
-                  lyricStyle: lyricStyle,
-                  chordStyle: chordStyle,
-                  semitones: semitones,
-                  preferFlats: preferFlats,
-                  memo: memo,
-                  isChordOnlyLine: isChordOnlyLine,
-                  isLastCell: j == cells.length - 1,
-                ),
-            ],
-          ),
-        );
-      }(),
+          if (isChorus) {
+            return Padding(
+              padding: EdgeInsets.only(
+                top: fontSize * 0.85,
+                bottom: fontSize * 0.35,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: palette.chorusBackground,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border(
+                        left: BorderSide(color: palette.chorusBorder, width: 3),
+                        top: BorderSide(
+                          color: palette.chorusBorder.withValues(alpha: 0.15),
+                          width: 0.5,
+                        ),
+                        right: BorderSide(
+                          color: palette.chorusBorder.withValues(alpha: 0.15),
+                          width: 0.5,
+                        ),
+                        bottom: BorderSide(
+                          color: palette.chorusBorder.withValues(alpha: 0.15),
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      'Coro',
+                      style: TextStyle(
+                        fontFamily: AppTypography.garamondFamily,
+                        fontSize: fontSize * 1.05,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.4,
+                        color: palette.chorusBorder,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 6),
+            child: Text(
+              text,
+              style: lyricStyle.copyWith(
+                fontFamily: AppTypography.sansFamily,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w600,
+                fontSize: fontSize * 0.875,
+                color: palette.comment,
+              ),
+            ),
+          );
+        }(),
+      ChordProLyricLine(:final cells) => () {
+          final isChordOnlyLine = cells.isNotEmpty &&
+              !cells.any((c) => c.text.trim().isNotEmpty) &&
+              cells.any((c) => c.chord != null);
+
+          return Container(
+            key: lyricIndex.isOdd ? chordStripeKey(lyricIndex) : null,
+            width: double.infinity,
+            color: lyricIndex.isOdd ? palette.stripe : null,
+            padding: EdgeInsets.symmetric(
+              horizontal: 4,
+              vertical: isChordOnlyLine ? 3 : 2,
+            ),
+            child: Wrap(
+              crossAxisAlignment: isChordOnlyLine
+                  ? WrapCrossAlignment.start
+                  : WrapCrossAlignment.end,
+              runSpacing: isChordOnlyLine ? 4 : 2,
+              children: [
+                for (var j = 0; j < cells.length; j++)
+                  _ChordCellView(
+                    cell: cells[j],
+                    barKey: chordBarKey(index, j),
+                    barColor: palette.bar,
+                    lyricStyle: lyricStyle,
+                    chordStyle: chordStyle,
+                    semitones: semitones,
+                    preferFlats: preferFlats,
+                    memo: memo,
+                    isChordOnlyLine: isChordOnlyLine,
+                    isLastCell: j == cells.length - 1,
+                  ),
+              ],
+            ),
+          );
+        }(),
     };
   }
 }
@@ -220,7 +260,7 @@ class ChordProView extends StatelessWidget {
 /// apenas 1 espaço ou nenhum no ChordPro, e respeita espaços extras digitados
 /// pelo usuário para esticar a distância entre tempos/compassos.
 double _computeSuspendedSpacing(String text, double chordFontSize) {
-  final base = chordFontSize * 1.25;
+  final base = math.max(16.0, chordFontSize * 1.25);
   final spaceCount = text.replaceAll('\t', '    ').length;
   if (spaceCount <= 1) {
     return base;
@@ -318,14 +358,11 @@ class _ChordCellView extends StatelessWidget {
       children: [
         Text(label, style: chordStyle, softWrap: false),
         if (cell.attached)
-          // Barra na borda esquerda do texto: é ali que o acorde troca. Como
-          // borda do próprio texto, ela acompanha a altura da letra sem
-          // IntrinsicHeight — nada de segunda passada de layout por célula.
-          // Com texto vazio (Sinai[C#m7]) ela cai logo após a célula anterior.
+          // Barra na borda esquerda do texto: é ali que o acorde troca.
           Container(
             key: barKey,
             decoration: BoxDecoration(
-              border: Border(left: BorderSide(color: barColor, width: 2)),
+              border: Border(left: BorderSide(color: barColor, width: 2.2)),
             ),
             child: lyric,
           )

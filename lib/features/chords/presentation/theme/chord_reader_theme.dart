@@ -11,7 +11,14 @@ class ChordReaderPalette {
     required this.bar,
     required this.comment,
     required this.stripe,
-  });
+    Color? chorusBorder,
+    Color? chorusBackground,
+    Color? introBorder,
+    Color? introBackground,
+  })  : chorusBorder = chorusBorder ?? chord,
+        chorusBackground = chorusBackground ?? const Color(0x00000000),
+        introBorder = introBorder ?? const Color(0x22888888),
+        introBackground = introBackground ?? const Color(0x00000000);
 
   final Color background;
   final Color lyric;
@@ -22,11 +29,20 @@ class ChordReaderPalette {
 
   final Color comment;
 
-  /// Faixa de fundo alternada nas linhas de letra.
-  ///
-  /// Opacidade maior no escuro: a mesma alfa que se lê sobre creme desaparece
-  /// sobre carvão.
+  /// Faixa de fundo alternada nas linhas de letra (transparente no novo design limpo).
   final Color stripe;
+
+  /// Borda de destaque lateral da seção de Coro/Refrão.
+  final Color chorusBorder;
+
+  /// Fundo translúcido sutil da seção de Coro/Refrão.
+  final Color chorusBackground;
+
+  /// Borda do contêiner de introdução/compassos instrumentais.
+  final Color introBorder;
+
+  /// Fundo sutil do contêiner de introdução instrumental.
+  final Color introBackground;
 }
 
 /// Claro/escuro **local ao leitor de cifras**.
@@ -37,24 +53,33 @@ enum ChordReaderMode {
   light,
   dark;
 
-  /// Cores da variante. O vermelho da barra difere entre as duas: o mesmo tom
-  /// sobre creme e sobre carvão não tem o mesmo contraste.
+  /// Cores da variante com identidade litúrgica PLPCG:
+  /// - Modo Claro: papel marfim litúrgico aquecido (#FAF8F5) e acordes carmim nobre (#B71C1C).
+  /// - Modo Escuro: palco carvão imersivo (#191414) e ouro nobre litúrgico (#E5C068).
   ChordReaderPalette get palette => switch (this) {
     ChordReaderMode.light => const ChordReaderPalette(
-      background: AppColors.card,
+      background: Color(0xFFFAF8F5),
       lyric: AppColors.textDark,
-      chord: AppColors.title,
+      chord: Color(0xFFB71C1C),
       bar: Color(0xFFC62828),
       comment: Color(0xFF6B6B6B),
-      stripe: Color(0x0A6A2F2F),
+      stripe: Colors.transparent,
+      chorusBorder: Color(0xFFB71C1C),
+      chorusBackground: Color(0xFFFBF5EA),
+      introBorder: Color(0x2EB71C1C),
+      introBackground: Color(0x08B71C1C),
     ),
     ChordReaderMode.dark => const ChordReaderPalette(
-      background: AppColors.pdfArea,
+      background: Color(0xFF191414),
       lyric: AppColors.textLight,
-      chord: AppColors.goldLight,
+      chord: Color(0xFFE5C068),
       bar: Color(0xFFFF5252),
       comment: Color(0xFFB0B0B0),
-      stripe: Color(0x12FFFFFF),
+      stripe: Colors.transparent,
+      chorusBorder: Color(0xFFE5C068),
+      chorusBackground: Color(0x0DE5C068),
+      introBorder: Color(0x33E5C068),
+      introBackground: Color(0x0AE5C068),
     ),
   };
 

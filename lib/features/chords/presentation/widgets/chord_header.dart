@@ -43,14 +43,22 @@ class ChordHeader extends StatelessWidget {
         if (song.title.isNotEmpty)
           Text(
             song.title,
-            style: AppTypography.headline.copyWith(color: palette.chord),
+            style: const TextStyle(
+              fontFamily: AppTypography.garamondFamily,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ).copyWith(color: palette.chord),
           ),
         if (meta.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4, bottom: 12),
             child: Text(
               meta,
-              style: AppTypography.label.copyWith(color: palette.comment),
+              style: AppTypography.label.copyWith(
+                color: palette.comment,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
       ],
