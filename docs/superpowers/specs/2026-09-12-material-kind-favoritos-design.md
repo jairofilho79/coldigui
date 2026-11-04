@@ -5,6 +5,45 @@
 **Escopo:** tela nova no perfil (usuário logado) para escolher até **5** tipos de material Coldigom (`material_kinds`) em ordem de preferência; o sheet de materiais passa a listar esses tipos primeiro. Persistência por conta no Worker `plpcg-catalog` + cache local; sync offline-first.
 **Repos:** só `coldigui` (Flutter + `workers/plpcg-catalog`). O coldigom **não muda**: o id do kind (`material_kind`) já sai em `GET /api/plpcg/praises` e no detalhe do praise, e a lista de kinds já existe em `GET /api/materials/kinds` (público, 104 tipos em pt-BR).
 
+## Atualização de usabilidade — 2026-11-04 (modelo A aprovado)
+
+Esta atualização substitui os pontos de D1, D8, D9 e D11 referentes à
+elegibilidade, ao seletor de formatos e à aba inicial:
+
+- Cada favorito mostra os formatos disponíveis **na própria linha**, com
+  seleção única por toque. O formato selecionado tem marca de seleção e
+  contraste, não apenas um ícone. Formato único aparece com nome e indicação
+  «Único formato»; carregamento, erro com retry e indisponibilidade são explícitos.
+- Só **áudio (inclusive aliases) e YouTube** são excluídos. Categorias mistas
+  continuam elegíveis com os outros formatos; tipos novos mantêm seu nome bruto.
+  Os materiais são enumerados em bloco no catálogo local (Isar ou catálogo
+  em memória), sem uma requisição de rede por kind e com suporte offline.
+- Letra participa quando existe no catálogo. Como não tem `material_kind`,
+  usa a chave reservada `type:lyrics`, sem alterar seu `materialKindId` nulo,
+  seu id de playlist `lyrics:<praiseId>` ou inventar um arquivo para download.
+  Outros materiais sem categoria usam `type:<formato>`.
+- Mantém até cinco categorias, gravação automática por conta e sincronização
+  last-write-wins. O formato continua no mapa existente `preferredTypes`;
+  não há migração de banco nem alteração do contrato HTTP.
+- Setas acessíveis mudam a prioridade; arrastar pelo número também continua
+  disponível. Busca encontra categoria ou formato. Favoritos antigos sem formato
+  elegível ficam identificados como indisponíveis e podem ser removidos; não
+  são apagados silenciosamente.
+- A prioridade da categoria vence a preferência por formato. Dentro do mesmo
+  kind, o formato escolhido vence; se estiver ausente no louvor, usa outro
+  formato elegível do mesmo favorito. Sem favoritos disponíveis, preserva o
+  fallback anterior, inclusive áudio quando é o único material disponível.
+- O «+» e long-press do card e o import de links usam categoria **e** formato.
+  A tela/sheet de materiais começa na aba do favorito disponível, salvo quando
+  o usuário pediu uma aba explícita. A ordem das abas e dos demais materiais
+  permanece; áudios e YouTube não recebem prioridade de favoritos legados.
+  A projeção ao vivo preserva seu contrato de troca automática apenas por PDF.
+
+O mockup de referência está em
+[material-favorites.html](../../../mockups/material-favorites.html).
+Os controles usam `ChoiceChip` para escolha única, conforme a
+[API oficial do Flutter](https://api.flutter.dev/flutter/material/ChoiceChip-class.html).
+
 ## 1. Problema
 
 Um louvor Coldigom pode ter dezenas de materiais (17 PDFs, 14 áudios…). Quem toca trompete quer o "Trompete em Si bemol"; quem canta contralto quer a "Voz contralto" — e hoje cada um rola a aba do sheet toda vez. Não há preferência por pessoa: a ordem é a do servidor.

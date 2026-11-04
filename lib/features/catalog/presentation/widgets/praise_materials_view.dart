@@ -31,6 +31,7 @@ import '../../domain/usecases/build_material_sheet_sections.dart';
 import '../../domain/utils/louvor_material_icons.dart';
 import '../providers/catalog_material_lookup_provider.dart';
 import '../providers/open_material_provider.dart';
+import '../utils/preferred_material_for_group.dart';
 import 'material_sheet_actions.dart';
 
 /// Abre o material escolhido.
@@ -223,6 +224,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
     final group = widget.group;
     final activeMaterialIds = ref.watch(activeMaterialIdsProvider);
     final rank = ref.watch(favoriteMaterialKindRankProvider);
+    final preferredTypes = ref.watch(favoriteMaterialTypePreferencesProvider);
     final taxonomy = ref.watch(coldigomKindTaxonomyProvider);
     final online = ref.watch(connectivityStreamProvider).value ?? true;
     final availability = ref.watch(materialAvailabilityMapProvider);
@@ -267,6 +269,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
     final availableChords = chordsAsync.value ?? const <ChordMaterial>[];
 
     final gestureMaterials = group.gestureMaterials;
+    final lyrics = group.lyrics;
     final audioTracks = group.audioTracks;
     final youtubeMaterials = group.youtubeMaterials.isNotEmpty
         ? group.youtubeMaterials
@@ -277,6 +280,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       if (availableChords.isNotEmpty || chordsAsync.hasError)
         MaterialKind.chord,
       if (gestureMaterials.isNotEmpty) MaterialKind.gesture,
+      if (lyrics != null) MaterialKind.lyrics,
       if (audioTracks.isNotEmpty) MaterialKind.audio,
       if (youtubeMaterials.isNotEmpty) MaterialKind.youtube,
     ];
@@ -318,12 +322,21 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
           for (final y in youtubeMaterials)
             YoutubeMaterialRef(y),
         ],
-        MaterialKind.lyrics || MaterialKind.unknown => const <CatalogMaterial>[],
+        MaterialKind.lyrics => [?lyrics],
+        MaterialKind.unknown => const <CatalogMaterial>[],
       };
     }
 
     final showSegments = kinds.length > 1;
-    final selectedIndex = kinds.indexOf(_selectedKind ?? kinds.first);
+    final preferred = bestFavoriteMaterialForGroup(
+      group,
+      rank,
+      preferredTypes: preferredTypes,
+      where: (material) => kinds.contains(material.kind),
+    );
+    final selectedIndex = kinds.indexOf(
+      _selectedKind ?? preferred?.kind ?? kinds.first,
+    );
     final selectedKind = kinds[selectedIndex < 0 ? 0 : selectedIndex];
 
     final content = ListView(
@@ -357,17 +370,20 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
           audioTracks,
           taxonomy,
           l10n,
-          rank,
+          const {},
           tileFor,
         ),
         MaterialKind.youtube => _youtubeTiles(
           youtubeMaterials,
           taxonomy,
           l10n,
-          rank,
+          const {},
           tileFor,
         ),
-        MaterialKind.lyrics || MaterialKind.unknown => const <Widget>[],
+        MaterialKind.lyrics => [
+          if (lyrics != null) tileFor(lyrics, iconColor: AppColors.title),
+        ],
+        MaterialKind.unknown => const <Widget>[],
       },
     );
 

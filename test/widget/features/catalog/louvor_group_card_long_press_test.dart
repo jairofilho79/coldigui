@@ -9,7 +9,9 @@ import '../../../support/fakes/fake_playlists_notifier.dart';
 
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/chip_parts/chip_buttons.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
@@ -17,6 +19,7 @@ import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -93,6 +96,9 @@ class _OpenerSpy {
     openAudio: ({required ref, required context, required track, queue}) async {
       calls.add('audio:${track.audioId}');
     },
+    openChord: ({required ref, required context, required chord}) async {
+      calls.add('chord:${chord.chordId}');
+    },
   );
 }
 
@@ -101,6 +107,8 @@ Future<void> _pumpCard(
   required LouvorGroup group,
   required Map<String, int> rank,
   required OpenMaterial opener,
+  Map<String, String> preferredTypes = const {},
+  FakeActiveEditor? editor,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
@@ -109,9 +117,14 @@ Future<void> _pumpCard(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        activePlaylistEditorProvider.overrideWith(FakeActiveEditor.new),
+        activePlaylistEditorProvider.overrideWith(
+          () => editor ?? FakeActiveEditor(),
+        ),
         playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         favoriteMaterialKindRankProvider.overrideWithValue(rank),
+        favoriteMaterialTypePreferencesProvider.overrideWithValue(
+          preferredTypes,
+        ),
         openMaterialProvider.overrideWithValue(opener),
       ],
       child: MaterialApp(
@@ -126,6 +139,44 @@ Future<void> _pumpCard(
 }
 
 void main() {
+  testWidgets('o + e long-press usam o formato preferido do mesmo kind', (
+    tester,
+  ) async {
+    final editor = FakeActiveEditor();
+    final spy = _OpenerSpy();
+    final group = LouvorGroup.fromLouvores(
+      [_pdf('Cifra PDF', 'p-cifra', kind: 'k-cifra')],
+      chordMaterials: const [
+        ChordMaterial(
+          chordId: 'c-cifra',
+          r2Key: 'cifra.chord',
+          nome: 'Grande Deus',
+          numero: '001',
+          groupId: 'g1',
+          categoria: 'Cifra editável',
+          classificacao: 'Coletânea',
+          materialKindId: 'k-cifra',
+        ),
+      ],
+    ).first;
+    await _pumpCard(
+      tester,
+      group: group,
+      rank: const {'k-cifra': 0},
+      preferredTypes: const {'k-cifra': 'chord'},
+      opener: spy.build(),
+      editor: editor,
+    );
+    await tester.tap(find.byType(ChipAddButton));
+    await tester.pumpAndSettle();
+    expect(editor.added.single.id, 'c-cifra');
+    expect(editor.added.single.kind, MaterialKind.chord);
+    await tester.longPress(find.byType(CarouselLouvorChip));
+    await tester.pumpAndSettle();
+    expect(spy.calls, ['chord:c-cifra']);
+    expect(find.byType(MaterialSheet), findsNothing);
+  });
+
   testWidgets(
     'long press com favorito disponível abre o material favorito direto, '
     'sem mostrar o bottom sheet',

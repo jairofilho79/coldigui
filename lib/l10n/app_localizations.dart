@@ -2321,7 +2321,7 @@ abstract class AppLocalizations {
   /// No description provided for @favoriteMaterialKindsHelp.
   ///
   /// In pt, this message translates to:
-  /// **'Escolha até {max} tipos de material. Eles aparecem primeiro ao abrir um louvor.'**
+  /// **'Ordene até {max} categorias e escolha seu formato preferido. Use as setas ou arraste pelo número para mudar a prioridade.'**
   String favoriteMaterialKindsHelp(int max);
 
   /// No description provided for @favoriteMaterialKindsYours.
@@ -2345,7 +2345,7 @@ abstract class AppLocalizations {
   /// No description provided for @favoriteMaterialKindsSearchHint.
   ///
   /// In pt, this message translates to:
-  /// **'Buscar tipo de material'**
+  /// **'Buscar categoria ou formato'**
   String get favoriteMaterialKindsSearchHint;
 
   /// No description provided for @favoriteMaterialKindsLimitReached.
@@ -2399,8 +2399,62 @@ abstract class AppLocalizations {
   /// No description provided for @favoriteMaterialKindsNoMatch.
   ///
   /// In pt, this message translates to:
-  /// **'Nenhum tipo com esse nome'**
+  /// **'Nenhum material encontrado. Tente outra categoria ou formato.'**
   String get favoriteMaterialKindsNoMatch;
+
+  /// No description provided for @favoriteMaterialKindsPreferredFormat.
+  ///
+  /// In pt, this message translates to:
+  /// **'Formato preferido'**
+  String get favoriteMaterialKindsPreferredFormat;
+
+  /// No description provided for @favoriteMaterialKindsPdfFormat.
+  ///
+  /// In pt, this message translates to:
+  /// **'PDF'**
+  String get favoriteMaterialKindsPdfFormat;
+
+  /// No description provided for @favoriteMaterialKindsChordFormat.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cifra editável'**
+  String get favoriteMaterialKindsChordFormat;
+
+  /// No description provided for @favoriteMaterialKindsSingleFormat.
+  ///
+  /// In pt, this message translates to:
+  /// **'Único formato'**
+  String get favoriteMaterialKindsSingleFormat;
+
+  /// No description provided for @favoriteMaterialKindsNoFormats.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum formato elegível disponível. Remova este favorito ou atualize o catálogo.'**
+  String get favoriteMaterialKindsNoFormats;
+
+  /// No description provided for @favoriteMaterialKindsFormatsLoadError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar os formatos.'**
+  String get favoriteMaterialKindsFormatsLoadError;
+
+  /// No description provided for @favoriteMaterialKindsExcluded.
+  ///
+  /// In pt, this message translates to:
+  /// **'Áudios e YouTube não participam dos favoritos.'**
+  String get favoriteMaterialKindsExcluded;
+
+  /// No description provided for @favoriteMaterialKindsMoveUp.
+  ///
+  /// In pt, this message translates to:
+  /// **'Subir prioridade'**
+  String get favoriteMaterialKindsMoveUp;
+
+  /// No description provided for @favoriteMaterialKindsMoveDown.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descer prioridade'**
+  String get favoriteMaterialKindsMoveDown;
 
   /// No description provided for @favoriteMaterialKindsTypePreferenceTooltip.
   ///
@@ -2417,7 +2471,7 @@ abstract class AppLocalizations {
   /// No description provided for @favoriteMaterialKindsTypePreferenceHelp.
   ///
   /// In pt, this message translates to:
-  /// **'Arraste para ordenar — o primeiro da lista é o formato preferido.'**
+  /// **'Toque no formato que você prefere abrir. Os demais continuam disponíveis.'**
   String get favoriteMaterialKindsTypePreferenceHelp;
 
   /// Banner do consumidor numa sessão ao vivo
@@ -5099,7 +5153,7 @@ abstract class AppLocalizations {
   /// No description provided for @tutorialFavoriteMaterialKindsStep1Message.
   ///
   /// In pt, this message translates to:
-  /// **'Defina até **4 materiais favoritos** para priorizar seus instrumentos e vozes no topo dos resultados de busca e no leitor.'**
+  /// **'Defina até **5 categorias favoritas**, incluindo Letra. Só áudios e YouTube ficam fora.'**
   String get tutorialFavoriteMaterialKindsStep1Message;
 
   /// No description provided for @tutorialFavoriteMaterialKindsStep2Title.
@@ -5111,7 +5165,7 @@ abstract class AppLocalizations {
   /// No description provided for @tutorialFavoriteMaterialKindsStep2Message.
   ///
   /// In pt, this message translates to:
-  /// **'Acompanhe seus materiais selecionados. Arraste pela **alça lateral** para definir a prioridade, alterne o **formato preferido** ou toque no **(X)** para remover.'**
+  /// **'Use as **setas** ou arraste pelo **número** para definir a prioridade. Toque em um dos **formatos visíveis** para escolhê-lo como preferido ou no **(X)** para remover a categoria.'**
   String get tutorialFavoriteMaterialKindsStep2Message;
 
   /// No description provided for @tutorialFavoriteMaterialKindsStep3Title.
@@ -5123,7 +5177,7 @@ abstract class AppLocalizations {
   /// No description provided for @tutorialFavoriteMaterialKindsStep3Message.
   ///
   /// In pt, this message translates to:
-  /// **'Busque por instrumentos (ex: **violão**, **baixo**, **órgão**) ou vozes e toque no ícone **(+)** para adicioná-los à sua lista de prioridades.'**
+  /// **'Busque por **categoria ou formato**, como violão, Letra ou PDF, e toque no **(+)** para adicionar aos favoritos.'**
   String get tutorialFavoriteMaterialKindsStep3Message;
 
   /// No description provided for @tutorialFavoriteMaterialKindsStep4Title.

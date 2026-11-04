@@ -8,8 +8,8 @@ import '../../../../core/theme/color_extensions.dart';
 /// vinho, borda dourada 2px, raio 8, texto branco.
 ///
 /// [leading] fica à esquerda do título (posição do favorito, ícone);
-/// [trailing] à direita (×, alça, +). Sem [Material] próprio: quem precisar
-/// de ink (arraste em `OverlayEntry`) envolve por fora.
+/// [trailing] à direita (×, setas, +). [content] mantém os formatos dentro
+/// do mesmo card; em telas estreitas as ações ficam abaixo do título.
 class MaterialKindCard extends StatelessWidget {
   const MaterialKindCard({
     required this.title,
@@ -18,6 +18,7 @@ class MaterialKindCard extends StatelessWidget {
     this.trailing,
     this.subtitle,
     this.onTap,
+    this.content,
   });
 
   final String title;
@@ -25,12 +26,13 @@ class MaterialKindCard extends StatelessWidget {
   final Widget? leading;
   final Widget? trailing;
   final VoidCallback? onTap;
+  final Widget? content;
 
   static const _radius = 8.0;
 
   @override
   Widget build(BuildContext context) {
-    final body = Row(
+    Widget header({required bool separateActions}) => Row(
       children: [
         if (leading != null) ...[leading!, const SizedBox(width: 12)],
         Expanded(
@@ -45,7 +47,7 @@ class MaterialKindCard extends StatelessWidget {
                   height: 1.1,
                   color: AppColors.textLight,
                 ),
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               if (subtitle != null) ...[
@@ -61,7 +63,10 @@ class MaterialKindCard extends StatelessWidget {
             ],
           ),
         ),
-        if (trailing != null) ...[const SizedBox(width: 4), trailing!],
+        if (trailing != null && !separateActions) ...[
+          const SizedBox(width: 4),
+          trailing!,
+        ],
       ],
     );
 
@@ -82,7 +87,36 @@ class MaterialKindCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 40),
-              child: body,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final separateActions =
+                          content != null &&
+                          (constraints.maxWidth < 320 ||
+                              MediaQuery.textScalerOf(context).scale(14) > 20);
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          header(separateActions: separateActions),
+                          if (separateActions && trailing != null)
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: trailing,
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                  if (content != null) ...[
+                    const SizedBox(height: 8),
+                    content!,
+                    const SizedBox(height: 6),
+                  ],
+                ],
+              ),
             ),
           ),
         ),

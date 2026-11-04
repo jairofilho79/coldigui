@@ -3,6 +3,8 @@ import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/material_kind_prefs/data/datasources/material_kind_prefs_local_datasource.dart';
 import 'package:coldigui/features/material_kind_prefs/data/providers/material_kind_prefs_providers.dart';
+import 'package:coldigui/features/material_kind_prefs/domain/entities/material_kind_prefs.dart';
+import 'package:coldigui/features/material_kind_prefs/domain/repositories/material_kind_prefs_repository.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_sync_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,6 +34,15 @@ class _CountingSync extends MaterialKindPrefsSyncNotifier {
     calls++;
     return MaterialKindPrefsSyncResult.skippedAuth;
   }
+}
+
+class _FailingRepository implements MaterialKindPrefsRepository {
+  @override
+  Future<MaterialKindPrefs?> read(String sub) async => MaterialKindPrefs.empty;
+
+  @override
+  Future<void> write(String sub, MaterialKindPrefs prefs) async =>
+      throw StateError('storage write failed');
 }
 
 void main() {
@@ -131,6 +142,35 @@ void main() {
     );
     expect(sync.calls, 0);
   });
+
+  test(
+    'falha local propaga, restaura estado e não dispara sincronização',
+    () async {
+      final sync = _CountingSync();
+      final container = ProviderContainer(
+        overrides: [
+          authStateProvider.overrideWith(_LoggedIn.new),
+          materialKindPrefsRepositoryProvider.overrideWithValue(
+            _FailingRepository(),
+          ),
+          materialKindPrefsSyncProvider.overrideWith(() => sync),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(materialKindPrefsProvider.future);
+      await expectLater(
+        container.read(materialKindPrefsProvider.notifier).save([
+          'type:lyrics',
+        ]),
+        throwsStateError,
+      );
+      expect(
+        container.read(materialKindPrefsProvider).requireValue.kindIds,
+        isEmpty,
+      );
+      expect(sync.calls, 0);
+    },
+  );
 
   test('save preserva o preferredTypeByKind já gravado', () async {
     final container = await make(auth: _LoggedIn.new, sync: _CountingSync());

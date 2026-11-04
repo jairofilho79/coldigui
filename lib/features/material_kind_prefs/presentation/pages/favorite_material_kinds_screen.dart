@@ -3,18 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/errors/user_message_for.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/utils/louvor_search_tokens.dart';
 import '../../../../core/widgets/golden_tagged_container.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/google_sign_in_button.dart';
 import '../../../coldigom/data/models/praise_dto.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../domain/entities/material_kind_prefs.dart';
+import '../../domain/entities/material_favorite_policy.dart';
 import '../providers/coldigom_material_kinds_provider.dart';
 import '../providers/material_kind_prefs_provider.dart';
 import '../providers/material_kind_prefs_sync_provider.dart';
+import '../providers/favorite_material_options_provider.dart';
+import '../providers/material_types_for_kind_provider.dart';
 import '../widgets/material_kind_card.dart';
 import '../widgets/material_type_preference_control.dart';
 
@@ -65,15 +71,29 @@ class _FavoriteMaterialKindsScreenState
     super.dispose();
   }
 
-  Future<void> _save(List<String> kindIds) {
-    return ref.read(materialKindPrefsProvider.notifier).save(kindIds);
+  Future<void> _persist(Future<void> Function() write) async {
+    try {
+      await write();
+    } on Object catch (error, stack) {
+      AppLogger.of('material-kind-prefs')
+          .error('Não foi possível salvar favoritos', error, stack);
+      if (!mounted) return;
+      showAppSnackbar(
+        context,
+        userMessageFor(AppLocalizations.of(context)!, error),
+      );
+    }
   }
 
-  Future<void> _setPreferredType(String kindId, String type) {
-    return ref
+  Future<void> _save(List<String> kindIds) => _persist(
+    () => ref.read(materialKindPrefsProvider.notifier).save(kindIds),
+  );
+
+  Future<void> _setPreferredType(String kindId, String type) => _persist(
+    () => ref
         .read(materialKindPrefsProvider.notifier)
-        .setPreferredType(kindId, type);
-  }
+        .setPreferredType(kindId, type),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -120,8 +140,20 @@ class _FavoriteMaterialKindsScreenState
     // com o valor anterior — `asData` seria `null` e a lista colapsaria para
     // «Nenhum favorito ainda» por um frame (mesma correção do rank provider).
     final prefs = prefsAsync.value ?? MaterialKindPrefs.empty;
-    final kinds = kindsAsync.asData?.value ?? const <ColdigomMaterialKindDto>[];
-    final labels = {for (final kind in kinds) kind.id: kind.name};
+    final kinds = kindsAsync.value ?? const <ColdigomMaterialKindDto>[];
+    String nameFor(ColdigomMaterialKindDto kind) => kind.id.startsWith('type:')
+        ? MaterialTypePreferenceControl.labelFor(l10n, kind.id.substring(5))
+        : kind.name;
+    final labels = {
+      for (final kind in kinds) kind.id: nameFor(kind),
+      kLyricsFavoriteKindId: l10n.lyricsTab,
+    };
+    final typesByKind = {
+      for (final kind in kinds)
+        kind.id:
+            ref.watch(materialTypesForKindProvider(kind.id)).value ??
+            const <String>[],
+    };
     final chosen = prefs.kindIds;
     final full = chosen.length >= kMaxFavoriteMaterialKinds;
     final normalizedQuery = LouvorSearchTokens.normalize(_query);
@@ -129,8 +161,9 @@ class _FavoriteMaterialKindsScreenState
       for (final kind in kinds)
         if (!chosen.contains(kind.id) &&
             (normalizedQuery.isEmpty ||
-                LouvorSearchTokens.normalize(kind.name)
-                    .contains(normalizedQuery)))
+                LouvorSearchTokens.normalize(
+                  '${nameFor(kind)} ${typesByKind[kind.id]!.map((type) => MaterialTypePreferenceControl.labelFor(l10n, type)).join(' ')}',
+                ).contains(normalizedQuery)))
           kind,
     ];
     // Online, cada toque fica `pendingPush` só pelos ms até o push: a linha
@@ -151,7 +184,9 @@ class _FavoriteMaterialKindsScreenState
                 id: 'fav-intro-help',
                 child: Text(
                   l10n.favoriteMaterialKindsHelp(kMaxFavoriteMaterialKinds),
-                  style: AppTypography.body.copyWith(color: AppColors.textLight),
+                  style: AppTypography.body.copyWith(
+                    color: AppColors.textLight,
+                  ),
                 ),
               ),
               if (showSyncPending) ...[
@@ -223,42 +258,73 @@ class _FavoriteMaterialKindsScreenState
               final id = chosen[index];
               return MaterialKindCard(
                 key: ValueKey('fav-$id'),
-                leading: SizedBox(
-                  width: 20,
-                  child: Text(
-                    '${index + 1}',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.headline.copyWith(
-                      color: AppColors.gold,
+                leading: ReorderableDragStartListener(
+                  index: index,
+                  child: SizedBox(
+                    width: 20,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${index + 1}',
+                          style: AppTypography.headline.copyWith(
+                            color: AppColors.goldLight,
+                          ),
+                        ),
+                        const Icon(
+                          Icons.drag_handle,
+                          size: 18,
+                          color: AppColors.textLight,
+                        ),
+                      ],
                     ),
                   ),
                 ),
                 title: labels[id] ?? l10n.favoriteMaterialKindsUnknownKind,
+                content: MaterialTypePreferenceControl(
+                  kindId: id,
+                  kindName: labels[id] ?? l10n.favoriteMaterialKindsUnknownKind,
+                  preferredType: prefs.preferredTypeByKind[id],
+                  onChanged: (type) => _setPreferredType(id, type),
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    MaterialTypePreferenceControl(
-                      kindId: id,
-                      kindName:
-                          labels[id] ?? l10n.favoriteMaterialKindsUnknownKind,
-                      preferredType: prefs.preferredTypeByKind[id],
-                      onChanged: (type) => _setPreferredType(id, type),
+                    IconButton(
+                      icon: const Icon(Icons.keyboard_arrow_up),
+                      tooltip: l10n.favoriteMaterialKindsMoveUp,
+                      color: AppColors.textLight,
+                      disabledColor: AppColors.textLight.withValues(
+                        alpha: 0.35,
+                      ),
+                      onPressed: index == 0
+                          ? null
+                          : () {
+                              final next = [...chosen];
+                              next.insert(index - 1, next.removeAt(index));
+                              _save(next);
+                            },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.keyboard_arrow_down),
+                      tooltip: l10n.favoriteMaterialKindsMoveDown,
+                      color: AppColors.textLight,
+                      disabledColor: AppColors.textLight.withValues(
+                        alpha: 0.35,
+                      ),
+                      onPressed: index == chosen.length - 1
+                          ? null
+                          : () {
+                              final next = [...chosen];
+                              next.insert(index + 1, next.removeAt(index));
+                              _save(next);
+                            },
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
                       tooltip: l10n.favoriteMaterialKindsRemoveTooltip,
                       color: AppColors.textLight,
                       onPressed: () => _save([...chosen]..removeAt(index)),
-                    ),
-                    ReorderableDragStartListener(
-                      index: index,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Icon(
-                          Icons.drag_handle,
-                          color: AppColors.textLight.withValues(alpha: 0.7),
-                        ),
-                      ),
                     ),
                   ],
                 ),
@@ -271,6 +337,13 @@ class _FavoriteMaterialKindsScreenState
           sliver: SliverList.list(
             children: [
               _sectionLabel(l10n.favoriteMaterialKindsAdd),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  l10n.favoriteMaterialKindsExcluded,
+                  style: _secondaryText,
+                ),
+              ),
               if (full)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -303,7 +376,11 @@ class _FavoriteMaterialKindsScreenState
                   leading: const Icon(Icons.refresh, color: AppColors.gold),
                   title: l10n.favoriteMaterialKindsLoadError,
                   subtitle: l10n.favoriteMaterialKindsRetry,
-                  onTap: () => ref.invalidate(coldigomMaterialKindsProvider),
+                  onTap: () {
+                    ref.invalidate(coldigomCatalogHydrationProvider);
+                    ref.invalidate(favoriteMaterialOptionsProvider);
+                    ref.invalidate(coldigomMaterialKindsProvider);
+                  },
                 ),
               if (kindsAsync.hasValue && candidates.isEmpty)
                 Padding(
@@ -324,7 +401,17 @@ class _FavoriteMaterialKindsScreenState
               final kind = candidates[index];
               return MaterialKindCard(
                 key: ValueKey('cand-${kind.id}'),
-                title: kind.name,
+                title: nameFor(kind),
+                subtitle: typesByKind[kind.id]!.isEmpty
+                    ? null
+                    : typesByKind[kind.id]!
+                          .map(
+                            (type) => MaterialTypePreferenceControl.labelFor(
+                              l10n,
+                              type,
+                            ),
+                          )
+                          .join(' · '),
                 trailing: IconButton(
                   icon: const Icon(Icons.add_circle_outline),
                   tooltip: l10n.favoriteMaterialKindsAddTooltip,
@@ -351,7 +438,9 @@ class _FavoriteMaterialKindsScreenState
           label: l10n.searchLabel,
           glowEnabled: true,
           glowActive: _searchFocused,
-          contentPadding: GoldenTaggedContainer.compactContentPaddingFor(context),
+          contentPadding: GoldenTaggedContainer.compactContentPaddingFor(
+            context,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [

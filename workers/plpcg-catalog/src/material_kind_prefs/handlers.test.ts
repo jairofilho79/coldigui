@@ -173,3 +173,24 @@ test('PUT rejeita preferredTypes não-objeto e com valor não-string', async () 
     assert.equal(response.status, 400, JSON.stringify(body));
   }
 });
+
+test('Letra sintética e formato preferido fazem round-trip sem migração', async () => {
+  const db = new FakeD1Database();
+  const response = await putMaterialKindPrefs(
+    fakeDb(db),
+    claims,
+    putRequest({
+      kindIds: ['type:lyrics', 'k-cifra'],
+      preferredTypes: { 'type:lyrics': 'lyrics', 'k-cifra': 'chord' },
+    }),
+  );
+  assert.equal(response.status, 200);
+  const fetched = (await (
+    await getMaterialKindPrefs(fakeDb(db), claims)
+  ).json()) as MaterialKindPrefsJson;
+  assert.deepEqual(fetched.kindIds, ['type:lyrics', 'k-cifra']);
+  assert.deepEqual(fetched.preferredTypes, {
+    'type:lyrics': 'lyrics',
+    'k-cifra': 'chord',
+  });
+});

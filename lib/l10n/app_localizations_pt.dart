@@ -1347,7 +1347,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String favoriteMaterialKindsHelp(int max) {
-    return 'Escolha até $max tipos de material. Eles aparecem primeiro ao abrir um louvor.';
+    return 'Ordene até $max categorias e escolha seu formato preferido. Use as setas ou arraste pelo número para mudar a prioridade.';
   }
 
   @override
@@ -1362,7 +1362,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get favoriteMaterialKindsAdd => 'Adicionar';
 
   @override
-  String get favoriteMaterialKindsSearchHint => 'Buscar tipo de material';
+  String get favoriteMaterialKindsSearchHint => 'Buscar categoria ou formato';
 
   @override
   String favoriteMaterialKindsLimitReached(int max) {
@@ -1393,7 +1393,38 @@ class AppLocalizationsPt extends AppLocalizations {
   String get favoriteMaterialKindsRetry => 'Tentar de novo';
 
   @override
-  String get favoriteMaterialKindsNoMatch => 'Nenhum tipo com esse nome';
+  String get favoriteMaterialKindsNoMatch =>
+      'Nenhum material encontrado. Tente outra categoria ou formato.';
+
+  @override
+  String get favoriteMaterialKindsPreferredFormat => 'Formato preferido';
+
+  @override
+  String get favoriteMaterialKindsPdfFormat => 'PDF';
+
+  @override
+  String get favoriteMaterialKindsChordFormat => 'Cifra editável';
+
+  @override
+  String get favoriteMaterialKindsSingleFormat => 'Único formato';
+
+  @override
+  String get favoriteMaterialKindsNoFormats =>
+      'Nenhum formato elegível disponível. Remova este favorito ou atualize o catálogo.';
+
+  @override
+  String get favoriteMaterialKindsFormatsLoadError =>
+      'Não foi possível carregar os formatos.';
+
+  @override
+  String get favoriteMaterialKindsExcluded =>
+      'Áudios e YouTube não participam dos favoritos.';
+
+  @override
+  String get favoriteMaterialKindsMoveUp => 'Subir prioridade';
+
+  @override
+  String get favoriteMaterialKindsMoveDown => 'Descer prioridade';
 
   @override
   String get favoriteMaterialKindsTypePreferenceTooltip =>
@@ -1406,7 +1437,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get favoriteMaterialKindsTypePreferenceHelp =>
-      'Arraste para ordenar — o primeiro da lista é o formato preferido.';
+      'Toque no formato que você prefere abrir. Os demais continuam disponíveis.';
 
   @override
   String liveFollowing(String owner, String list) {
@@ -2974,7 +3005,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get tutorialFavoriteMaterialKindsStep1Message =>
-      'Defina até **4 materiais favoritos** para priorizar seus instrumentos e vozes no topo dos resultados de busca e no leitor.';
+      'Defina até **5 categorias favoritas**, incluindo Letra. Só áudios e YouTube ficam fora.';
 
   @override
   String get tutorialFavoriteMaterialKindsStep2Title =>
@@ -2982,7 +3013,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get tutorialFavoriteMaterialKindsStep2Message =>
-      'Acompanhe seus materiais selecionados. Arraste pela **alça lateral** para definir a prioridade, alterne o **formato preferido** ou toque no **(X)** para remover.';
+      'Use as **setas** ou arraste pelo **número** para definir a prioridade. Toque em um dos **formatos visíveis** para escolhê-lo como preferido ou no **(X)** para remover a categoria.';
 
   @override
   String get tutorialFavoriteMaterialKindsStep3Title =>
@@ -2990,7 +3021,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get tutorialFavoriteMaterialKindsStep3Message =>
-      'Busque por instrumentos (ex: **violão**, **baixo**, **órgão**) ou vozes e toque no ícone **(+)** para adicioná-los à sua lista de prioridades.';
+      'Busque por **categoria ou formato**, como violão, Letra ou PDF, e toque no **(+)** para adicionar aos favoritos.';
 
   @override
   String get tutorialFavoriteMaterialKindsStep4Title =>

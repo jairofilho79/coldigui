@@ -16,15 +16,16 @@ class MaterialKindPrefs {
     required this.pendingPush,
   });
 
-  /// Ids de `material_kinds`; índice 0 é o favorito nº 1.
+  /// UUIDs de `material_kinds` ou chaves `type:<formato>` para materiais sem
+  /// categoria (ex.: `type:lyrics`); índice 0 é o favorito nº 1.
   final List<String> kindIds;
 
   /// Material type (`pdf`/`chord`/...) preferido por kind favoritado.
   ///
   /// Kind sem entrada aqui usa o primeiro type disponível como padrão — ver
   /// `favorite_material_kinds_screen.dart`. Chave que não está em [kindIds]
-  /// é possível (kind removido dos favoritos, preferência não limpa) e é
-  /// inofensiva: ninguém a lê fora do card daquele kind.
+  /// é possível (kind removido dos favoritos, preferência não limpa), mas não
+  /// afeta a escolha automática: só categorias em [kindIds] recebem rank.
   final Map<String, String> preferredTypeByKind;
 
   /// Última edição (UTC). Vai no PUT e decide quem ganha no sync.

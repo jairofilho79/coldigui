@@ -8,9 +8,16 @@ import '../../../carousel/presentation/widgets/chip_parts/chip_buttons.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/catalog_material.dart';
 
-/// Só PDF e áudio entram numa lista — cifra e YouTube não têm entrada própria.
+/// Materiais de leitura e áudio entram na lista; YouTube abre externamente.
 bool canAddMaterialToPlaylist(CatalogMaterial material) {
-  return material is PdfMaterial || material is AudioMaterial;
+  return switch (material) {
+    PdfMaterial() ||
+    ChordMaterialRef() ||
+    GestureMaterialRef() ||
+    LyricsMaterial() ||
+    AudioMaterial() => true,
+    YoutubeMaterialRef() => false,
+  };
 }
 
 /// Trailing `+` / spinner / `×` de uma linha do sheet.

@@ -97,7 +97,7 @@ void main() {
   });
 
   test(
-    'sem PDF, mais de um áudio: devolve o primeiro extra adicionável (áudio, não cifra)',
+    'sem PDF, mais de um áudio: devolve o primeiro extra adicionável (cifra)',
     () {
       final group = LouvorGroup(
         groupId: 'g1',
@@ -113,12 +113,12 @@ void main() {
 
       final material = preferredMaterialForGroup(group);
 
-      expect(material, isA<AudioMaterial>());
-      expect((material! as AudioMaterial).track.audioId, 'a1');
+      expect(material, isA<ChordMaterialRef>());
+      expect(material?.id, 'c1');
     },
   );
 
-  test('nada adicionável (só cifra/YouTube): devolve null', () {
+  test('cifra e YouTube: devolve a cifra adicionável', () {
     final group = LouvorGroup(
       groupId: 'g1',
       numero: '001',
@@ -132,30 +132,40 @@ void main() {
 
     final material = preferredMaterialForGroup(group);
 
-    expect(material, isNull);
+    expect(material?.id, 'c1');
   });
 
-  test(
-    'com favoritos: devolve o áudio favorito mesmo havendo PDF principal',
-    () {
-      final group = LouvorGroup.fromLouvores([
-        _louvor(materialKindId: 'kind-partitura'),
-      ], audioTracks: [_audio('a1', materialKindId: 'kind-audio')]).first;
+  test('só YouTube continua sem material adicionável', () {
+    final group = LouvorGroup(
+      groupId: 'g1',
+      numero: '001',
+      nome: 'Aleluia',
+      sections: const [],
+      youtubeMaterials: [_youtube('y1')],
+    );
+    expect(preferredMaterialForGroup(group), isNull);
+  });
 
-      final material = preferredMaterialForGroup(
-        group,
-        rank: const {'kind-audio': 0},
-      );
+  test('áudio salvo por versão anterior não participa dos favoritos', () {
+    final group = LouvorGroup.fromLouvores(
+      [_louvor(materialKindId: 'kind-partitura')],
+      audioTracks: [_audio('a1', materialKindId: 'kind-audio')],
+    ).first;
 
-      expect(material, isA<AudioMaterial>());
-      expect((material! as AudioMaterial).track.audioId, 'a1');
-    },
-  );
+    final material = preferredMaterialForGroup(
+      group,
+      rank: const {'kind-audio': 0},
+    );
+
+    expect(material, isA<PdfMaterial>());
+    expect(material?.id, 'pdf1');
+  });
 
   test('com favoritos: respeita a posição do rank entre vários candidatos', () {
-    final group = LouvorGroup.fromLouvores([
-      _louvor(materialKindId: 'kind-partitura'),
-    ], audioTracks: [_audio('a1', materialKindId: 'kind-audio')]).first;
+    final group = LouvorGroup.fromLouvores(
+      [_louvor(materialKindId: 'kind-partitura')],
+      audioTracks: [_audio('a1', materialKindId: 'kind-audio')],
+    ).first;
 
     final material = preferredMaterialForGroup(
       group,
@@ -168,24 +178,21 @@ void main() {
     expect((material! as PdfMaterial).louvor.pdfId, 'pdf1');
   });
 
-  test(
-    'com favoritos mas nenhum presente no grupo: cai no fallback (PDF principal)',
-    () {
-      final group = LouvorGroup.fromLouvores([
-        _louvor(materialKindId: 'kind-partitura'),
-      ]).first;
+  test('com favoritos mas nenhum presente no grupo: cai no fallback (PDF principal)', () {
+    final group = LouvorGroup.fromLouvores([
+      _louvor(materialKindId: 'kind-partitura'),
+    ]).first;
 
-      final material = preferredMaterialForGroup(
-        group,
-        rank: const {'kind-nao-presente': 0},
-      );
+    final material = preferredMaterialForGroup(
+      group,
+      rank: const {'kind-nao-presente': 0},
+    );
 
-      expect(material, isA<PdfMaterial>());
-      expect((material! as PdfMaterial).louvor.pdfId, 'pdf1');
-    },
-  );
+    expect(material, isA<PdfMaterial>());
+    expect((material! as PdfMaterial).louvor.pdfId, 'pdf1');
+  });
 
-  test('favoritos não escolhem cifra/YouTube — não são adicionáveis', () {
+  test('favorito de cifra pode ser escolhido para adicionar à playlist', () {
     final group = LouvorGroup(
       groupId: 'g1',
       numero: '001',
@@ -199,12 +206,68 @@ void main() {
 
     final material = preferredMaterialForGroup(
       group,
-      // Cifra é favorito nº 1, mas cifra não é adicionável à lista — o
-      // favorito adicionável (áudio) vence mesmo com posição pior.
+      // Cifra e áudio são adicionáveis; o favorito nº 1 vence.
       rank: const {'kind-cifra': 0, 'kind-audio': 1},
     );
 
-    expect(material, isA<AudioMaterial>());
-    expect((material! as AudioMaterial).track.audioId, 'a1');
+    expect(material, isA<ChordMaterialRef>());
+    expect(material?.id, 'c1');
+  });
+
+  test('mesmo kind usa o formato preferido em vez do primeiro PDF', () {
+    final group = LouvorGroup.fromLouvores(
+      [_louvor(materialKindId: 'kind-cifra')],
+      chordMaterials: [_chord('c1', materialKindId: 'kind-cifra')],
+    ).first;
+    expect(
+      preferredMaterialForGroup(
+        group,
+        rank: const {'kind-cifra': 0},
+        preferredTypes: const {'kind-cifra': 'chord'},
+      )?.id,
+      'c1',
+    );
+  });
+
+  test('formato indisponível cai no outro formato do mesmo favorito', () {
+    final group = LouvorGroup.fromLouvores([
+      _louvor(materialKindId: 'kind-cifra'),
+    ]).first;
+    expect(
+      preferredMaterialForGroup(
+        group,
+        rank: const {'kind-cifra': 0},
+        preferredTypes: const {'kind-cifra': 'chord'},
+      )?.id,
+      'pdf1',
+    );
+  });
+
+  test('ordem das categorias vence a preferência por formato', () {
+    final group = LouvorGroup.fromLouvores(
+      [_louvor(materialKindId: 'kind-partitura')],
+      chordMaterials: [_chord('c1', materialKindId: 'kind-cifra')],
+    ).first;
+    expect(
+      preferredMaterialForGroup(
+        group,
+        rank: const {'kind-partitura': 0, 'kind-cifra': 1},
+        preferredTypes: const {'kind-cifra': 'chord'},
+      )?.id,
+      'pdf1',
+    );
+  });
+
+  test('letra pode ser o primeiro favorito mesmo sem material kind', () {
+    final group = LouvorGroup.fromLouvores(
+      [_louvor(materialKindId: 'kind-partitura')],
+      lyricsByGroupId: const {
+        'g1': LyricsMaterial(praiseId: 'g1', nome: 'Aleluia', numero: '001'),
+      },
+    ).first;
+    expect(
+      preferredMaterialForGroup(group, rank: const {'type:lyrics': 0})?.id,
+      'lyrics:g1',
+    );
   });
 }

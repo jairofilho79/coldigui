@@ -1,4 +1,5 @@
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/material_kind_prefs/domain/entities/material_kind_prefs.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
@@ -25,6 +26,19 @@ void main() {
           materialKindId: 'k-audio',
         ),
       ],
+      chords: [
+        ChordMaterial(
+          chordId: 'chord1',
+          r2Key: 'assets/praises/p1/cifra.chord',
+          nome: 'Louvor p1',
+          numero: '001',
+          groupId: 'p1',
+          categoria: 'Cifra',
+          classificacao: 'Coro',
+          materialKindId: 'k-part',
+        ),
+      ],
+      withLyrics: true,
     ),
   ]);
 
@@ -41,16 +55,40 @@ void main() {
     return c.read(praiseEntryResolverLoaderProvider)();
   }
 
-  test('import com favoritos: grava o material do favorito', () async {
+  test('import não escolhe áudio favorito legado em vez do PDF', () async {
     final resolve = await load(
       MaterialKindPrefs.validated(
         kindIds: const ['k-audio'],
         updatedAt: DateTime.utc(2026, 9, 23),
       ),
     );
+    expect(resolve('0a1'), PlaylistEntry(id: pdfId, kind: MaterialKind.pdf));
+  });
+
+  test('import aguarda e usa categoria e formato do mesmo documento', () async {
+    final resolve = await load(
+      MaterialKindPrefs.validated(
+        kindIds: const ['k-part'],
+        preferredTypeByKind: const {'k-part': 'chord'},
+        updatedAt: DateTime.utc(2026, 11, 4),
+      ),
+    );
     expect(
       resolve('0a1'),
-      PlaylistEntry(id: audioId, kind: MaterialKind.audio),
+      const PlaylistEntry(id: 'chord1', kind: MaterialKind.chord),
+    );
+  });
+
+  test('import usa a chave sintética da Letra favorita', () async {
+    final resolve = await load(
+      MaterialKindPrefs.validated(
+        kindIds: const ['type:lyrics'],
+        updatedAt: DateTime.utc(2026, 11, 4),
+      ),
+    );
+    expect(
+      resolve('0a1'),
+      const PlaylistEntry(id: 'lyrics:p1', kind: MaterialKind.lyrics),
     );
   });
 

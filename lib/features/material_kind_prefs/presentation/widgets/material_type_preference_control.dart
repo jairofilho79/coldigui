@@ -6,23 +6,12 @@ import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../catalog/domain/utils/louvor_material_icons.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
+import '../../domain/entities/material_favorite_policy.dart';
+import '../providers/favorite_material_options_provider.dart';
 import '../providers/material_types_for_kind_provider.dart';
-import 'material_kind_card.dart';
 
-/// Ícone do material type (pdf/chord/...) favorito de um material kind, ao
-/// lado do nome do kind no card de favoritos.
-///
-/// Um material kind pode ter mais de um material type (ex.: cifra em PDF ou
-/// em chords) — [kindId] decide, sob demanda ([materialTypesForKindProvider]),
-/// quais types de fato existem. Só os tipos disponíveis aparecem:
-/// - nenhum type: nada é renderizado;
-/// - um único type: ícone estático, sem toque;
-/// - dois ou mais: ícone tocável do preferido, que abre um menu ordenável
-///   (arrastar define o preferido — o do topo) só com os types disponíveis.
-///
-/// [onChanged] é chamado com o novo type do topo a cada reordenação; quem usa
-/// este widget decide como persistir (ver `setPreferredType` do provider de
-/// prefs) — mantém o controle testável sem depender de auth/SharedPreferences.
+/// Escolha única, explícita e inline do formato preferido de uma categoria.
 class MaterialTypePreferenceControl extends ConsumerWidget {
   const MaterialTypePreferenceControl({
     required this.kindId,
@@ -39,159 +28,120 @@ class MaterialTypePreferenceControl extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final types = ref.watch(materialTypesForKindProvider(kindId)).value;
-    if (types == null || types.isEmpty) return const SizedBox.shrink();
-
-    final effective = (preferredType != null && types.contains(preferredType))
-        ? preferredType!
-        : types.first;
-
-    if (types.length == 1) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Icon(
-          _iconFor(effective),
-          size: 20,
-          color: AppColors.textLight.withValues(alpha: 0.7),
-        ),
+    final l10n = AppLocalizations.of(context)!;
+    final typesAsync = ref.watch(materialTypesForKindProvider(kindId));
+    final types = [
+      for (final type in typesAsync.value ?? const <String>[])
+        if (isFavoriteMaterialType(type)) type,
+    ];
+    if (typesAsync.isLoading && !typesAsync.hasValue) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: LinearProgressIndicator(color: AppColors.gold),
       );
     }
-
-    return IconButton(
-      icon: Icon(_iconFor(effective)),
-      tooltip: AppLocalizations.of(context)!
-          .favoriteMaterialKindsTypePreferenceTooltip,
-      color: AppColors.textLight,
-      onPressed: () => _openSheet(context, types, effective),
+    if (typesAsync.hasError && !typesAsync.isLoading) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.favoriteMaterialKindsFormatsLoadError, style: _secondary),
+          TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: AppColors.goldLight),
+            onPressed: () {
+              ref.invalidate(coldigomCatalogHydrationProvider);
+              ref.invalidate(favoriteMaterialOptionsProvider);
+              ref.invalidate(materialTypesForKindProvider(kindId));
+            },
+            icon: const Icon(Icons.refresh),
+            label: Text(l10n.favoriteMaterialKindsRetry),
+          ),
+        ],
+      );
+    }
+    if (types.isEmpty) {
+      return Text(l10n.favoriteMaterialKindsNoFormats, style: _secondary);
+    }
+    final effective = types.contains(preferredType)
+        ? preferredType
+        : types.first;
+    if (types.length == 1) {
+      return Wrap(
+        spacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Icon(_iconFor(types.first), size: 18, color: AppColors.textLight),
+          Text(labelFor(l10n, types.first), style: _secondary),
+          Text(l10n.favoriteMaterialKindsSingleFormat, style: _secondary),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.favoriteMaterialKindsPreferredFormat, style: _secondary),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final type in types)
+              ChoiceChip(
+                key: ValueKey('type-$kindId-$type'),
+                label: Text(labelFor(l10n, type)),
+                tooltip: l10n.favoriteMaterialKindsTypePreferenceTitle(
+                  kindName,
+                ),
+                avatar: effective == type
+                    ? null
+                    : Icon(
+                        _iconFor(type),
+                        size: 18,
+                        color: AppColors.textLight,
+                      ),
+                selected: effective == type,
+                onSelected: (selected) {
+                  if (selected && type != effective) onChanged(type);
+                },
+                showCheckmark: true,
+                checkmarkColor: AppColors.title,
+                selectedColor: AppColors.card,
+                backgroundColor: AppColors.btnBackground,
+                labelStyle: AppTypography.label.copyWith(
+                  color: effective == type
+                      ? AppColors.title
+                      : AppColors.textLight,
+                  fontWeight: effective == type
+                      ? FontWeight.w700
+                      : FontWeight.w400,
+                ),
+                side: const BorderSide(color: AppColors.gold),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                materialTapTargetSize: MaterialTapTargetSize.padded,
+              ),
+          ],
+        ),
+      ],
     );
   }
 
-  Future<void> _openSheet(
-    BuildContext context,
-    List<String> types,
-    String effective,
-  ) {
-    // O preferido vai para o topo; o resto mantém a ordem que o Worker
-    // devolveu — não há uma ordem "certa" além dessa para o restante.
-    final ordered = [effective, ...types.where((t) => t != effective)];
-    return showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => _TypePreferenceSheetBody(
-        kindName: kindName,
-        initialOrder: ordered,
-        onChanged: onChanged,
-      ),
-    );
-  }
+  static TextStyle get _secondary => AppTypography.label.copyWith(
+    color: AppColors.textLight.withValues(alpha: 0.85),
+  );
 
   static IconData _iconFor(String type) =>
       LouvorMaterialIcons.forKind(materialKindOfRawType(type));
 
   static String labelFor(AppLocalizations l10n, String type) {
     return switch (materialKindOfRawType(type)) {
-      MaterialKind.pdf => l10n.pdfMaterialSection,
-      MaterialKind.chord => l10n.chordMaterialSection,
+      MaterialKind.pdf => l10n.favoriteMaterialKindsPdfFormat,
+      MaterialKind.chord => l10n.favoriteMaterialKindsChordFormat,
       MaterialKind.gesture => l10n.gesturesMaterialSection,
       MaterialKind.audio => l10n.audioMaterialSection,
       MaterialKind.youtube => l10n.youtubeMaterialSection,
-      // Letra nunca chega aqui — não tem `material_kind` — mas o switch é
-      // exaustivo.
-      MaterialKind.lyrics => type,
+      MaterialKind.lyrics => l10n.lyricsTab,
       MaterialKind.unknown => type,
     };
-  }
-}
-
-class _TypePreferenceSheetBody extends StatefulWidget {
-  const _TypePreferenceSheetBody({
-    required this.kindName,
-    required this.initialOrder,
-    required this.onChanged,
-  });
-
-  final String kindName;
-  final List<String> initialOrder;
-  final ValueChanged<String> onChanged;
-
-  @override
-  State<_TypePreferenceSheetBody> createState() =>
-      _TypePreferenceSheetBodyState();
-}
-
-class _TypePreferenceSheetBodyState extends State<_TypePreferenceSheetBody> {
-  final List<String> _order = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _order.addAll(widget.initialOrder);
-  }
-
-  void _handleReorder(int oldIndex, int newIndex) {
-    setState(() {
-      final moved = _order.removeAt(oldIndex);
-      _order.insert(newIndex, moved);
-    });
-    widget.onChanged(_order.first);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final bottomPadding = MediaQuery.paddingOf(context).bottom;
-
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPadding),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.favoriteMaterialKindsTypePreferenceTitle(widget.kindName),
-              style: AppTypography.headline.copyWith(color: AppColors.gold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.favoriteMaterialKindsTypePreferenceHelp,
-              style: AppTypography.body.copyWith(
-                color: AppColors.textLight.withValues(alpha: 0.8),
-              ),
-            ),
-            const SizedBox(height: 12),
-            ReorderableListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              buildDefaultDragHandles: false,
-              onReorderItem: _handleReorder,
-              itemCount: _order.length,
-              itemBuilder: (context, index) {
-                final type = _order[index];
-                return ReorderableDragStartListener(
-                  key: ValueKey('type-pref-$type'),
-                  index: index,
-                  child: MaterialKindCard(
-                    leading: Icon(
-                      MaterialTypePreferenceControl._iconFor(type),
-                      color: AppColors.gold,
-                    ),
-                    title: MaterialTypePreferenceControl.labelFor(l10n, type),
-                    trailing: Icon(
-                      Icons.drag_handle,
-                      color: AppColors.textLight.withValues(alpha: 0.7),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

@@ -390,15 +390,20 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
 
     // C5: "+" sempre visível — primeiro favorito adicionável do grupo
     // (favoriteMaterialKindRankProvider); sem favorito presente, PDF
-    // principal, senão o único áudio, senão o primeiro extra adicionável
-    // (cifra/YouTube não têm entrada própria). O caminho de um único PDF é
+    // principal, senão o único áudio, senão o primeiro extra adicionável.
+    // O caminho de um único PDF é
     // preservado à parte para manter o "já adicionado" (✓) e a snackbar
     // genérica do editor.
     final isSinglePdfOnly = !isMultiMaterial && primary != null;
     final favoriteRank = ref.watch(favoriteMaterialKindRankProvider);
+    final preferredTypes = ref.watch(favoriteMaterialTypePreferencesProvider);
     final preferredMaterial = isSinglePdfOnly
         ? null
-        : preferredMaterialForGroup(widget.group, rank: favoriteRank);
+        : preferredMaterialForGroup(
+            widget.group,
+            rank: favoriteRank,
+            preferredTypes: preferredTypes,
+          );
 
     // §5.5: o grupo é «disponível» se **algum** material dele está no
     // aparelho — PDF, áudio, cifra ou gestos. Persistente ganha de LRU.

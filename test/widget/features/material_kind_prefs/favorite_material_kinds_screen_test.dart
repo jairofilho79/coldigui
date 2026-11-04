@@ -62,13 +62,13 @@ const _kinds = [
   ColdigomMaterialKindDto(id: 'k-coro', name: 'Coro'),
   ColdigomMaterialKindDto(id: 'k-trompete', name: 'Trompete'),
   ColdigomMaterialKindDto(id: 'k-violao', name: 'Violão'),
+  ColdigomMaterialKindDto(id: 'type:lyrics', name: 'lyrics'),
 ];
 
 Future<List<ColdigomMaterialKindDto>> _defaultKinds() async => _kinds;
 
-/// Default: nenhum kind tem mais de um material type — o controle de
-/// preferência de type fica invisível a menos que um teste passe `types`.
-Future<List<String>> _noMaterialTypes(String kindId) async => const [];
+Future<List<String>> _defaultMaterialTypes(String kindId) async =>
+    kindId == 'type:lyrics' ? const ['lyrics'] : const ['pdf'];
 
 void main() {
   late AppLocalizations pt;
@@ -90,15 +90,21 @@ void main() {
     WidgetTester tester, {
     AuthNotifier Function() auth = _LoggedIn.new,
     Future<List<ColdigomMaterialKindDto>> Function() kinds = _defaultKinds,
-    Future<List<String>> Function(String kindId) types = _noMaterialTypes,
+    Future<List<String>> Function(String kindId) types = _defaultMaterialTypes,
+    Size size = const Size(800, 1600),
+    double textScale = 1,
     List<Override> extra = const [],
   }) async {
-    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     await pumpApp(
       tester,
-      const FavoriteMaterialKindsScreen(),
+      MediaQuery.withClampedTextScaling(
+        minScaleFactor: textScale,
+        maxScaleFactor: textScale,
+        child: const FavoriteMaterialKindsScreen(),
+      ),
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         authStateProvider.overrideWith(auth),
@@ -269,7 +275,7 @@ void main() {
   });
 
   testWidgets(
-    'kind com mais de um material type mostra o menu e salva a troca',
+    'kind com vários formatos mostra escolhas inline e persiste após reabrir',
     (tester) async {
       await pump(
         tester,
@@ -279,44 +285,77 @@ void main() {
       await tester.tap(addButtonFor('Partitura'));
       await tester.pumpAndSettle();
 
-      final typeButton = find.byWidgetPredicate(
-        (w) =>
-            w is IconButton &&
-            w.tooltip == pt.favoriteMaterialKindsTypePreferenceTooltip,
-      );
-      expect(typeButton, findsOneWidget);
-
-      await tester.tap(typeButton);
-      await tester.pumpAndSettle();
-      expect(
-        find.text(pt.favoriteMaterialKindsTypePreferenceTitle('Partitura')),
-        findsOneWidget,
-      );
-
-      // O menu usa `ReorderableListView` (a lista de favoritos por trás usa
-      // `SliverReorderableList`) — escopo evita contar a alça da linha por
-      // baixo do modal.
-      final handles = find.descendant(
-        of: find.byType(ReorderableListView),
-        matching: find.byIcon(Icons.drag_handle),
-      );
-      expect(handles, findsNWidgets(2));
-      final from = tester.getCenter(handles.at(1));
-      final to = tester.getCenter(handles.at(0));
-      final drag = await tester.startGesture(from);
-      await tester.pump(const Duration(milliseconds: 600));
-      await drag.moveBy(to - from);
-      await tester.pump();
-      await drag.up();
-      await tester.pumpAndSettle();
-      // Fecha o modal para inspecionar o estado salvo por baixo dele.
-      await tester.tapAt(const Offset(400, 50));
+      expect(find.byType(ChoiceChip), findsNWidgets(2));
+      expect(find.byType(BottomSheet), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('type-k-partitura-chord')));
       await tester.pumpAndSettle();
 
       final stored = MaterialKindPrefsLocalDatasource(prefs).read('sub-1');
       expect(stored!.preferredTypeByKind, {'k-partitura': 'chord'});
+      expect(stored.kindIds, ['k-partitura']);
+
+      await pump(
+        tester,
+        types: (kindId) async =>
+            kindId == 'k-partitura' ? const ['pdf', 'chord'] : const ['pdf'],
+      );
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey('type-k-partitura-chord')),
+            )
+            .selected,
+        isTrue,
+      );
     },
   );
+
+  testWidgets('Letra é adicionável sem material kind e usa chave persistente', (
+    tester,
+  ) async {
+    await pump(tester);
+    await tester.tap(addButtonFor(pt.lyricsTab));
+    await tester.pumpAndSettle();
+    expect(MaterialKindPrefsLocalDatasource(prefs).read('sub-1')!.kindIds, [
+      'type:lyrics',
+    ]);
+    expect(find.text(pt.favoriteMaterialKindsSingleFormat), findsOneWidget);
+  });
+
+  testWidgets('setas reordenam favoritos e preservam o formato escolhido', (
+    tester,
+  ) async {
+    await pump(tester, types: (_) async => const ['pdf', 'chord']);
+    await tester.tap(addButtonFor('Partitura'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('type-k-partitura-chord')));
+    await tester.pumpAndSettle();
+    await tester.tap(addButtonFor('Coro'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(pt.favoriteMaterialKindsMoveDown).first);
+    await tester.pumpAndSettle();
+    final stored = MaterialKindPrefsLocalDatasource(prefs).read('sub-1')!;
+    expect(stored.kindIds, ['k-coro', 'k-partitura']);
+    expect(stored.preferredTypeByKind, {'k-partitura': 'chord'});
+  });
+
+  testWidgets('busca encontra formato e tela cabe em 320px', (tester) async {
+    await pump(
+      tester,
+      size: const Size(320, 1000),
+      types: (kindId) async => kindId == 'k-partitura'
+          ? const ['pdf', 'chord', 'gestures']
+          : const ['pdf'],
+    );
+    await tester.enterText(find.byType(TextField), 'editavel');
+    await tester.pumpAndSettle();
+    expect(addButtonFor('Partitura'), findsOneWidget);
+    expect(addButtonFor('Coro'), findsNothing);
+    await tester.tap(addButtonFor('Partitura'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ChoiceChip), findsNWidgets(3));
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'erro ao carregar kinds mostra retry, favoritos salvos ficam pelo id',
@@ -331,4 +370,24 @@ void main() {
       expect(find.text(pt.favoriteMaterialKindsUnknownKind), findsOneWidget);
     },
   );
+
+  testWidgets('320px com texto 200% preserva ações e formatos sem overflow', (
+    tester,
+  ) async {
+    await prefs.setString(
+      MaterialKindPrefsLocalDatasource.keyFor('sub-1'),
+      '{"kindIds":["k-partitura"],"preferredTypeByKind":{"k-partitura":"chord"},'
+      '"updatedAt":"2026-11-04T00:00:00.000Z","pendingPush":false}',
+    );
+    await pump(
+      tester,
+      size: const Size(320, 1500),
+      textScale: 2,
+      types: (_) async => ['pdf', 'chord'],
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.text('Partitura'), findsOneWidget);
+    expect(find.byType(ChoiceChip), findsNWidgets(2));
+    expect(removeButtons(), findsOneWidget);
+  });
 }

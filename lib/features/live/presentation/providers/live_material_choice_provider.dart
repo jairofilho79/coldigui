@@ -45,6 +45,7 @@ final liveMaterialOverridesProvider =
 /// a projeção recalcula sozinha.
 final liveAutoMaterialResolverProvider = Provider<LiveMaterialResolver>((ref) {
   final rank = ref.watch(favoriteMaterialKindRankProvider);
+  final preferredTypes = ref.watch(favoriteMaterialTypePreferencesProvider);
   final lookup = ref.watch(catalogMaterialLookupProvider);
   if (rank.isEmpty) return (_) => null;
   final coldigom = ColdigomCatalogSource(
@@ -62,6 +63,7 @@ final liveAutoMaterialResolverProvider = Provider<LiveMaterialResolver>((ref) {
     final best = bestFavoriteMaterialForGroup(
       group,
       rank,
+      preferredTypes: preferredTypes,
       where: (material) => material is PdfMaterial,
     );
     if (best == null || best.id == leader.id) return null;

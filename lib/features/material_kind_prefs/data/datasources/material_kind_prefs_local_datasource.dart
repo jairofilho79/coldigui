@@ -32,6 +32,16 @@ class MaterialKindPrefsLocalDatasource {
   }
 
   Future<void> write(String sub, MaterialKindPrefs prefs) async {
-    await _prefs.setString(keyFor(sub), jsonEncode(prefs.toJson()));
+    try {
+      final saved = await _prefs.setString(
+        keyFor(sub),
+        jsonEncode(prefs.toJson()),
+      );
+      if (!saved) throw StateError('material_kind_prefs_write_failed');
+    } on Object {
+      // SharedPreferences atualiza seu cache antes de confirmar a gravação.
+      await _prefs.reload();
+      rethrow;
+    }
   }
 }
