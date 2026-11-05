@@ -1607,7 +1607,7 @@
   "profileDeleteAccountSuccess": "Your account and all associated data were successfully deleted.",
   "profileDeleteAccountError": "Could not delete your account. Check your connection and try again.",
   "scoreMaterialLabel": "Interactive score",
-  "scoreMaterialSection": "Interactive",
+  "scoreMaterialSection": "Scores",
   "scoreReaderTitle": "Sheet music reader",
   "scoreReaderEmpty": "Sheet music not found",
   "scoreReaderUnavailable": "Sheet music unavailable · try again",

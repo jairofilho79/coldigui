@@ -3631,7 +3631,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scoreMaterialLabel => 'Interactive score';
 
   @override
-  String get scoreMaterialSection => 'Interactive';
+  String get scoreMaterialSection => 'Scores';
 
   @override
   String get scoreReaderTitle => 'Sheet music reader';

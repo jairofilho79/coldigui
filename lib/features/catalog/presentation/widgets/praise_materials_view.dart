@@ -38,12 +38,12 @@ import '../providers/open_material_provider.dart';
 import '../utils/preferred_material_for_group.dart';
 import 'material_sheet_actions.dart';
 
-enum _MaterialTab { pdf, score, extracted, audio, youtube }
+enum _MaterialTab { pdf, extracted, audio, youtube }
 
 _MaterialTab? _tabForKind(MaterialKind? kind) => switch (kind) {
   null || MaterialKind.unknown => null,
   MaterialKind.pdf => _MaterialTab.pdf,
-  MaterialKind.score => _MaterialTab.score,
+  MaterialKind.score ||
   MaterialKind.chord ||
   MaterialKind.gesture ||
   MaterialKind.lyrics => _MaterialTab.extracted,
@@ -363,7 +363,8 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       if (youtubeMaterials.isNotEmpty) MaterialKind.youtube,
     ];
     final showExtractedSectionHeaders =
-        (hasChordTab ? 1 : 0) +
+        (scoreMaterials.isNotEmpty ? 1 : 0) +
+            (hasChordTab ? 1 : 0) +
             (gestureMaterials.isNotEmpty ? 1 : 0) +
             (lyrics != null ? 1 : 0) >
         1;
@@ -394,10 +395,8 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
           for (final section in group.sections)
             for (final entry in section.materials) PdfMaterial(entry.louvor),
         ],
-        _MaterialTab.score => [
-          for (final score in scoreMaterials) ScoreMaterialRef(score),
-        ],
         _MaterialTab.extracted => [
+          for (final score in scoreMaterials) ScoreMaterialRef(score),
           for (final chord in availableChords) ChordMaterialRef(chord),
           for (final gesture in gestureMaterials) GestureMaterialRef(gesture),
           ?lyrics,
@@ -429,14 +428,12 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       physics: widget.physics,
       children: switch (selectedTab) {
         _MaterialTab.pdf => _pdfTiles(group, taxonomy, l10n, rank, tileFor),
-        _MaterialTab.score => _scoreTiles(
-          scoreMaterials,
-          taxonomy,
-          l10n,
-          rank,
-          tileFor,
-        ),
         _MaterialTab.extracted => [
+          if (scoreMaterials.isNotEmpty) ...[
+            if (showExtractedSectionHeaders)
+              _sectionLabel(l10n.scoreMaterialSection),
+            ..._scoreTiles(scoreMaterials, taxonomy, l10n, rank, tileFor),
+          ],
           if (chordsAsync.isLoading && availableChords.isEmpty)
             ListTile(title: Text(l10n.chordMaterialsLoading)),
           if (hasChordItems) ...[
@@ -848,7 +845,6 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
   static String _tabLabel(AppLocalizations l10n, _MaterialTab tab) {
     return switch (tab) {
       _MaterialTab.pdf => l10n.pdfMaterialSection,
-      _MaterialTab.score => l10n.scoreMaterialSection,
       _MaterialTab.extracted => l10n.extractedMaterialSection,
       _MaterialTab.audio => l10n.audioMaterialSection,
       _MaterialTab.youtube => l10n.youtubeMaterialSection,

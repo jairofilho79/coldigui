@@ -353,7 +353,7 @@ void main() {
     });
 
     testWidgets(
-      'partitura derivada do dump ganha aba própria e abre o leitor',
+      'partitura derivada do dump fica em Extraídos e abre o leitor',
       (tester) async {
         final catalog = ColdigomCatalogDto.fromJson({
           'generatedAt': '',
@@ -389,6 +389,7 @@ void main() {
           scoreMaterials: ColdigomLouvorAdapter.toScoreMaterials(detail),
           chordMaterials: ColdigomLouvorAdapter.toChordMaterials(detail),
           lyrics: ColdigomLouvorAdapter.toLyricsMaterial(detail, row.lyrics),
+          audioTracks: [_track],
         );
         final opener = _OpenMaterialSpy();
 
@@ -403,16 +404,14 @@ void main() {
           ],
         );
 
-        expect(find.text('Interativas'), findsOneWidget);
+        expect(find.text('Interativas'), findsNothing);
         expect(find.text('Extraídos'), findsOneWidget);
-        expect(find.text('Grade'), findsOneWidget);
-
-        await tester.tap(find.text('Extraídos'));
-        await tester.pumpAndSettle();
+        expect(find.text('Partituras'), findsOneWidget);
+        expect(find.widgetWithText(ListTile, 'Grade'), findsOneWidget);
         expect(find.widgetWithText(ListTile, 'Letra'), findsOneWidget);
         expect(find.text('Cifra'), findsOneWidget);
 
-        await tester.tap(find.text('Interativas'));
+        await tester.tap(find.widgetWithText(ListTile, 'Grade'));
         await tester.pumpAndSettle();
 
         expect(opener.opened, isA<ScoreMaterialRef>());
