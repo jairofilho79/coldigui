@@ -21,6 +21,7 @@ import hashlib
 import json
 import os
 import shutil
+import signal
 import socket
 import statistics
 import struct
@@ -313,6 +314,7 @@ def measure_once(
         ],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        start_new_session=True,
     )
 
     ws: SimpleWebSocket | None = None
@@ -352,14 +354,34 @@ def measure_once(
         perf["diagnostics"] = collect_boot_diagnostics(ws)
         return perf
     finally:
-        if ws is not None:
-            ws.close()
-        proc.terminate()
         try:
-            proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-        shutil.rmtree(user_data, ignore_errors=True)
+            if ws is not None and proc.poll() is None:
+                try:
+                    ws.send_json({"method": "Browser.close"})
+                except OSError as err:
+                    print(f"Chrome: falha no encerramento via CDP: {err}", file=sys.stderr)
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(proc.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    proc.wait(timeout=5)
+        finally:
+            if ws is not None:
+                ws.close()
+            try:
+                shutil.rmtree(user_data)
+            except OSError as err:
+                raise CdpError(f"Chrome: falha ao remover perfil isolado: {err}") from err
 
 
 def median_run(

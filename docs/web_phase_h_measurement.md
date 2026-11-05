@@ -74,6 +74,10 @@ de sessão. Falhas CDP/JavaScript, observer indisponível ou ausência de FCP/ti
 interrompem a medição com saída não zero: não há diagnóstico vazio tratado como
 sucesso. Perfis isolados do Chrome ficam em `build/plpcg-measure-*` e são removidos
 na saída, inclusive quando a coleta falha.
+O Chrome e encerrado via `Browser.close` antes da exclusao do perfil; interromper
+somente o processo principal deixava filhos gravando nesse diretorio no Linux.
+Se o encerramento nao responder, o runner sinaliza o grupo exclusivo criado para
+esse browser e aguarda sua saida. Falhas de limpeza nao sao ignoradas.
 
 Esses dados ajudam a distinguir espera de resposta, parsing/bloqueio da main
 thread e diferenças entre marca RAF/FCP. Não demonstram sozinhos uma causa nem
