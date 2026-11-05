@@ -79,6 +79,22 @@ Esses dados ajudam a distinguir espera de resposta, parsing/bloqueio da main
 thread e diferenças entre marca RAF/FCP. Não demonstram sozinhos uma causa nem
 recalibram o limite do loader de **150 ms**; compare amostras no Ubuntu do CI.
 
+### Navegador de referencia do CI
+
+O workflow usa `chrome-version: stable`. O valor omitido da action
+[`setup-chrome`](https://github.com/browser-actions/setup-chrome/tree/v1#supported-version-formats)
+e `latest`, um snapshot de desenvolvimento do Chromium, nao Chrome Stable.
+Esse snapshot mudou de 1735867 para 1735935 entre as execucoes investigadas,
+sem alteracao no boot da app; loader e primeiro frame variaram de 164/1979 ms
+para 94/1318 ms. O browser de referencia deve ser uma versao publicada, e o
+log da action informa a versao efetivamente instalada.
+
+O experimento pareado no Ubuntu nao justificou alterar preloads, halo, foco
+ou esperar `about:blank`: os controles tambem variaram (125 para 87 ms).
+Nenhuma dessas alteracoes ficou na app. O script e a etapa temporarios de
+comparacao foram removidos; o gate continua medindo navegacoes frias em perfis
+novos, sem aquecer a app e sem mudar o limite.
+
 ## Medição manual (DevTools)
 
 1. Servir com headers corretos:
@@ -150,6 +166,8 @@ sem build Flutter):
 
 ```bash
 python3 -B -m unittest discover -s scripts -p test_measure_web_boot.py
+# Mesmo comando do CI, incluindo a automacao de entrega:
+PYTHONPATH=scripts python3 -B -m unittest test_task_delivery test_measure_web_boot
 ```
 
 Validam o limite 150/151 ms, preservação da mediana, timings reais, observer

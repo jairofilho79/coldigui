@@ -15,6 +15,12 @@ from web_frontend_server import serve_frontend
 
 
 class GateTests(unittest.TestCase):
+    def test_ci_uses_stable_browser_and_runs_runner_regressions(self):
+        workflow = (boot.ROOT / ".github/workflows/web.yml").read_text(encoding="utf-8")
+        self.assertIn("chrome-version: stable", workflow)
+        self.assertIn("python3 -B -m unittest test_task_delivery test_measure_web_boot", workflow)
+        self.assertNotIn("diagnose_web_boot_ci.py", workflow)
+
     def test_loader_limit_150_passes_but_151_fails(self):
         baseline = boot.load_baseline(boot.DEFAULT_BASELINE)
         self.assertEqual(
