@@ -145,12 +145,12 @@ def prepare():
     return state
 
 
-def finish(pr):
+def validate_pr(state, pr):
     if not re.fullmatch(r"[1-9]\d*", pr):
         raise DeliveryError("Expected a positive PR number in jairofilho79/coldigui.")
-    state = load_state()
-    if state["phase"] not in ("prepared", "awaiting-approval"):
-        raise DeliveryError("Validate the task and run prepare before registering its PR.")
+    url = f"https://github.com/jairofilho79/coldigui/pull/{pr}"
+    if state.get("pr") not in (None, url):
+        raise DeliveryError("Use the same PR registered for this task.")
     committed = version(git("show", "HEAD:pubspec.yaml")).group(0).split(": ", 1)[1].strip()
     if committed != state["version"]:
         raise DeliveryError("Commit the prepared version before registering the PR.")
@@ -165,11 +165,35 @@ def finish(pr):
         or info["headRefName"] != state["branch"]
         or info["headRefOid"] != git("rev-parse", "HEAD")
         or info["state"] != "OPEN"
-        or info["url"] != f"https://github.com/jairofilho79/coldigui/pull/{pr}"
+        or info["url"] != url
     ):
         raise DeliveryError("PR must be open, target main and match this branch and HEAD.")
+    return info
+
+
+def finish(pr):
+    state = load_state()
+    if state["phase"] not in ("prepared", "awaiting-approval"):
+        raise DeliveryError("Validate the task and run prepare before registering its PR.")
+    info = validate_pr(state, pr)
     state.update(phase="awaiting-approval", pr=info["url"])
     save_state(state)
+    return state
+
+
+def resume(pr, reason):
+    state = load_state()
+    if not reason.strip():
+        raise DeliveryError("Describe the approved same-task correction with --reason.")
+    if not state.get("pr") or state["phase"] not in ("prepared", "awaiting-approval"):
+        raise DeliveryError("Resume requires this task's delivered, open PR.")
+    info = validate_pr(state, pr)
+    if state["phase"] == "awaiting-approval":
+        state.update(
+            phase="prepared", resume_reason=reason.strip(), resume_head=info["headRefOid"],
+        )
+        state.pop("stop_reminded", None)
+        save_state(state)
     return state
 
 
@@ -298,7 +322,9 @@ def hook(event, payload):
                     "main is protected and each task needs a registered feature/fix branch. "
                     "Load task-delivery; run python3 scripts/task_delivery.py start "
                     "<feature|fix> <slug> after approval. Use --adopt only for this task's "
-                    "existing branch. A delivered task cannot receive unrelated edits."
+                    "existing branch. For an approved correction to the same open PR, run "
+                    "resume <PR-number> --reason <approved-correction>. "
+                    "A delivered task cannot receive unrelated edits."
                 ),
             }
         return {}
@@ -347,6 +373,9 @@ def main():
     commands.add_parser("install")
     done = commands.add_parser("finish")
     done.add_argument("pr")
+    reopen = commands.add_parser("resume")
+    reopen.add_argument("pr")
+    reopen.add_argument("--reason", required=True)
     events = commands.add_parser("hook")
     events.add_argument("event", choices=("sessionStart", "preToolUse", "agentStop"))
     guards = commands.add_parser("git-guard")
@@ -363,6 +392,8 @@ def main():
                 result = prepare()
             elif args.action == "finish":
                 result = finish(args.pr)
+            elif args.action == "resume":
+                result = resume(args.pr, args.reason)
             elif args.action == "install":
                 result = install()
             elif args.action == "hook":
