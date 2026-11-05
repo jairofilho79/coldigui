@@ -36,17 +36,48 @@ Chrome ou Chromium instalado. No CI, `CHROME_EXECUTABLE` é definido pelo workfl
 ./scripts/measure_web_boot.sh --check
 
 # Gravar artefato
-./scripts/measure_web_boot.sh --output /tmp/web-metrics.json
+./scripts/measure_web_boot.sh --output build/web-metrics.json
 ```
 
 O script:
 
 1. Sobe `build/web` com COOP/COEP (`scripts/web_frontend_server.py`)
 2. Abre Chrome headless com cache desabilitado
-3. Navega para a app e faz poll de `window.__plpcgPerf` via CDP
+3. Instala um `PerformanceObserver` de long tasks via CDP **antes** da navegação,
+   navega para a app e faz poll de `window.__plpcgPerf`
 4. Com `--check`, compara `loaderVisibleMs` e `firstFrameMs` com [web_perf_baseline.json](web_perf_baseline.json)
 
 Gate: `medido <= baseline.value + maxRegression`.
+
+### Diagnósticos por amostra
+
+Cada item de `samples` acrescenta `diagnostics`, sem alterar as métricas originais
+de `window.__plpcgPerf` nem a mediana/limites do gate:
+
+- `navigation`: `responseEnd`, `domInteractive` e `domContentLoadedEventEnd` reais
+  de Navigation Timing (milissegundos desde o início da navegação).
+- `fcpMs`: timestamp de `first-contentful-paint` em Paint Timing.
+- `loaderMinusFcpMs`: `loaderVisibleMs - (fcpMs - navigation.startTime)`;
+  negativo significa que a marca do loader precede FCP. A métrica atual usa
+  double `requestAnimationFrame`, não uma comprovação de pixels pintados.
+- `visibilityState` e `hasFocus`: estado do documento no momento da coleta,
+  sem forçar visibilidade ou foco.
+- `capturedAtMs`: instante da coleta após `firstFrameMs`, sujeito ao intervalo
+  de polling; não é outro timestamp do primeiro frame.
+- `longTasks`: até as **20 primeiras** entradas desde o início da navegação até
+  a coleta, contendo somente `startTime` e `duration`. A fila pendente é drenada
+  antes de desconectar o observer; `longTaskCount` informa o total observado e
+  `longTasksTruncated` indica entradas omitidas.
+
+Não são exportados URLs, nomes de recursos, attribution de long tasks nem dados
+de sessão. Falhas CDP/JavaScript, observer indisponível ou ausência de FCP/timings
+interrompem a medição com saída não zero: não há diagnóstico vazio tratado como
+sucesso. Perfis isolados do Chrome ficam em `build/plpcg-measure-*` e são removidos
+na saída, inclusive quando a coleta falha.
+
+Esses dados ajudam a distinguir espera de resposta, parsing/bloqueio da main
+thread e diferenças entre marca RAF/FCP. Não demonstram sozinhos uma causa nem
+recalibram o limite do loader de **150 ms**; compare amostras no Ubuntu do CI.
 
 ## Medição manual (DevTools)
 
@@ -113,3 +144,14 @@ Executa após `flutter build web`, com mediana de 2 runs e threshold do baseline
 ## Testes estáticos
 
 `test/web/web_index_perf_test.dart` valida que `web/index.html` contém splash, instrumentação e preloads — sem medir timing no harness Flutter.
+
+Testes focados do runner (stdlib Python; fixture localhost no Chrome instalado,
+sem build Flutter):
+
+```bash
+python3 -B -m unittest discover -s scripts -p test_measure_web_boot.py
+```
+
+Validam o limite 150/151 ms, preservação da mediana, timings reais, observer
+anterior ao script da página, saída limitada/redigida e falhas explícitas.
+Sem Chrome, somente os casos de integração são reportados como skipped.
