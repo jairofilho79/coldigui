@@ -63,6 +63,11 @@ class DeliveryTests(unittest.TestCase):
         self.run_delivery("prepare")
         self.assertEqual(self.version(), "1.3.9+7")
 
+    def test_ci_runs_delivery_regressions_with_stable_browser(self):
+        workflow = (SOURCE.parent / ".github/workflows/web.yml").read_text()
+        self.assertIn("chrome-version: stable", workflow)
+        self.assertIn("python3 -B -m unittest test_task_delivery", workflow)
+
     def test_start_rejects_dirty_tree_without_explicit_permission(self):
         (self.root / "existing.txt").write_text("keep me")
         self.run_delivery("start", "feature", "example", ok=False)

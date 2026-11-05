@@ -102,6 +102,10 @@ Repetir `resume` com o mesmo PR e seguro. Valide a correcao, comite somente seus
 caminhos, envie a branch, atualize o PR existente e execute `finish` novamente.
 Isso nao autoriza merge: um novo HEAD exige nova aprovacao explicita.
 
+O workflow Web executa os testes da automacao e usa Chrome Stable como referencia
+do gate de boot, nao o snapshot de desenvolvimento `latest` da action.
+Os limites de performance e as demais verificacoes permanecem inalterados.
+
 Nao use a retomada para outra tarefa; nesse caso, comece outra branch da `main`.
 Nao altere o estado local nem desative hooks para liberar edicoes.
 
