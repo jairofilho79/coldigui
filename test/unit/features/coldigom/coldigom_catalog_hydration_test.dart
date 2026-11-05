@@ -52,6 +52,18 @@ ColdigomCatalogDto _catalog() => ColdigomCatalogDto.fromJson(
   ) as Map<String, dynamic>,
 );
 
+ColdigomCatalogDto _catalogWithScores() {
+  final json = jsonDecode(
+    File('test/fixtures/coldigom_catalog_sample.json').readAsStringSync(),
+  ) as Map<String, dynamic>;
+  final firstPraise = (json['praises'] as List).first as Map<String, dynamic>;
+  (firstPraise['materials'] as List).addAll([
+    for (final type in ['mscz', 'mxl', 'musicxml'])
+      {'id': 'score-$type', 'kind': 'k-grade', 'type': type},
+  ]);
+  return ColdigomCatalogDto.fromJson(json);
+}
+
 void main() {
   late Directory tempDir;
   late Isar isar;
@@ -164,7 +176,8 @@ void main() {
     'sem Isar: o sync baixa o dump para a memória e o índice hidrata dele',
     () async {
       final remote = _ScriptedRemote(
-        () async => ColdigomCatalogFresh(catalog: _catalog(), etag: '"v1"'),
+        () async =>
+            ColdigomCatalogFresh(catalog: _catalogWithScores(), etag: '"v1"'),
       );
       // Offline: o `requestSyncIfStale` do boot não corre em paralelo com o
       // `sync()` explícito deste teste.
@@ -181,6 +194,20 @@ void main() {
       expect(index.praiseIds, {'p-001', 'p-002'});
       expect(index.catalogIds, {'p-001', 'p-002', 'p-003'});
       expect(index.groupByShortId('000')?.groupId, 'p-001');
+      expect(
+        index
+            .groupById('p-001')!
+            .scoreMaterials
+            .map((score) => score.r2Key)
+            .toSet(),
+        {
+          'assets/praises/p-001/score-mscz.mscz',
+          'assets/praises/p-001/score-mxl.mxl',
+          'assets/praises/p-001/score-musicxml.musicxml',
+        },
+      );
+      expect(index.groupById('p-001')!.chordMaterials, hasLength(1));
+      expect(index.groupById('p-001')!.lyrics?.praiseId, 'p-001');
       expect(c.read(coldigomLouvoresCacheProvider), hasLength(1));
       expect(c.read(coldigomInMemoryCatalogProvider), hasLength(3));
       final state = c.read(coldigomCatalogSyncProvider);
@@ -259,6 +286,31 @@ void main() {
     expect(index.praiseIds, {'p-001', 'p-002'});
     expect(c.read(coldigomCatalogSyncProvider).count, 3);
     expect(c.read(coldigomCatalogSyncProvider).lastSyncedAt, isNotNull);
+  });
+
+  test('dump sem r2 hidrata as partituras do catálogo persistido', () async {
+    final remote = _ScriptedRemote(
+      () async =>
+          ColdigomCatalogFresh(catalog: _catalogWithScores(), etag: '"v1"'),
+    );
+    final c = container(remote: remote, online: false);
+
+    expect(
+      (await c.read(coldigomCatalogHydrationProvider.future)).isEmpty,
+      isTrue,
+    );
+    final result = await c.read(coldigomCatalogSyncProvider.notifier).sync();
+
+    expect(result, isA<ColdigomCatalogSyncReplaced>());
+    final index = await c.read(coldigomCatalogHydrationProvider.future);
+    final group = index.groupById('p-001')!;
+    expect(group.scoreMaterials.map((score) => score.r2Key).toSet(), {
+      'assets/praises/p-001/score-mscz.mscz',
+      'assets/praises/p-001/score-mxl.mxl',
+      'assets/praises/p-001/score-musicxml.musicxml',
+    });
+    expect(group.chordMaterials, hasLength(1));
+    expect(group.lyrics?.praiseId, 'p-001');
   });
 
   test(
@@ -358,19 +410,36 @@ void main() {
   test('requestSyncIfStale: catálogo recente de versão de esquema antiga '
       'sincroniza já, sem esperar os 30 min', () async {
     // O app anterior sincronizou há pouco (syncedAt recente) mas gravou as
-    // linhas sem os campos novos do dump (versão de esquema menor): o app
-    // novo não pode esperar o intervalo para baixar o dump inteiro.
+    // linhas sem a chave da partitura (versão de esquema menor): o app novo
+    // não pode esperar o intervalo para baixar o dump inteiro.
+    final catalog = _catalogWithScores();
     final remote = _ScriptedRemote(
-      () async => ColdigomCatalogFresh(catalog: _catalog(), etag: '"v2"'),
+      () async => ColdigomCatalogFresh(catalog: catalog, etag: '"v1"'),
     );
-    await seed();
+    final oldRows = [
+      for (final praise in catalog.praises)
+        ColdigomPraiseCacheMapper.fromCatalogPraise(
+          praise,
+          kindNames: catalog.kindNames,
+        ),
+    ];
+    final oldPraise = oldRows.firstWhere((row) => row.praiseId == 'p-001');
+    final oldMaterials = jsonDecode(oldPraise.materialsJson) as List<dynamic>;
+    oldMaterials
+        .cast<Map<String, dynamic>>()
+        .singleWhere((material) => material['id'] == 'score-mscz')
+        .remove('r2');
+    oldPraise.materialsJson = jsonEncode(oldMaterials);
+    await ColdigomCatalogLocalDatasource(isar).replaceAll(oldRows);
+
     final store = ColdigomCatalogSyncMetadataStore(prefs);
     await store.markReplaced(
       etag: '"v1"',
-      count: 3,
+      count: oldRows.length,
       at: DateTime.now().toUtc(),
     );
-    await store.writeCatalogSchemaVersion(coldigomCatalogSchemaVersion - 1);
+    // Versão anterior à correção de derivação de chaves de partitura.
+    await store.writeCatalogSchemaVersion(2);
 
     final c = container(remote: remote, online: true);
     await c.read(coldigomCatalogSyncProvider.notifier).requestSyncIfStale();
@@ -379,6 +448,19 @@ void main() {
     expect(remote.calls, 1);
     expect(remote.lastIfNoneMatch, isNull);
     expect(store.readCatalogSchemaVersion(), coldigomCatalogSchemaVersion);
+    final index = await c.read(coldigomCatalogHydrationProvider.future);
+    expect(
+      index
+          .groupById('p-001')!
+          .scoreMaterials
+          .map((score) => score.r2Key)
+          .toSet(),
+      {
+        'assets/praises/p-001/score-mscz.mscz',
+        'assets/praises/p-001/score-mxl.mxl',
+        'assets/praises/p-001/score-musicxml.musicxml',
+      },
+    );
   });
 
   test(

@@ -4,6 +4,8 @@ import 'package:coldigui/core/utils/score_reader_url_builder.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/coldigom/data/adapters/coldigom_louvor_adapter.dart';
+import 'package:coldigui/features/coldigom/data/mappers/coldigom_praise_cache_mapper.dart';
+import 'package:coldigui/features/coldigom/data/models/coldigom_catalog_dto.dart';
 import 'package:coldigui/features/coldigom/data/models/praise_dto.dart';
 import 'package:coldigui/features/offline/domain/entities/coldigom_download_target.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
@@ -96,6 +98,62 @@ void main() {
   });
 
   group('catálogo', () {
+    test(
+      'dump sem r2 preserva partituras pelo cache até o grupo do louvor',
+      () {
+        final catalog = ColdigomCatalogDto.fromJson({
+          'generatedAt': '',
+          'kinds': [
+            {'id': 'k-grade', 'name': 'Grade'},
+            {'id': 'k-cifra', 'name': 'Cifra'},
+          ],
+          'praises': [
+            {
+              'id': 'praise-1',
+              'number': '001',
+              'name': 'Grande Deus',
+              'rhythm': 'Coletânea',
+              'lyrics': 'Letra preservada',
+              'materials': [
+                for (final type in ['mscz', 'mxl', 'musicxml'])
+                  {'id': 'score-$type', 'kind': 'k-grade', 'type': type},
+                {'id': 'pdf-1', 'kind': 'k-grade', 'type': 'pdf'},
+                {'id': 'chord-1', 'kind': 'k-cifra', 'type': 'chord'},
+              ],
+            },
+          ],
+        });
+        final row = ColdigomPraiseCacheMapper.fromCatalogPraise(
+          catalog.praises.single,
+          kindNames: catalog.kindNames,
+        );
+        final detail = ColdigomPraiseCacheMapper.toPraiseDetail(row);
+        final scores = ColdigomLouvorAdapter.toScoreMaterials(detail);
+        final groups = LouvorGroup.fromLouvores(
+          ColdigomLouvorAdapter.toLouvores(detail),
+          chordMaterials: ColdigomLouvorAdapter.toChordMaterials(detail),
+          scoreMaterials: scores,
+          lyricsByGroupId: {
+            'praise-1': ColdigomLouvorAdapter.toLyricsMaterial(
+              detail,
+              row.lyrics,
+            )!,
+          },
+        );
+
+        expect(scores.map((score) => score.r2Key), [
+          'assets/praises/praise-1/score-mscz.mscz',
+          'assets/praises/praise-1/score-mxl.mxl',
+          'assets/praises/praise-1/score-musicxml.musicxml',
+        ]);
+        final group = groups.single;
+        expect(group.scoreMaterials, hasLength(3));
+        expect(group.chordMaterials, hasLength(1));
+        expect(group.sections, hasLength(1));
+        expect(group.lyrics?.praiseId, 'praise-1');
+      },
+    );
+
     test('adapter extrai só as partituras editáveis do praise', () {
       const praise = PraiseDetailDto(
         id: 'praise-1',

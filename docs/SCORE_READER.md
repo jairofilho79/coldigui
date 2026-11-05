@@ -5,6 +5,10 @@
 O catalogo identifica `mscz`, `mxl` e `musicxml` como `MaterialKind.score`.
 Esses materiais abrem em `/partitura?pdfId=<id codificado>`, na mesma familia
 de navegacao/carrossel usada por PDFs, cifras e gestos, mas em aba propria.
+Quando o dump omite `r2`, o coldigui deriva a chave R2 de `praiseId`,
+`materialId` e extensao. Uma nova versao logica do catalogo faz instalacoes
+com cache antigo buscar o dump completo uma vez; depois o ETag volta ao fluxo
+normal. A recuperacao nao exige apagar os dados locais.
 O parser tambem aceita MSCX e MusicXML/XML descomprimidos pelo conteudo.
 
 MSCZ e ZIP de MuseScore, nao MusicXML. A feature usa o leitor MSCX do

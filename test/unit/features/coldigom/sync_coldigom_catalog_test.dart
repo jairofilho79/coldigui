@@ -29,11 +29,33 @@ class _ScriptedRemote extends ColdigomRemoteDatasource {
   }
 }
 
+class _FailingReplaceAllDatasource extends ColdigomCatalogLocalDatasource {
+  _FailingReplaceAllDatasource(super.isar);
+
+  @override
+  Future<void> replaceAll(List<ColdigomPraiseCache> rows) async {
+    throw StateError('storage write failed');
+  }
+}
+
 ColdigomCatalogDto _catalog() => ColdigomCatalogDto.fromJson(
   jsonDecode(
     File('test/fixtures/coldigom_catalog_sample.json').readAsStringSync(),
   ) as Map<String, dynamic>,
 );
+
+ColdigomCatalogDto _catalogWithScoreWithoutExplicitR2() {
+  final json = jsonDecode(
+    File('test/fixtures/coldigom_catalog_sample.json').readAsStringSync(),
+  ) as Map<String, dynamic>;
+  final firstPraise = (json['praises'] as List).first as Map<String, dynamic>;
+  (firstPraise['materials'] as List).add({
+    'id': 'm-score-499',
+    'kind': 'k-grade',
+    'type': 'mscz',
+  });
+  return ColdigomCatalogDto.fromJson(json);
+}
 
 ColdigomPraiseCache _storedRow(String praiseId, {String? shortId}) =>
     ColdigomPraiseCache()
@@ -426,6 +448,113 @@ void main() {
       expect(remote.ifNoneMatches, ['"v1"']);
       expect(result, isA<ColdigomCatalogSyncNoop>());
     });
+
+    test(
+      'cache antigo sem r2 de partitura → baixa dump mesmo com ETag atual',
+      () async {
+        await metadata.writeKindTaxonomy(MaterialKindTaxonomy.empty);
+        final oldRow = _storedRow('p-001', shortId: '000')
+          ..materialsJson = jsonEncode([
+            {
+              'id': 'm-score-499',
+              'kind': 'k-grade',
+              'kindName': 'Grade',
+              'type': 'mscz',
+            },
+          ]);
+        await local.replaceAll([oldRow]);
+        await metadata.markReplaced(
+          etag: '"same"',
+          count: 1,
+          at: DateTime.utc(2026, 1, 1),
+        );
+        // Versão do catálogo antes de derivar mscz/mxl/musicxml.
+        await metadata.writeCatalogSchemaVersion(2);
+
+        final remote = _ScriptedRemote(
+          (ifNoneMatch) async => ifNoneMatch == null
+              ? ColdigomCatalogFresh(
+                  catalog: _catalogWithScoreWithoutExplicitR2(),
+                  etag: '"same"',
+                )
+              : const ColdigomCatalogNotModified(),
+        );
+
+        final repaired = await usecase(remote).run();
+
+        expect(remote.ifNoneMatches, [null]);
+        expect(repaired, isA<ColdigomCatalogSyncReplaced>());
+        expect(
+          metadata.readCatalogSchemaVersion(),
+          coldigomCatalogSchemaVersion,
+        );
+        final repairedMaterials = jsonDecode(
+          local.findByPraiseIdSync('p-001')!.materialsJson,
+        ) as List<dynamic>;
+        final repairedScore = repairedMaterials
+            .cast<Map<String, dynamic>>()
+            .singleWhere((material) => material['id'] == 'm-score-499');
+        expect(repairedScore['r2'], 'assets/praises/p-001/m-score-499.mscz');
+
+        final unchanged = await usecase(remote).run();
+
+        expect(remote.ifNoneMatches, [null, '"same"']);
+        expect(unchanged, isA<ColdigomCatalogSyncNoop>());
+      },
+    );
+
+    test(
+      'falha ao persistir correção mantém cache, ETag e versão antiga',
+      () async {
+        await metadata.writeKindTaxonomy(MaterialKindTaxonomy.empty);
+        final oldRow = _storedRow('p-001', shortId: '000')
+          ..materialsJson = jsonEncode([
+            {
+              'id': 'm-score-499',
+              'kind': 'k-grade',
+              'kindName': 'Grade',
+              'type': 'mscz',
+            },
+          ]);
+        await local.replaceAll([oldRow]);
+        await metadata.markReplaced(
+          etag: '"same"',
+          count: 1,
+          at: DateTime.utc(2026, 1, 1),
+        );
+        await metadata.writeCatalogSchemaVersion(2);
+
+        final remote = _ScriptedRemote(
+          (ifNoneMatch) async => ifNoneMatch == null
+              ? ColdigomCatalogFresh(
+                  catalog: _catalogWithScoreWithoutExplicitR2(),
+                  etag: '"same"',
+                )
+              : const ColdigomCatalogNotModified(),
+        );
+        final failing = SyncColdigomCatalog(
+          remote: remote,
+          local: _FailingReplaceAllDatasource(isar),
+          metadata: metadata,
+          now: () => fixedNow,
+        );
+
+        final result = await failing.run();
+
+        expect(result, isA<ColdigomCatalogSyncFailed>());
+        expect(remote.ifNoneMatches, [null]);
+        expect(metadata.readEtag(), '"same"');
+        expect(metadata.readCatalogSchemaVersion(), 2);
+        expect(local.count(), 1);
+        final retained = jsonDecode(
+          local.findByPraiseIdSync('p-001')!.materialsJson,
+        ) as List<dynamic>;
+        expect(
+          (retained.single as Map<String, dynamic>).containsKey('r2'),
+          isFalse,
+        );
+      },
+    );
 
     test('markReplaced grava a versão atual; ausente lê como 0', () async {
       expect(metadata.readCatalogSchemaVersion(), 0);
