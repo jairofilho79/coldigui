@@ -234,6 +234,83 @@ class DeliveryTests(unittest.TestCase):
         result = self.run_delivery("finish", "42", ok=False)
         self.assertIn("Commit the prepared version", result.stderr)
 
+    def delivered_pr(self):
+        info, env = self.prepared_pr()
+        env["DELIVERY_TEST_PR"] = json.dumps(info)
+        self.run_delivery("finish", "42", env=env)
+        return info, env
+
+    def test_resume_reopens_matching_pr_preserving_version_and_unrelated_changes(self):
+        info, env = self.delivered_pr()
+        (self.root / "existing.txt").write_text("keep me")
+        self.assertEqual(self.hook("preToolUse", toolName="edit")["permissionDecision"], "deny")
+        result = self.run_delivery("resume", "42", "--reason", "Fix failed CI", env=env)
+        state = json.loads(result.stdout)
+        self.assertEqual(state["phase"], "prepared")
+        self.assertEqual(state["resume_reason"], "Fix failed CI")
+        self.assertEqual(state["resume_head"], info["headRefOid"])
+        self.assertEqual(state["pr"], info["url"])
+        self.assertEqual(self.hook("preToolUse", toolName="edit"), {})
+        self.run_delivery("prepare")
+        self.run_delivery("resume", "42", "--reason", "Fix failed CI", env=env)
+        self.assertEqual(self.version(), "1.3.9+7")
+        self.assertEqual((self.root / "existing.txt").read_text(), "keep me")
+        self.run_delivery("finish", "42", env=env)
+        self.assertEqual(self.hook("preToolUse", toolName="edit")["permissionDecision"], "deny")
+
+    def test_resume_requires_delivered_task_matching_number_and_reason(self):
+        self.run_delivery("resume", "42", "--reason", "Fix CI", ok=False)
+        info, env = self.prepared_pr()
+        env["DELIVERY_TEST_PR"] = json.dumps(info)
+        self.run_delivery("resume", "42", "--reason", "Fix CI", env=env, ok=False)
+        self.run_delivery("finish", "42", env=env)
+        for args in (
+            ("43", "--reason", "Fix CI"), ("42",), ("42", "--reason", " "),
+            ("https://evil.invalid/42", "--reason", "Fix CI"),
+        ):
+            self.run_delivery("resume", *args, env=env, ok=False)
+            self.assertEqual(json.loads(self.run_delivery("status").stdout)["phase"], "awaiting-approval")
+
+    def test_resume_rejects_closed_merged_wrong_repo_base_branch_and_head(self):
+        info, env = self.delivered_pr()
+        for field, value in (
+            ("baseRefName", "develop"), ("headRefName", "fix/another"),
+            ("headRefOid", "0" * 40), ("state", "CLOSED"), ("state", "MERGED"),
+            ("url", "https://github.com/other/repo/pull/42"),
+        ):
+            with self.subTest(field=field, value=value):
+                env["DELIVERY_TEST_PR"] = json.dumps(dict(info, **{field: value}))
+                self.run_delivery("resume", "42", "--reason", "Fix CI", env=env, ok=False)
+                self.assertEqual(
+                    json.loads(self.run_delivery("status").stdout)["phase"], "awaiting-approval",
+                )
+                self.assertEqual(self.hook("preToolUse", toolName="edit")["permissionDecision"], "deny")
+
+    def test_resume_rejects_uncommitted_pubspec_and_local_head_divergence(self):
+        info, env = self.delivered_pr()
+        pubspec = self.root / "pubspec.yaml"
+        original = pubspec.read_text()
+        pubspec.write_text(original + "# uncommitted\n")
+        self.run_delivery("resume", "42", "--reason", "Fix CI", env=env, ok=False)
+        pubspec.write_text(original)
+        self.git("commit", "--allow-empty", "-m", "Unpublished work")
+        self.run_delivery("resume", "42", "--reason", "Fix CI", env=env, ok=False)
+        self.assertEqual(json.loads(self.run_delivery("status").stdout)["phase"], "awaiting-approval")
+
+    def test_resumed_task_reminds_again_then_accepts_updated_remote_head(self):
+        info, env = self.delivered_pr()
+        self.hook("agentStop")
+        self.run_delivery("resume", "42", "--reason", "Fix CI", env=env)
+        self.assertEqual(self.hook("agentStop")["decision"], "block")
+        self.assertEqual(self.hook("agentStop"), {})
+        self.git("commit", "--allow-empty", "-m", "Correct CI")
+        env["DELIVERY_TEST_PR"] = json.dumps(
+            dict(info, headRefOid=self.git("rev-parse", "HEAD").stdout.strip()),
+        )
+        self.run_delivery("finish", "42", env=env)
+        self.assertEqual(json.loads(self.run_delivery("status").stdout)["phase"], "awaiting-approval")
+        self.assertEqual(self.version(), "1.3.9+7")
+
     def test_hook_alias_payload_and_invalid_json_fail_explicitly(self):
         result = self.hook("preToolUse", tool_name="Edit", tool_input={})
         self.assertEqual(result["permissionDecision"], "deny")
