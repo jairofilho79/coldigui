@@ -6281,7 +6281,7 @@ abstract class AppLocalizations {
   /// No description provided for @scoreMaterialSection.
   ///
   /// In pt, this message translates to:
-  /// **'Interativas'**
+  /// **'Partituras'**
   String get scoreMaterialSection;
 
   /// No description provided for @scoreReaderTitle.

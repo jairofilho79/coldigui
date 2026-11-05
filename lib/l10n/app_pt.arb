@@ -1891,7 +1891,7 @@
   "profileDeleteAccountSuccess": "Sua conta e todos os dados foram excluídos com sucesso.",
   "profileDeleteAccountError": "Não foi possível excluir sua conta. Verifique sua conexão e tente novamente.",
   "scoreMaterialLabel": "Partitura interativa",
-  "scoreMaterialSection": "Interativas",
+  "scoreMaterialSection": "Partituras",
   "scoreReaderTitle": "Leitor de partitura",
   "scoreReaderEmpty": "Partitura não encontrada",
   "scoreReaderUnavailable": "Partitura indisponível · tentar de novo",

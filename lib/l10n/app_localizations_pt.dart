@@ -3665,7 +3665,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get scoreMaterialLabel => 'Partitura interativa';
 
   @override
-  String get scoreMaterialSection => 'Interativas';
+  String get scoreMaterialSection => 'Partituras';
 
   @override
   String get scoreReaderTitle => 'Leitor de partitura';
