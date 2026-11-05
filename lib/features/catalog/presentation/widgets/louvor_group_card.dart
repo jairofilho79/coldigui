@@ -165,46 +165,39 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     final group = _resolvedGroup;
     final materials = _materialsForKind(kind, group);
     if (materials.length == 1) {
-      await ref.read(openMaterialProvider).open(
-        context,
-        ref,
-        materials.first,
-        audioQueue: group.audioTracks,
-      );
+      await ref
+          .read(openMaterialProvider)
+          .open(context, ref, materials.first, audioQueue: group.audioTracks);
     } else {
       await _openMaterialSheet(initialKind: kind);
     }
   }
 
-  List<CatalogMaterial> _materialsForKind(MaterialKind kind, LouvorGroup group) {
+  List<CatalogMaterial> _materialsForKind(
+    MaterialKind kind,
+    LouvorGroup group,
+  ) {
     return switch (kind) {
       MaterialKind.pdf => [
         for (final s in group.sections)
-          for (final e in s.materials)
-            PdfMaterial(e.louvor),
+          for (final e in s.materials) PdfMaterial(e.louvor),
       ],
       MaterialKind.chord => [
-        for (final c in group.chordMaterials)
-          ChordMaterialRef(c),
+        for (final c in group.chordMaterials) ChordMaterialRef(c),
       ],
       MaterialKind.gesture => [
-        for (final g in group.gestureMaterials)
-          GestureMaterialRef(g),
+        for (final g in group.gestureMaterials) GestureMaterialRef(g),
       ],
       MaterialKind.score => [
         for (final s in group.scoreMaterials) ScoreMaterialRef(s),
       ],
       MaterialKind.audio => [
-        for (final a in group.audioTracks)
-          AudioMaterial(a),
+        for (final a in group.audioTracks) AudioMaterial(a),
       ],
       MaterialKind.youtube => [
-        for (final y in group.youtubeMaterials)
-          YoutubeMaterialRef(y),
+        for (final y in group.youtubeMaterials) YoutubeMaterialRef(y),
       ],
-      MaterialKind.lyrics => [
-        if (group.lyrics != null) group.lyrics!,
-      ],
+      MaterialKind.lyrics => [if (group.lyrics != null) group.lyrics!],
       MaterialKind.unknown => const <CatalogMaterial>[],
     };
   }
