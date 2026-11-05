@@ -62,7 +62,8 @@ description: 'Use ao iniciar e finalizar tarefas no coldigui: criar branch featu
    o necessario. Repetir prepare e seguro; nao incrementa novamente.
    Se houver versao inesperada ou a main tiver avancado alterando a versao,
    interrompa, atualize/reconcilie a branch e o versionamento explicitamente;
-   nunca edite o estado local para ocultar o conflito.
+   nunca edite o estado local para ocultar o conflito. Se a entrega ja estiver
+   preparada, siga a reconciliacao abaixo para herdar a versao da main.
 3. Revise as diferencas e segredos. Adicione **caminhos explicitos** ao stage;
    nunca `git add .` ou `git add -A`. Nao comite arquivos alheios a tarefa.
    Revise `git diff --cached`. Use o fluxo de commit vigente e Conventional
@@ -102,8 +103,35 @@ Repetir `resume` com o mesmo PR e seguro. Valide a correcao, comite somente seus
 caminhos, envie a branch, atualize o PR existente e execute `finish` novamente.
 Isso nao autoriza merge: um novo HEAD exige nova aprovacao explicita.
 
+O workflow Web executa os testes da automacao e usa Chrome Stable como referencia
+do gate de boot, nao o snapshot de desenvolvimento `latest` da action.
+Os limites de performance e as demais verificacoes permanecem inalterados.
+
 Nao use a retomada para outra tarefa; nesse caso, comece outra branch da `main`.
 Nao altere o estado local nem desative hooks para liberar edicoes.
+
+## Reconciliar a versao apos integrar main
+
+Se a main recebeu outra entrega enquanto este PR estava aberto, obtenha aprovacao
+para resolver os conflitos. Retome a entrega com `resume` antes de editar,
+integre `origin/main` na branch do PR e preserve a versao ja publicada na main,
+sem novo incremento. Depois de resolver e comitar a integracao, execute:
+
+```bash
+python3 scripts/task_delivery.py reconcile-version --reason "Preservar a versao integrada na main"
+```
+
+O comando exige fase `prepared`, motivo nao vazio e `pubspec.yaml` sem mudancas
+pendentes. Atualiza a referencia remota e verifica que `origin/main` e ancestral
+do HEAD e que a versao comitada coincide com ela. Rejeita downgrade semantico ou
+de build. Nao escreve no pubspec nem incrementa a versao; registra o commit de
+origem e o motivo, preservando a base original da tarefa. Esse commit e sua
+versao sao revalidados ao carregar o estado. Repetir o comando ou `prepare` nao
+incrementa novamente.
+
+Valide as alteracoes, publique a branch e execute `finish` no mesmo PR.
+As verificacoes de PR aberto, repositorio, branch e HEAD remoto continuam
+obrigatorias. Reconciliacao nao autoriza merge nem deploy.
 
 ## Merge: aprovacao separada e vinculada ao PR
 

@@ -63,6 +63,11 @@ class DeliveryTests(unittest.TestCase):
         self.run_delivery("prepare")
         self.assertEqual(self.version(), "1.3.9+7")
 
+    def test_ci_runs_delivery_regressions_with_stable_browser(self):
+        workflow = (SOURCE.parent / ".github/workflows/web.yml").read_text()
+        self.assertIn("chrome-version: stable", workflow)
+        self.assertIn("python3 -B -m unittest test_task_delivery", workflow)
+
     def test_start_rejects_dirty_tree_without_explicit_permission(self):
         (self.root / "existing.txt").write_text("keep me")
         self.run_delivery("start", "feature", "example", ok=False)
@@ -239,6 +244,115 @@ class DeliveryTests(unittest.TestCase):
         env["DELIVERY_TEST_PR"] = json.dumps(info)
         self.run_delivery("finish", "42", env=env)
         return info, env
+
+    def advanced_main(self, value="1.4.0+7", merge=True):
+        self.git("switch", "main")
+        (self.root / "pubspec.yaml").write_text(f"name: example\nversion: {value}\n")
+        self.git("add", "pubspec.yaml")
+        self.git("commit", "-m", "Release on main")
+        main_head = self.git("rev-parse", "HEAD").stdout.strip()
+        self.git("switch", "fix/example")
+        if merge:
+            self.git("merge", "--no-commit", "main", check=False)
+            (self.root / "pubspec.yaml").write_text(f"name: example\nversion: {value}\n")
+            self.git("add", "pubspec.yaml")
+            self.git("commit", "-m", "Merge main preserving its version")
+        return main_head
+
+    def test_reconcile_inherits_merged_main_version_without_another_increment(self):
+        info, env = self.delivered_pr()
+        self.run_delivery("resume", "42", "--reason", "Resolve conflicts", env=env)
+        main_head = self.advanced_main()
+        before = (self.root / "pubspec.yaml").read_bytes()
+        (self.root / "existing.txt").write_text("keep me")
+        for _ in range(2):
+            state = json.loads(self.run_delivery(
+                "reconcile-version", "--reason", "Preserve merged main version",
+            ).stdout)
+            self.assertEqual(state["version"], "1.4.0+7")
+            self.assertEqual(state["base_version"], "1.3.8+6")
+            self.assertEqual(state["version_source_commit"], main_head)
+            self.assertEqual(state["version_reconcile_reason"], "Preserve merged main version")
+            self.assertEqual(state["phase"], "prepared")
+            self.run_delivery("prepare")
+        self.assertEqual((self.root / "pubspec.yaml").read_bytes(), before)
+        self.assertEqual((self.root / "existing.txt").read_text(), "keep me")
+        env["DELIVERY_TEST_PR"] = json.dumps(
+            dict(info, headRefOid=self.git("rev-parse", "HEAD").stdout.strip()),
+        )
+        self.run_delivery("finish", "42", env=env)
+        self.run_delivery("resume", "42", "--reason", "Follow-up", env=env)
+        self.assertEqual(json.loads(self.run_delivery("status").stdout)["version"], "1.4.0+7")
+
+    def test_reconcile_requires_prepared_task_and_reason(self):
+        self.run_delivery("reconcile-version", "--reason", "Resolve conflicts", ok=False)
+        self.run_delivery("start", "fix", "example")
+        self.run_delivery("reconcile-version", "--reason", "Resolve conflicts", ok=False)
+        self.run_delivery("prepare")
+        for args in ((), ("--reason", " ")):
+            self.run_delivery("reconcile-version", *args, ok=False)
+
+    def test_reconcile_rejects_main_not_merged_or_version_not_committed(self):
+        self.prepared_pr()
+        self.advanced_main(merge=False)
+        result = self.run_delivery(
+            "reconcile-version", "--reason", "Resolve conflicts", ok=False,
+        )
+        self.assertIn("ancestor", result.stderr)
+        (self.root / "pubspec.yaml").write_text("name: example\nversion: 1.4.0+7\n")
+        self.git("add", "pubspec.yaml")
+        self.git("commit", "-m", "Copy version without merging")
+        self.run_delivery("reconcile-version", "--reason", "Resolve conflicts", ok=False)
+        self.git("merge", "main")
+        pubspec = self.root / "pubspec.yaml"
+        pubspec.write_text(pubspec.read_text() + "# dirty\n")
+        result = self.run_delivery(
+            "reconcile-version", "--reason", "Resolve conflicts", ok=False,
+        )
+        self.assertIn("pubspec", result.stderr)
+        self.git("add", "pubspec.yaml")
+        self.run_delivery("reconcile-version", "--reason", "Resolve conflicts", ok=False)
+        pubspec.write_text("version: 9.0.0+99\n")
+        self.git("add", "pubspec.yaml")
+        self.git("commit", "-m", "Unexpected local version")
+        result = self.run_delivery(
+            "reconcile-version", "--reason", "Resolve conflicts", ok=False,
+        )
+        self.assertIn("main", result.stderr)
+
+    def test_reconcile_rejects_semantic_or_build_downgrade(self):
+        self.prepared_pr()
+        for value in ("1.3.8+8", "1.4.0+6"):
+            with self.subTest(value=value):
+                self.advanced_main(value)
+                result = self.run_delivery(
+                    "reconcile-version", "--reason", "Resolve conflicts", ok=False,
+                )
+                self.assertIn("downgrade", result.stderr)
+                self.assertEqual(
+                    json.loads(self.run_delivery("status").stdout)["version"], "1.3.9+7",
+                )
+
+    def test_reconcile_requires_reopened_delivery_and_preserves_remote_checks(self):
+        info, env = self.delivered_pr()
+        self.run_delivery("reconcile-version", "--reason", "Resolve conflicts", ok=False)
+        self.run_delivery("resume", "42", "--reason", "Resolve conflicts", env=env)
+        self.advanced_main()
+        self.run_delivery("reconcile-version", "--reason", "Resolve conflicts")
+        self.run_delivery("finish", "42", env=env, ok=False)
+        self.run_delivery("finish", "43", env=env, ok=False)
+        self.assertEqual(json.loads(self.run_delivery("status").stdout)["phase"], "prepared")
+
+    def test_reconcile_cannot_downgrade_a_previously_inherited_version(self):
+        self.prepared_pr()
+        self.advanced_main("1.5.0+9")
+        self.run_delivery("reconcile-version", "--reason", "Preserve main")
+        self.advanced_main("1.4.0+10")
+        result = self.run_delivery(
+            "reconcile-version", "--reason", "Preserve main", ok=False,
+        )
+        self.assertIn("downgrade", result.stderr)
+        self.assertEqual(json.loads(self.run_delivery("status").stdout)["version"], "1.5.0+9")
 
     def test_resume_reopens_matching_pr_preserving_version_and_unrelated_changes(self):
         info, env = self.delivered_pr()
