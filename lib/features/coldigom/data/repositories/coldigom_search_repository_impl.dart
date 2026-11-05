@@ -9,6 +9,7 @@ import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../catalog/domain/ports/search_cancellation.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
+import '../../../score_reader/domain/entities/score_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
 import '../adapters/coldigom_louvor_adapter.dart';
@@ -69,6 +70,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       youtubeMaterials: fetched.youtubeMaterials,
       chordMaterials: fetched.chordMaterials,
       gestureMaterials: fetched.gestureMaterials,
+      scoreMaterials: fetched.scoreMaterials,
       coldigomMetaByGroupId: fetched.metaByGroupId,
       sortByNumber: false,
     );
@@ -79,6 +81,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       youtubeMaterials: fetched.youtubeMaterials,
       chordMaterials: fetched.chordMaterials,
       gestureMaterials: fetched.gestureMaterials,
+      scoreMaterials: fetched.scoreMaterials,
       praiseMetaByGroupId: fetched.metaByGroupId,
       page: safePage,
       hasNextPage: pageDto.data.length >= searchLimit,
@@ -121,6 +124,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
     List<YoutubeMaterial> youtubeMaterials,
     List<ChordMaterial> chordMaterials,
     List<GestureMaterial> gestureMaterials,
+    List<ScoreMaterial> scoreMaterials,
     Map<String, ColdigomPraiseMetadata> metaByGroupId,
   })
   _mapDetails(List<PraiseDetailDto> details) {
@@ -129,6 +133,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
     final youtubeMaterials = <YoutubeMaterial>[];
     final chordMaterials = <ChordMaterial>[];
     final gestureMaterials = <GestureMaterial>[];
+    final scoreMaterials = <ScoreMaterial>[];
     final metaByGroupId = <String, ColdigomPraiseMetadata>{};
     for (final detail in details) {
       louvores.addAll(ColdigomLouvorAdapter.toLouvores(detail));
@@ -136,6 +141,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       youtubeMaterials.addAll(ColdigomLouvorAdapter.toYoutubeMaterials(detail));
       chordMaterials.addAll(ColdigomLouvorAdapter.toChordMaterials(detail));
       gestureMaterials.addAll(ColdigomLouvorAdapter.toGestureMaterials(detail));
+      scoreMaterials.addAll(ColdigomLouvorAdapter.toScoreMaterials(detail));
       metaByGroupId[detail.id] = ColdigomLouvorAdapter.toMetadata(detail);
     }
     return (
@@ -144,6 +150,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       youtubeMaterials: youtubeMaterials,
       chordMaterials: chordMaterials,
       gestureMaterials: gestureMaterials,
+      scoreMaterials: scoreMaterials,
       metaByGroupId: metaByGroupId,
     );
   }

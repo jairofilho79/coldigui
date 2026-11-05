@@ -74,6 +74,7 @@ class ShellScaffold extends ConsumerWidget {
         path == RoutePaths.audio ||
         path == RoutePaths.chords ||
         path == RoutePaths.gestos ||
+        path == RoutePaths.partitura ||
         path == RoutePaths.lyrics;
   }
 

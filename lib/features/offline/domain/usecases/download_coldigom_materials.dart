@@ -13,6 +13,7 @@ import '../../../coldigom/data/datasources/coldigom_catalog_local_datasource.dar
 import '../../../gestures/data/datasources/gesture_content_datasource.dart';
 import '../../../gestures/data/datasources/gesture_content_local_datasource.dart';
 import '../../../gestures/data/repositories/gesture_figure_repository.dart';
+import '../../../score_reader/data/repositories/score_file_repository.dart';
 import '../../data/datasources/offline_pdf_local_datasource.dart';
 import '../entities/coldigom_download_progress.dart';
 import '../entities/coldigom_download_target.dart';
@@ -42,7 +43,8 @@ typedef GestureFigureKeysResolver = Future<Set<String>> Function(
 /// checkpoint. Cada tipo persiste onde já persistia (C1/O7): PDF no
 /// `OfflinePdfIndex` (LRU presente é só promovido), áudio no índice novo,
 /// cifra e gestos nos caches Isar (404 vira marcador negativo e conta como
-/// feito — o sheet já sabe que «não existe»).
+/// feito — o sheet já sabe que «não existe»), partitura editável no store de
+/// partituras (o mesmo que o leitor `/partitura` lê primeiro).
 ///
 /// Falha individual → `failed` e segue para o próximo;
 /// [InsufficientDiskSpaceException] ou cancelamento → para tudo e devolve o
@@ -62,6 +64,7 @@ class DownloadColdigomMaterials {
     required GestureFigureRepository figures,
     required GestureFigureKeysResolver figureKeysFor,
     required int concurrency,
+    ScoreFileRepository? scoreFiles,
   }) : _catalog = catalog, // ignore: prefer_initializing_formals
        _pdfRepository = pdfRepository, // ignore: prefer_initializing_formals
        _pdfLocal = pdfLocal, // ignore: prefer_initializing_formals
@@ -75,6 +78,7 @@ class DownloadColdigomMaterials {
        _gestureLocal = gestureLocal, // ignore: prefer_initializing_formals
        _figures = figures, // ignore: prefer_initializing_formals
        _figureKeysFor = figureKeysFor, // ignore: prefer_initializing_formals
+       _scoreFiles = scoreFiles, // ignore: prefer_initializing_formals
        _concurrency = concurrency < 1 ? 1 : concurrency;
 
   final ColdigomCatalogLocalDatasource _catalog;
@@ -89,6 +93,9 @@ class DownloadColdigomMaterials {
   final GestureContentLocalDatasource _gestureLocal;
   final GestureFigureRepository _figures;
   final GestureFigureKeysResolver _figureKeysFor;
+
+  /// `null` só em testes que não exercitam partituras.
+  final ScoreFileRepository? _scoreFiles;
   final int _concurrency;
 
   Future<ColdigomDownloadResult> call({
@@ -245,12 +252,22 @@ class DownloadColdigomMaterials {
       present.addAll(await _audioRepository.lookupBatch(audioIds));
     }
 
+    final scoreFiles = _scoreFiles;
+    final scoreIsLocal =
+        scoreFiles != null && targets.any((t) => t.kind == MaterialKind.score)
+        ? await scoreFiles.localPresence()
+        : null;
     for (final t in targets) {
       if (t.kind == MaterialKind.chord && _chordLocal.read(t.r2Key) != null) {
         present.add(t.localId);
       }
       if (t.kind == MaterialKind.gesture &&
           _gestureLocal.read(t.r2Key) != null) {
+        present.add(t.localId);
+      }
+      if (t.kind == MaterialKind.score &&
+          scoreIsLocal != null &&
+          scoreIsLocal(t.r2Key)) {
         present.add(t.localId);
       }
     }
@@ -310,6 +327,25 @@ class DownloadColdigomMaterials {
         }
         _gestureLocal.write(target.r2Key, content ?? '');
         return content?.length ?? 0;
+      case MaterialKind.score:
+        // `ScoreFileRepository` usa `coldigomDioProvider` (com
+        // `RetryInterceptor`), como cifra e gestos. Só conta como baixada
+        // quando o store confirma a persistência, inclusive na web sem quota.
+        final scoreFiles = _scoreFiles;
+        if (scoreFiles == null) {
+          throw StateError('partitura sem repositório: ${target.r2Key}');
+        }
+        final bytes = await scoreFiles.fetch(
+          target.r2Key,
+          cancelToken: cancelToken,
+        );
+        if (bytes == null || !await scoreFiles.hasLocal(target.r2Key)) {
+          throw ScoreFetchFailedException(
+            target.r2Key,
+            bytes == null ? 'arquivo não encontrado' : 'persistência falhou',
+          );
+        }
+        return bytes.length;
       case MaterialKind.youtube:
       case MaterialKind.lyrics:
       case MaterialKind.unknown:

@@ -21,6 +21,8 @@ import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_excepti
 import 'package:coldigui/features/offline/domain/repositories/offline_audio_repository.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
 import 'package:coldigui/features/offline/domain/usecases/download_coldigom_materials.dart';
+import 'package:coldigui/features/score_reader/data/datasources/score_byte_store.dart';
+import 'package:coldigui/features/score_reader/data/repositories/score_file_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -206,6 +208,28 @@ class _NoStore implements GestureFigureStorePort {
       throw UnimplementedError('${i.memberName}');
 }
 
+class _ScoreStore implements ScoreByteStorePort {
+  _ScoreStore({this.discardWrites = false});
+
+  final bool discardWrites;
+  final values = <String, Uint8List>{};
+
+  @override
+  Future<Uint8List?> read(String key) async => values[key];
+  @override
+  Future<bool> contains(String key) async => values.containsKey(key);
+  @override
+  Future<Set<String>> fileNames() async =>
+      values.keys.map(scoreByteStoreFileName).toSet();
+  @override
+  Future<void> write(String key, Uint8List bytes) async {
+    if (!discardWrites) values[key] = bytes;
+  }
+
+  @override
+  Future<void> delete(String key) async => values.remove(key);
+}
+
 // --------------------------------------------------------------- helpers
 
 DioException _retryable() => DioException(
@@ -233,6 +257,7 @@ void main() {
     Map<String, String>? chordStore,
     Future<String?> Function(String)? gesture,
     Map<String, String>? gestureStore,
+    ScoreFileRepository? scoreFiles,
     int concurrency = 2,
   }) {
     marked = {};
@@ -256,8 +281,101 @@ void main() {
       figures: figures,
       figureKeysFor: (_) async => {'fig/a.png', 'fig/b.png'},
       concurrency: concurrency,
+      scoreFiles: scoreFiles,
     );
   }
+
+  ScoreFileRepository scores(
+    _ScoreStore store, {
+    int status = 200,
+    void Function(RequestOptions)? onRequest,
+  }) {
+    final dio = Dio();
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          onRequest?.call(options);
+          handler.resolve(
+            Response<List<int>>(
+              requestOptions: options,
+              statusCode: status,
+              data: status == 200 ? [80, 75, 3, 4] : [],
+            ),
+          );
+        },
+      ),
+    );
+    addTearDown(dio.close);
+    return ScoreFileRepository(store, dio, apiBase: 'https://example.test');
+  }
+
+  test('partitura persiste e uma segunda chamada salta o download', () async {
+    final store = _ScoreStore();
+    var requests = 0;
+    final usecase = build(
+      rows: [
+        _row('p1', '001', [_m('a', 'k', 'mscz')]),
+      ],
+      scoreFiles: scores(store, onRequest: (_) => requests++),
+    );
+    final first = await usecase(kindIds: {'k'});
+    expect(first.done, 1);
+    expect(first.bytes, 4);
+    expect(first.failed, isEmpty);
+    expect(store.values[_r2('a', 'mscz')], [80, 75, 3, 4]);
+    final second = await usecase(kindIds: {'k'});
+    expect(second.done, 0);
+    expect(second.skipped, 1);
+    expect(requests, 1);
+  });
+
+  test('partitura 404 conta como falha, nao como download concluido', () async {
+    final store = _ScoreStore();
+    final usecase = build(
+      rows: [
+        _row('p1', '001', [_m('a', 'k', 'mxl')]),
+      ],
+      scoreFiles: scores(store, status: 404),
+    );
+    final result = await usecase(kindIds: {'k'});
+    expect(result.done, 0);
+    expect(result.failed.single.materialId, 'a');
+    expect(store.values, isEmpty);
+  });
+
+  test(
+    'falha de persistencia nao declara partitura disponivel offline',
+    () async {
+      final store = _ScoreStore(discardWrites: true);
+      final usecase = build(
+        rows: [
+          _row('p1', '001', [_m('a', 'k', 'musicxml')]),
+        ],
+        scoreFiles: scores(store),
+      );
+      final result = await usecase(kindIds: {'k'});
+      expect(result.done, 0);
+      expect(result.failed.single.materialId, 'a');
+      expect(store.values, isEmpty);
+    },
+  );
+
+  test('cancelToken chega a requisicao de partitura em voo', () async {
+    final token = CancelToken();
+    CancelToken? received;
+    final usecase = build(
+      rows: [
+        _row('p1', '001', [_m('a', 'k', 'mscz')]),
+      ],
+      scoreFiles: scores(
+        _ScoreStore(),
+        onRequest: (options) => received = options.cancelToken,
+      ),
+    );
+    final result = await usecase(kindIds: {'k'}, cancelToken: token);
+    expect(result.done, 1);
+    expect(received, same(token));
+  });
 
   test('filtra por kind/tipo e baixa cada tipo pelo caminho certo', () async {
     final pdfFetched = <String>{};

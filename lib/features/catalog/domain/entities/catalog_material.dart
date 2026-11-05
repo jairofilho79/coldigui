@@ -2,18 +2,19 @@ import '../../../../core/utils/material_id_kind.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
+import '../../../score_reader/domain/entities/score_material.dart';
 import 'louvor.dart';
 import 'youtube_material.dart';
 
-/// Qualquer material abrível de um louvor — PDF, cifra, gestos, áudio,
-/// YouTube ou letra.
+/// Qualquer material abrível de um louvor — PDF, cifra, gestos, partitura
+/// editável, áudio, YouTube ou letra.
 ///
 /// Fachada `sealed` sobre as entidades que já existem: nenhuma delas muda de
 /// forma (Isar/JSON intactos), cada uma ganha um invólucro aqui. Isso dá ao app
 /// um único vocabulário (`kind`) e um único ponto de abertura
 /// (`openMaterialProvider`), sem ainda unificar as listas de [LouvorGroup].
 ///
-/// `sealed` obriga o `switch` do opener a cobrir os seis casos — um material
+/// `sealed` obriga o `switch` do opener a cobrir os sete casos — um material
 /// novo quebra a compilação em vez de cair num `else` silencioso.
 sealed class CatalogMaterial {
   const CatalogMaterial();
@@ -113,6 +114,31 @@ final class GestureMaterialRef extends CatalogMaterial {
 
   @override
   String? get notes => gesture.notes;
+}
+
+/// Partitura editável (`.mscz`/`.mxl`/`.musicxml`) — abre em `/partitura`.
+final class ScoreMaterialRef extends CatalogMaterial {
+  const ScoreMaterialRef(this.score);
+
+  final ScoreMaterial score;
+
+  @override
+  String get id => score.scoreId;
+
+  @override
+  MaterialKind get kind => MaterialKind.score;
+
+  @override
+  String get groupId => score.groupId;
+
+  @override
+  String get categoria => score.categoria;
+
+  @override
+  String? get materialKindId => score.materialKindId;
+
+  @override
+  String? get notes => score.notes;
 }
 
 /// Faixa de áudio Coldigom — toca na sessão global e abre `/audio`.

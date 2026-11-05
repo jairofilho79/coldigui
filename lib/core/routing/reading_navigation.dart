@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'route_paths.dart';
 
 /// Rotas de leitura — as «faces» de um louvor (partitura, áudio, cifra,
-/// gestos, letra), todas irmãs na branch Home.
+/// gestos, partitura editável, letra), todas irmãs na branch Home.
 ///
 /// Mais amplo que o `isReaderRoute` do áudio (que decide se o leitor segue a
 /// faixa e deixa `/audio` e `/letra` de fora de propósito): aqui a pergunta é
@@ -16,6 +16,7 @@ const Set<String> readingRoutePaths = {
   RoutePaths.audio,
   RoutePaths.chords,
   RoutePaths.gestos,
+  RoutePaths.partitura,
   RoutePaths.lyrics,
 };
 

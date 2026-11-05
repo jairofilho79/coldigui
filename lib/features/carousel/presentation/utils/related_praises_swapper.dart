@@ -44,7 +44,8 @@ List<LouvorGroup> resolveRelatedPraisesForGroup(
 ///
 /// Prioriza o mesmo tipo do material atual (cifra → cifra, áudio → áudio,
 /// etc.). Se não houver correspondente do mesmo tipo, aplica fallback para o
-/// primeiro PDF (partitura), depois cifra, áudio, gestos ou qualquer material.
+/// primeiro PDF (partitura), depois cifra, áudio, gestos, partitura editável
+/// ou qualquer material.
 CatalogMaterial? resolveMatchingMaterialForPraise({
   required LouvorGroup targetGroup,
   required MaterialKind? preferredKind,
@@ -62,6 +63,10 @@ CatalogMaterial? resolveMatchingMaterialForPraise({
       case MaterialKind.gesture:
         if (targetGroup.gestureMaterials.isNotEmpty) {
           return GestureMaterialRef(targetGroup.gestureMaterials.first);
+        }
+      case MaterialKind.score:
+        if (targetGroup.scoreMaterials.isNotEmpty) {
+          return ScoreMaterialRef(targetGroup.scoreMaterials.first);
         }
       case MaterialKind.pdf:
         for (final section in targetGroup.sections) {
@@ -96,6 +101,9 @@ CatalogMaterial? resolveMatchingMaterialForPraise({
   }
   if (targetGroup.gestureMaterials.isNotEmpty) {
     return GestureMaterialRef(targetGroup.gestureMaterials.first);
+  }
+  if (targetGroup.scoreMaterials.isNotEmpty) {
+    return ScoreMaterialRef(targetGroup.scoreMaterials.first);
   }
   if (targetGroup.materials.isNotEmpty) {
     return targetGroup.materials.first;
@@ -172,6 +180,7 @@ Future<void> swapToRelatedPraise({
       path == RoutePaths.reader ||
       path == RoutePaths.chords ||
       path == RoutePaths.gestos ||
+      path == RoutePaths.partitura ||
       path == RoutePaths.lyrics;
 
   if (onReader) {

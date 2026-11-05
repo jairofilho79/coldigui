@@ -191,6 +191,9 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         for (final g in group.gestureMaterials)
           GestureMaterialRef(g),
       ],
+      MaterialKind.score => [
+        for (final s in group.scoreMaterials) ScoreMaterialRef(s),
+      ],
       MaterialKind.audio => [
         for (final a in group.audioTracks)
           AudioMaterial(a),

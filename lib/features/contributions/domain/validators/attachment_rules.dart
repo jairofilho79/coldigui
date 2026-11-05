@@ -22,6 +22,9 @@ const Set<String> kAllowedExtensions = {
   'png',
   'txt',
   'chordpro',
+  'mscz',
+  'mxl',
+  'musicxml',
 };
 const Set<String> kImageExtensions = {'jpg', 'jpeg', 'png'};
 const Set<String> kAllowedLinkHosts = {

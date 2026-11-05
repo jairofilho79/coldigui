@@ -81,5 +81,8 @@ abstract final class OfflineConfig {
     'audio': 4 * 1024 * 1024,
     'chord': 1024,
     'gestures': 60 * 1024,
+    'mscz': 60 * 1024,
+    'mxl': 40 * 1024,
+    'musicxml': 400 * 1024,
   };
 }

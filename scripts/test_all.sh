@@ -2,7 +2,7 @@
 # Verificação local igual às etapas de teste do CI (.github/workflows/web.yml):
 #   1. flutter analyze
 #   2. flutter test                       — suíte VM (unit/widget/integration)
-#   3. flutter test --platform chrome ... — só test/web/ (@TestOn('browser'))
+#   3. Chrome com ativação WebAudio real — test/web/ (@TestOn('browser'))
 #
 # Os testes de test/web/ marcados @TestOn('browser') não carregam no VM (não
 # aparecem nem como skipped); só existem de verdade na etapa 3. Sem ela a
@@ -33,10 +33,7 @@ if [ "$VM_ONLY" = "1" ]; then
   exit 0
 fi
 
-echo "==> flutter test --platform chrome test/web/"
-flutter test \
-  --platform chrome \
-  --dart-define-from-file=dart_defines/plpcjf.json \
-  test/web/
+echo "==> Chrome + WebAudio test/web/"
+python3 scripts/test_score_audio_web.py test/web/
 
 echo "OK: analyze + VM + Chrome verdes."

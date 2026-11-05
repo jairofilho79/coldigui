@@ -3,6 +3,33 @@ import 'package:coldigui/features/contributions/domain/validators/attachment_rul
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  for (final extension in ['mscz', 'mxl', 'musicxml']) {
+    test(
+      'partitura $extension pode ser anexada como material, nao como bug',
+      () {
+        expect(
+          validateAttachment(
+            name: 'voz.${extension.toUpperCase()}',
+            size: 1024,
+            kind: ContributionKind.content,
+            currentCount: 0,
+            currentTotalBytes: 0,
+          ),
+          isNull,
+        );
+        expect(
+          validateAttachment(
+            name: 'voz.$extension',
+            size: 1024,
+            kind: ContributionKind.bug,
+            currentCount: 0,
+            currentTotalBytes: 0,
+          ),
+          AttachmentError.typeNotAllowed,
+        );
+      },
+    );
+  }
   test('extensões permitidas e jpeg', () {
     expect(
       validateAttachment(

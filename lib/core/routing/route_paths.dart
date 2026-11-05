@@ -17,6 +17,10 @@ abstract final class RoutePaths {
   /// Leitor de gestos CIAs — irmã de [chords], filha da branch Home.
   static const String gestos = '/gestos';
 
+  /// Leitor/player de partitura editável (`.mscz`/`.mxl`/`.musicxml`) — irmã
+  /// de [gestos], filha da branch Home.
+  static const String partitura = '/partitura';
+
   /// Reprodutor de áudio Coldigom — filha da branch Home (mesmo shell/carousel).
   static const String audio = '/audio';
 

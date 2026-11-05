@@ -168,6 +168,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     return path == RoutePaths.reader ||
         path == RoutePaths.chords ||
         path == RoutePaths.gestos ||
+        path == RoutePaths.partitura ||
         path == RoutePaths.lyrics;
   }
 

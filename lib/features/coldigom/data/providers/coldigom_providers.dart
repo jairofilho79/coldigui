@@ -6,6 +6,7 @@ import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
+import '../../../score_reader/domain/entities/score_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../coldigom_cache_writer.dart';
 
@@ -105,6 +106,30 @@ final coldigomGestureMaterialsCacheProvider =
       ColdigomGestureMaterialsCacheNotifier,
       Map<String, GestureMaterial>
     >(ColdigomGestureMaterialsCacheNotifier.new);
+
+/// Cache em memória de partituras editáveis coldigom indexadas por `scoreId`.
+class ColdigomScoreMaterialsCacheNotifier
+    extends Notifier<Map<String, ScoreMaterial>> {
+  @override
+  Map<String, ScoreMaterial> build() => const {};
+
+  void mergeScores(Iterable<ScoreMaterial> scores) {
+    if (scores.isEmpty) return;
+    final next = Map<String, ScoreMaterial>.from(state);
+    for (final score in scores) {
+      next[score.scoreId] = score;
+    }
+    state = next;
+  }
+
+  ScoreMaterial? findByScoreId(String scoreId) => state[scoreId];
+}
+
+final coldigomScoreMaterialsCacheProvider =
+    NotifierProvider<
+      ColdigomScoreMaterialsCacheNotifier,
+      Map<String, ScoreMaterial>
+    >(ColdigomScoreMaterialsCacheNotifier.new);
 
 /// Cache de metadados Coldigom indexados por praise/`groupId`.
 class ColdigomPraiseMetaCacheNotifier

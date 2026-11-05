@@ -126,9 +126,9 @@ class SavedPlaylist {
 
   /// Projeção da face de partituras: tudo que **não** é áudio.
   ///
-  /// Inclui [MaterialKind.gesture] (gesto é material de leitura),
-  /// [MaterialKind.youtube] e [MaterialKind.unknown] (ids legados). Assim
-  /// nenhuma família some das duas faces (A7).
+  /// Inclui [MaterialKind.gesture] e [MaterialKind.score] (materiais de
+  /// leitura), [MaterialKind.youtube] e [MaterialKind.unknown] (ids legados).
+  /// Assim nenhuma família some das duas faces (A7).
   late final List<String> pdfIds = entries
       .where((e) => !e.isAudio)
       .map((e) => e.id)

@@ -10,6 +10,7 @@ const _stageRoutes = <String>{
   RoutePaths.reader,
   RoutePaths.chords,
   RoutePaths.gestos,
+  RoutePaths.partitura,
   RoutePaths.audio,
 };
 

@@ -81,6 +81,30 @@ description: 'Use ao iniciar e finalizar tarefas no coldigui: criar branch featu
    O hook de parada lembra uma vez quando a tarefa esta preparada. Ele nao
    transforma qualquer resposta em tarefa concluida e nao entra em loop.
 
+## Retomar uma correcao da mesma entrega
+
+Depois de `finish`, uma falha de CI ou feedback da mesma tarefa pode exigir
+alteracoes. Obtenha aprovacao para esse escopo e, na branch registrada, execute:
+
+```bash
+python3 scripts/task_delivery.py resume 42 --reason "Corrigir o CI da mesma entrega"
+```
+
+O comando verifica o PR registrado, aberto em `jairofilho79/coldigui`, com base
+`main`, branch e HEAD remoto iguais aos locais e versao preparada ja comitada.
+Alteracoes nao comitadas em `pubspec.yaml` impedem a retomada; outros arquivos
+preexistentes continuam exigindo revisao de propriedade e nao devem ser incluidos.
+PR fechado/mesclado, outro PR ou divergencia de HEAD nao reabrem a tarefa.
+
+A fase volta para `prepared`, libera os editores e registra motivo e HEAD da
+retomada. A versao permanece a mesma: `prepare` nao incrementa novamente.
+Repetir `resume` com o mesmo PR e seguro. Valide a correcao, comite somente seus
+caminhos, envie a branch, atualize o PR existente e execute `finish` novamente.
+Isso nao autoriza merge: um novo HEAD exige nova aprovacao explicita.
+
+Nao use a retomada para outra tarefa; nesse caso, comece outra branch da `main`.
+Nao altere o estado local nem desative hooks para liberar edicoes.
+
 ## Merge: aprovacao separada e vinculada ao PR
 
 1. Consulte PR, diff, HEAD e checks:
@@ -135,8 +159,8 @@ nao descarte/stash automaticamente. Nao aumente a versao novamente no deploy.
   registrada. Permite comandos literais de consulta, start, volta a main e
   atualizacao fast-forward. Deploy direto requer main limpa e retorna `ask`,
   nunca `allow`. Nao aprova outras permissoes automaticamente. Apos finish,
-  editores ficam bloqueados; shell permanece disponivel para consultar/mesclar
-  PR e fazer o deploy autorizado.
+  editores ficam bloqueados ate a retomada explicita da mesma entrega; shell
+  permanece disponivel para consultar/retomar/mesclar PR e fazer o deploy autorizado.
 - Os hooks Git bloqueiam commit/merge local na main e pushes cujo destino seja
   main, independentemente do nome da branch de origem. Hooks locais podem ser
   contornados por outras ferramentas ou `--no-verify`; nao sao uma sandbox.

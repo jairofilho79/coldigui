@@ -13,7 +13,7 @@ const _lyrics = LyricsMaterial(
 );
 
 void main() {
-  test('mergeCatalog escreve os sete caches de uma vez', () {
+  test('mergeCatalog escreve os oito caches de uma vez', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
@@ -24,6 +24,7 @@ void main() {
           audioTracks: const [],
           chordMaterials: const [],
           gestureMaterials: const [],
+          scoreMaterials: const [],
           youtubeMaterials: const [],
           lyrics: const [_lyrics],
           metaByGroupId: const {

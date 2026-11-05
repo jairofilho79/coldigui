@@ -92,10 +92,10 @@ final class PlaylistEntry {
 /// Normaliza o `kind` que veio do wire/Isar contra a extensão de [id].
 ///
 /// - [MaterialKind.audio] é intocável: é o veredito de quem gravou (A8).
-/// - `pdf`/`unknown` são genéricos — quando a extensão diz `chord` ou `gesture`
-///   (mais específico), a extensão ganha. Um Worker que derive `items` das duas
+/// - `pdf`/`unknown` são genéricos — quando a extensão diz `chord`, `gesture`
+///   ou `score` (mais específico), a extensão ganha. Um Worker que derive `items` das duas
 ///   listas v1 marca toda cifra como `pdf`; esta regra a recupera.
-/// - Os demais (`chord`, `gesture`, `youtube`) ficam como vieram.
+/// - Os demais (`chord`, `gesture`, `score`, `youtube`) ficam como vieram.
 ///
 /// **`unknown` não é preservado literalmente.** Ele é tratado como "o wire não
 /// sabe", não como "o material é de tipo desconhecido": num id `.chord` ou
@@ -109,7 +109,8 @@ MaterialKind resolveWireKind(MaterialKind wireKind, String id) {
   }
   final byExtension = materialIdKindOf(id);
   if (byExtension == MaterialKind.chord ||
-      byExtension == MaterialKind.gesture) {
+      byExtension == MaterialKind.gesture ||
+      byExtension == MaterialKind.score) {
     return byExtension;
   }
   return wireKind;
