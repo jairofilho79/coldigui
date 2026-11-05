@@ -16,6 +16,9 @@ String? coldigomCatalogExtensionForType(String type) {
     'mp3' || 'audio' => 'mp3',
     'chord' => 'chord',
     'gestures' => 'gestures',
+    'mscz' => 'mscz',
+    'mxl' => 'mxl',
+    'musicxml' => 'musicxml',
     _ => null,
   };
 }
@@ -37,7 +40,7 @@ class ColdigomCatalogMaterialDto {
   /// Id do `material_kind`; `null` em YouTube.
   final String? kindId;
 
-  /// `pdf`/`mp3`/`audio`/`chord`/`gestures`/`youtube`.
+  /// `pdf`/`mp3`/`audio`/`chord`/`gestures`/`mscz`/`mxl`/`musicxml`/`youtube`.
   final String type;
 
   /// Tamanho em bytes quando o Worker o conhece (O13); senão `null` e o app

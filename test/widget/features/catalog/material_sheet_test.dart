@@ -23,6 +23,9 @@ import 'package:coldigui/features/chords/domain/entities/chordpro_song.dart';
 import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
 import 'package:coldigui/features/chords/presentation/providers/available_chords_provider.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
+import 'package:coldigui/features/coldigom/data/adapters/coldigom_louvor_adapter.dart';
+import 'package:coldigui/features/coldigom/data/mappers/coldigom_praise_cache_mapper.dart';
+import 'package:coldigui/features/coldigom/data/models/coldigom_catalog_dto.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
@@ -348,6 +351,74 @@ void main() {
       expect(find.text('Cifra II'), findsOneWidget);
       expect(find.text('Partitura'), findsNothing);
     });
+
+    testWidgets(
+      'partitura derivada do dump ganha aba própria e abre o leitor',
+      (tester) async {
+        final catalog = ColdigomCatalogDto.fromJson({
+          'generatedAt': '',
+          'kinds': [
+            {'id': 'k-grade', 'name': 'Grade'},
+            {'id': 'k-cifra', 'name': 'Cifra'},
+          ],
+          'praises': [
+            {
+              'id': 'praise-1',
+              'number': '499',
+              'name': 'Grande Deus',
+              'rhythm': 'Coletânea',
+              'lyrics': 'Letra preservada',
+              'materials': [
+                {'id': 'score-499', 'kind': 'k-grade', 'type': 'mscz'},
+                {'id': 'chord-499', 'kind': 'k-cifra', 'type': 'chord'},
+              ],
+            },
+          ],
+        });
+        final row = ColdigomPraiseCacheMapper.fromCatalogPraise(
+          catalog.praises.single,
+          kindNames: catalog.kindNames,
+        );
+        final detail = ColdigomPraiseCacheMapper.toPraiseDetail(row);
+        const scoreR2Key = 'assets/praises/praise-1/score-499.mscz';
+        final group = LouvorGroup(
+          groupId: 'praise-1',
+          numero: '499',
+          nome: 'Grande Deus',
+          sections: const [],
+          scoreMaterials: ColdigomLouvorAdapter.toScoreMaterials(detail),
+          chordMaterials: ColdigomLouvorAdapter.toChordMaterials(detail),
+          lyrics: ColdigomLouvorAdapter.toLyricsMaterial(detail, row.lyrics),
+        );
+        final opener = _OpenMaterialSpy();
+
+        await _pumpSheet(
+          tester,
+          group: group,
+          opener: opener,
+          canAddToPlaylist: false,
+          initialKind: MaterialKind.score,
+          overrides: [
+            chordSongProvider.overrideWith((ref, r2Key) async => song),
+          ],
+        );
+
+        expect(find.text('Interativas'), findsOneWidget);
+        expect(find.text('Extraídos'), findsOneWidget);
+        expect(find.text('Grade'), findsOneWidget);
+
+        await tester.tap(find.text('Extraídos'));
+        await tester.pumpAndSettle();
+        expect(find.widgetWithText(ListTile, 'Letra'), findsOneWidget);
+        expect(find.text('Cifra'), findsOneWidget);
+
+        await tester.tap(find.text('Interativas'));
+        await tester.pumpAndSettle();
+
+        expect(opener.opened, isA<ScoreMaterialRef>());
+        expect(opener.opened!.id, encodePdfId(scoreR2Key));
+      },
+    );
 
     testWidgets('sem edição, aba com 1 material continua abrindo direto', (
       tester,

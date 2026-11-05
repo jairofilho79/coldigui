@@ -70,6 +70,50 @@ void main() {
     expect(odd.r2Key, 'assets/praises/p-002/m-odd.m4a');
   });
 
+  test('deriva r2Key para partituras quando o dump omite r2', () {
+    for (final type in ['mscz', 'mxl', 'musicxml']) {
+      final material = ColdigomCatalogMaterialDto.fromJson({
+        'id': 'score-$type',
+        'type': type,
+      }, praiseId: 'p-499');
+
+      expect(
+        material.r2Key,
+        'assets/praises/p-499/score-$type.$type',
+        reason: type,
+      );
+    }
+  });
+
+  test('formatos de partitura ignoram caixa e r2 explícito prevalece', () {
+    for (final type in ['MSCZ', 'MXL', 'MUSICXML']) {
+      final material = ColdigomCatalogMaterialDto.fromJson({
+        'id': 'score',
+        'type': type,
+        'r2': ' assets/praises/p-499/custom.$type ',
+      }, praiseId: 'p-499');
+
+      expect(material.r2Key, 'assets/praises/p-499/custom.$type', reason: type);
+    }
+  });
+
+  test(
+    'r2 vazio em partitura deriva a chave e id ausente não inventa caminho',
+    () {
+      final withBlankR2 = ColdigomCatalogMaterialDto.fromJson({
+        'id': 'score',
+        'type': 'mscz',
+        'r2': '  ',
+      }, praiseId: 'p-499');
+      final withoutId = ColdigomCatalogMaterialDto.fromJson({
+        'type': 'mxl',
+      }, praiseId: 'p-499');
+
+      expect(withBlankR2.r2Key, 'assets/praises/p-499/score.mscz');
+      expect(withoutId.r2Key, isNull);
+    },
+  );
+
   test('lyrics ausente vira string vazia; campos ausentes viram vazios', () {
     final praises = ColdigomCatalogDto.fromJson(_fixture()).praises;
 
@@ -128,6 +172,9 @@ void main() {
     expect(coldigomCatalogExtensionForType('audio'), 'mp3');
     expect(coldigomCatalogExtensionForType('chord'), 'chord');
     expect(coldigomCatalogExtensionForType('gestures'), 'gestures');
+    expect(coldigomCatalogExtensionForType('mscz'), 'mscz');
+    expect(coldigomCatalogExtensionForType('mxl'), 'mxl');
+    expect(coldigomCatalogExtensionForType('musicxml'), 'musicxml');
     expect(coldigomCatalogExtensionForType('youtube'), isNull);
     expect(coldigomCatalogExtensionForType('lyrics'), isNull);
   });

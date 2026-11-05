@@ -13,7 +13,8 @@ import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 ///
 /// 1 = `groupId`.
 /// 2 = `notes` em praise_materials.
-const coldigomCatalogSchemaVersion = 2;
+/// 3 = extensões de `mscz`/`mxl`/`musicxml` para derivar o `r2_key`.
+const coldigomCatalogSchemaVersion = 3;
 
 /// Metadados do sync do catálogo Coldigom em SharedPreferences: o ETag que
 /// vai no `If-None-Match`, quando foi a última validação e quantos praises o
