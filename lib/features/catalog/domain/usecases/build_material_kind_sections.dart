@@ -6,6 +6,7 @@ import '../entities/material_kind_taxonomy.dart';
 /// Ordem fixa dos chips de Tipo (spec filtro-materiais §4.2).
 const List<MaterialKind> kMaterialTypeChipOrder = [
   MaterialKind.pdf,
+  MaterialKind.score,
   MaterialKind.chord,
   MaterialKind.audio,
   MaterialKind.youtube,

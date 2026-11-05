@@ -14,6 +14,7 @@ bool canAddMaterialToPlaylist(CatalogMaterial material) {
     PdfMaterial() ||
     ChordMaterialRef() ||
     GestureMaterialRef() ||
+    ScoreMaterialRef() ||
     LyricsMaterial() ||
     AudioMaterial() => true,
     YoutubeMaterialRef() => false,

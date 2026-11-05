@@ -11,6 +11,7 @@ import '../../../carousel/presentation/providers/carousel_items_provider.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../chords/presentation/utils/open_chord_in_reader.dart';
 import '../../../gestures/presentation/utils/open_gesture_in_reader.dart';
+import '../../../score_reader/presentation/utils/open_score_in_reader.dart';
 import '../../../lyrics/presentation/utils/lyrics_reader_url_builder.dart';
 import '../../../offline/data/providers/offline_core_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
@@ -39,7 +40,8 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
     return navigateToPdfId(targetPdfId: items[index].materialId);
   }
 
-  /// Resolve rota de leitura (`/leitor`, `/cifra`, `/gestos`, `/letra`).
+  /// Resolve rota de leitura (`/leitor`, `/cifra`, `/gestos`, `/partitura`,
+  /// `/letra`).
   ///
   /// Usado por [openCarouselPdfInReader] (shell/modal) e por [navigateToKey].
   Future<String?> navigateToPdfId({required String targetPdfId}) async {
@@ -63,6 +65,9 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
 
     final gestureRoute = gestureRouteFor(targetPdfId, lookup.gesturesById);
     if (gestureRoute.isGesture) return gestureRoute.location;
+
+    final scoreRoute = scoreRouteFor(targetPdfId, lookup.scoresById);
+    if (scoreRoute.isScore) return scoreRoute.location;
 
     // O lookup lê o catálogo coldigom em memória em O(1) — nada de varrer o
     // catálogo a cada troca de louvor (A4).

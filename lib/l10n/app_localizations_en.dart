@@ -3626,4 +3626,120 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get profileDeleteAccountError =>
       'Could not delete your account. Check your connection and try again.';
+
+  @override
+  String get scoreMaterialLabel => 'Interactive score';
+
+  @override
+  String get scoreMaterialSection => 'Interactive';
+
+  @override
+  String get scoreReaderTitle => 'Sheet music reader';
+
+  @override
+  String get scoreReaderEmpty => 'Sheet music not found';
+
+  @override
+  String get scoreReaderUnavailable => 'Sheet music unavailable · try again';
+
+  @override
+  String get scoreReaderPlay => 'Play';
+
+  @override
+  String get scoreReaderPause => 'Pause';
+
+  @override
+  String get scoreReaderStop => 'Back to start';
+
+  @override
+  String get scoreReaderTransposeUp => 'Up a half step';
+
+  @override
+  String get scoreReaderTransposeDown => 'Down a half step';
+
+  @override
+  String get scoreReaderTransposeReset => 'Back to the original key';
+
+  @override
+  String get scoreReaderTempo => 'Tempo';
+
+  @override
+  String scoreReaderBpm(int bpm) {
+    return '$bpm bpm';
+  }
+
+  @override
+  String get scoreReaderTempoReset => 'Original tempo';
+
+  @override
+  String get scoreReaderLoopStart => 'A-B loop: set start at the current bar';
+
+  @override
+  String get scoreReaderLoopEnd => 'A-B loop: set end at the current bar';
+
+  @override
+  String get scoreReaderLoopClear => 'Turn A-B loop off';
+
+  @override
+  String scoreReaderLoopRange(int start, int end) {
+    return 'Loop: bars $start–$end';
+  }
+
+  @override
+  String get scoreReaderLoopHint =>
+      'Tap a note and set the start, then the end. Long-pressing a bar also sets it.';
+
+  @override
+  String get scoreReaderMixer => 'Voices and volume';
+
+  @override
+  String get scoreReaderInstrument => 'GM instrument';
+
+  @override
+  String get scoreReaderBasicInstruments =>
+      'Basic sound: piano only. Your selection will be used with the real instruments.';
+
+  @override
+  String get scoreReaderInstrumentFailed =>
+      'Could not change the instrument. Select it again to retry.';
+
+  @override
+  String get scoreReaderMute => 'Mute';
+
+  @override
+  String get scoreReaderSolo => 'Solo';
+
+  @override
+  String get scoreReaderZoomIn => 'Enlarge sheet music';
+
+  @override
+  String get scoreReaderZoomOut => 'Shrink sheet music';
+
+  @override
+  String get scoreReaderModePages => 'Page view';
+
+  @override
+  String get scoreReaderModeContinuous => 'Continuous scroll';
+
+  @override
+  String get scoreReaderSoundMinimal =>
+      'Basic sound · download real instruments';
+
+  @override
+  String get scoreReaderSoundDownloading => 'Downloading real instruments…';
+
+  @override
+  String scoreReaderSoundDownloadingPercent(int percent) {
+    return 'Downloading real instruments… $percent%';
+  }
+
+  @override
+  String get scoreReaderSoundFull => 'Real instruments';
+
+  @override
+  String get scoreReaderSoundFailed =>
+      'Could not download the real instruments · try again';
+
+  @override
+  String get scoreReaderAudioUnavailable => 'Audio unavailable on this device';
 }

@@ -16,6 +16,7 @@ import '../../domain/usecases/remove_coldigom_downloads.dart';
 import '../datasources/offline_coldigom_kind_selection_store.dart';
 import 'offline_audio_providers.dart';
 import 'offline_core_providers.dart';
+import '../../../score_reader/data/providers/score_providers.dart';
 
 /// DI — seleção local de kinds para download (O11).
 final offlineColdigomKindSelectionStoreProvider =
@@ -73,6 +74,7 @@ final downloadColdigomMaterialsProvider = Provider<DownloadColdigomMaterials>((
       }
       return keys;
     },
+    scoreFiles: ref.watch(scoreFileRepositoryProvider),
     concurrency: OfflineConfig.coldigomDownloadConcurrency,
   );
 });

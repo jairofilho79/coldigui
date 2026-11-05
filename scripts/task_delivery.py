@@ -60,6 +60,30 @@ def next_version(value, kind):
     return f"{major}.{minor}.{patch}+{build + 1}"
 
 
+def require_no_downgrade(value, minimum):
+    numbers = tuple(map(int, re.split(r"[.+]", value)))
+    lower = tuple(map(int, re.split(r"[.+]", minimum)))
+    if numbers[:3] < lower[:3] or numbers[3] < lower[3]:
+        raise DeliveryError("Version reconciliation cannot downgrade the version or build.")
+
+
+def validate_state_version(state):
+    planned = next_version(state["base_version"], branch().split("/")[0])
+    source = state.get("version_source_commit")
+    if source is None:
+        if state.get("version") != planned:
+            raise DeliveryError("Invalid task version.")
+        return
+    if not isinstance(source, str) or not re.fullmatch(r"[0-9a-f]{40}", source):
+        raise DeliveryError("Invalid version source commit.")
+    if git("merge-base", "HEAD", source) != source:
+        raise DeliveryError("Version source must be an ancestor of HEAD.")
+    inherited = version(git("show", f"{source}:pubspec.yaml")).group(0).split(": ", 1)[1].strip()
+    if state["version"] != inherited:
+        raise DeliveryError("Task version must match its recorded main commit.")
+    require_no_downgrade(inherited, planned)
+
+
 def state_path(name):
     key = hashlib.sha256(name.encode()).hexdigest()
     return Path(git("rev-parse", "--git-path", f"task-delivery/{key}.json"))
@@ -76,8 +100,7 @@ def load_state(required=True):
         raise DeliveryError("Invalid task state.")
     if state.get("phase") not in ("active", "prepared", "awaiting-approval"):
         raise DeliveryError("Invalid task phase.")
-    if state.get("version") != next_version(state["base_version"], branch().split("/")[0]):
-        raise DeliveryError("Invalid task version.")
+    validate_state_version(state)
     return state
 
 
@@ -141,6 +164,30 @@ def prepare():
         raise DeliveryError("Unexpected version change; reconcile it explicitly before preparing.")
     path.write_text(VERSION.sub(f'version: {state["version"]}', text, count=1))
     state["phase"] = "prepared"
+    save_state(state)
+    return state
+
+
+def reconcile_version(reason):
+    state = load_state()
+    if state["phase"] != "prepared" or not reason.strip():
+        raise DeliveryError("Reconciliation requires a prepared task and a nonempty --reason.")
+    if git("status", "--porcelain", "--", "pubspec.yaml"):
+        raise DeliveryError("Commit the resolved pubspec before reconciling its version.")
+    git("fetch", "--quiet", "origin", "main")
+    source = git("rev-parse", "origin/main")
+    if git("merge-base", "HEAD", source) != source:
+        raise DeliveryError("Merge origin/main first; it must be an ancestor of HEAD.")
+    inherited = version(git("show", f"{source}:pubspec.yaml")).group(0).split(": ", 1)[1].strip()
+    committed = version(git("show", "HEAD:pubspec.yaml")).group(0).split(": ", 1)[1].strip()
+    if committed != inherited:
+        raise DeliveryError("Resolved version must match the merged origin/main version.")
+    require_no_downgrade(inherited, state["version"])
+    state.update(
+        version=inherited, version_source_commit=source,
+        version_reconcile_reason=reason.strip(),
+    )
+    validate_state_version(state)
     save_state(state)
     return state
 
@@ -376,6 +423,8 @@ def main():
     reopen = commands.add_parser("resume")
     reopen.add_argument("pr")
     reopen.add_argument("--reason", required=True)
+    reconcile = commands.add_parser("reconcile-version")
+    reconcile.add_argument("--reason", required=True)
     events = commands.add_parser("hook")
     events.add_argument("event", choices=("sessionStart", "preToolUse", "agentStop"))
     guards = commands.add_parser("git-guard")
@@ -394,6 +443,8 @@ def main():
                 result = finish(args.pr)
             elif args.action == "resume":
                 result = resume(args.pr, args.reason)
+            elif args.action == "reconcile-version":
+                result = reconcile_version(args.reason)
             elif args.action == "install":
                 result = install()
             elif args.action == "hook":

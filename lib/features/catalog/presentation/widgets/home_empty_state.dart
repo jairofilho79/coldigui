@@ -53,6 +53,8 @@ CatalogMaterial? _resolveMaterial(CatalogMaterialLookup lookup, String id) {
   if (chord != null) return ChordMaterialRef(chord);
   final gesture = lookup.gesture(id);
   if (gesture != null) return GestureMaterialRef(gesture);
+  final score = lookup.score(id);
+  if (score != null) return ScoreMaterialRef(score);
   final track = lookup.audioTrack(id);
   if (track != null) return AudioMaterial(track);
   return null;
@@ -77,6 +79,11 @@ CarouselItem _toCarouselItem(CatalogMaterial material, int index) {
       gesture.numero,
       gesture.nome,
       gesture.classificacao,
+    ),
+    ScoreMaterialRef(:final score) => (
+      score.numero,
+      score.nome,
+      score.classificacao,
     ),
     AudioMaterial(:final track) => (
       track.numero,

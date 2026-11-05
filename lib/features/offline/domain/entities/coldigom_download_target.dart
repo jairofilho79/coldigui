@@ -5,11 +5,18 @@ import '../../../../core/utils/pdf_id_codec.dart';
 import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 import '../../../coldigom/data/mappers/coldigom_praise_cache_mapper.dart';
 
-/// `type` do Worker que o download sabe persistir (O10): PDF, áudio, cifra e
-/// gestos. YouTube é link, letra já está no Isar.
+/// `type` do Worker que o download sabe persistir (O10): PDF, áudio, cifra,
+/// gestos e partitura editável. YouTube é link, letra já está no Isar.
 bool isColdigomDownloadableType(String rawType) {
   return switch (rawType.toLowerCase()) {
-    'pdf' || 'mp3' || 'audio' || 'chord' || 'gestures' => true,
+    'pdf' ||
+    'mp3' ||
+    'audio' ||
+    'chord' ||
+    'gestures' ||
+    'mscz' ||
+    'mxl' ||
+    'musicxml' => true,
     _ => false,
   };
 }

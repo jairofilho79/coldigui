@@ -19,6 +19,7 @@ import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import '../../../coldigom/data/sources/coldigom_catalog_source.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
+import '../../../score_reader/domain/entities/score_material.dart';
 import '../../../material_kind_prefs/domain/usecases/order_by_favorite_kinds.dart';
 import '../../../material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import '../../../offline/presentation/providers/material_availability_map_provider.dart';
@@ -37,11 +38,12 @@ import '../providers/open_material_provider.dart';
 import '../utils/preferred_material_for_group.dart';
 import 'material_sheet_actions.dart';
 
-enum _MaterialTab { pdf, extracted, audio, youtube }
+enum _MaterialTab { pdf, score, extracted, audio, youtube }
 
 _MaterialTab? _tabForKind(MaterialKind? kind) => switch (kind) {
   null || MaterialKind.unknown => null,
   MaterialKind.pdf => _MaterialTab.pdf,
+  MaterialKind.score => _MaterialTab.score,
   MaterialKind.chord ||
   MaterialKind.gesture ||
   MaterialKind.lyrics => _MaterialTab.extracted,
@@ -277,6 +279,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       PdfMaterial() ||
       ChordMaterialRef() ||
       GestureMaterialRef() ||
+      ScoreMaterialRef() ||
       AudioMaterial() =>
         availability.containsKey(material.id)
             ? (enabled: true, subtitle: null)
@@ -341,6 +344,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
     final availableChords = chordsAsync.value ?? const <ChordMaterial>[];
 
     final gestureMaterials = group.gestureMaterials;
+    final scoreMaterials = group.scoreMaterials;
     final lyrics = group.lyrics;
     final audioTracks = group.audioTracks;
     final youtubeMaterials = group.youtubeMaterials.isNotEmpty
@@ -351,6 +355,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
     final hasChordTab = hasChordItems || chordsAsync.isLoading;
     final kinds = <MaterialKind>[
       if (group.totalPdfs > 0) MaterialKind.pdf,
+      if (scoreMaterials.isNotEmpty) MaterialKind.score,
       if (hasChordTab) MaterialKind.chord,
       if (gestureMaterials.isNotEmpty) MaterialKind.gesture,
       if (lyrics != null) MaterialKind.lyrics,
@@ -389,6 +394,9 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
           for (final section in group.sections)
             for (final entry in section.materials) PdfMaterial(entry.louvor),
         ],
+        _MaterialTab.score => [
+          for (final score in scoreMaterials) ScoreMaterialRef(score),
+        ],
         _MaterialTab.extracted => [
           for (final chord in availableChords) ChordMaterialRef(chord),
           for (final gesture in gestureMaterials) GestureMaterialRef(gesture),
@@ -421,6 +429,13 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       physics: widget.physics,
       children: switch (selectedTab) {
         _MaterialTab.pdf => _pdfTiles(group, taxonomy, l10n, rank, tileFor),
+        _MaterialTab.score => _scoreTiles(
+          scoreMaterials,
+          taxonomy,
+          l10n,
+          rank,
+          tileFor,
+        ),
         _MaterialTab.extracted => [
           if (chordsAsync.isLoading && availableChords.isEmpty)
             ListTile(title: Text(l10n.chordMaterialsLoading)),
@@ -690,6 +705,50 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
     ];
   }
 
+  List<Widget> _scoreTiles(
+    List<ScoreMaterial> scores,
+    MaterialKindTaxonomy taxonomy,
+    AppLocalizations l10n,
+    Map<String, int> rank,
+    Widget Function(
+      CatalogMaterial, {
+      required Color iconColor,
+      IconData? icon,
+      String? subtitle,
+    })
+    tileFor,
+  ) {
+    final taxonomySections = buildMaterialSheetSections<ScoreMaterial>(
+      items: scores,
+      kindIdOf: (s) => s.materialKindId,
+      taxonomy: taxonomy,
+      rank: rank,
+      otherLabel: l10n.materialKindOtherClass,
+      labelOf: (s) => s.categoria,
+    );
+
+    final showHeaders = taxonomySections.length > 1;
+    if (taxonomySections.isNotEmpty) {
+      return [
+        for (final section in taxonomySections) ...[
+          if (showHeaders && section.label != null)
+            _ClassHeader(label: section.label!, count: section.items.length),
+          for (final score in section.items)
+            tileFor(ScoreMaterialRef(score), iconColor: AppColors.title),
+        ],
+      ];
+    }
+
+    return [
+      for (final score in orderByFavoriteKinds(
+        scores,
+        rank,
+        kindIdOf: (s) => s.materialKindId,
+      ))
+        tileFor(ScoreMaterialRef(score), iconColor: AppColors.title),
+    ];
+  }
+
   List<Widget> _audioTiles(
     List<AudioTrack> audioTracks,
     MaterialKindTaxonomy taxonomy,
@@ -789,6 +848,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
   static String _tabLabel(AppLocalizations l10n, _MaterialTab tab) {
     return switch (tab) {
       _MaterialTab.pdf => l10n.pdfMaterialSection,
+      _MaterialTab.score => l10n.scoreMaterialSection,
       _MaterialTab.extracted => l10n.extractedMaterialSection,
       _MaterialTab.audio => l10n.audioMaterialSection,
       _MaterialTab.youtube => l10n.youtubeMaterialSection,

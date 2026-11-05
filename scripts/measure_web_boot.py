@@ -4,7 +4,7 @@
 Uso:
   python3 scripts/measure_web_boot.py
   python3 scripts/measure_web_boot.py --check
-  python3 scripts/measure_web_boot.py --output /tmp/metrics.json
+  python3 scripts/measure_web_boot.py --output build/web-metrics.json
 """
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ import hashlib
 import json
 import os
 import shutil
+import signal
 import socket
 import statistics
 import struct
@@ -38,6 +39,57 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_BASELINE = ROOT / "docs" / "web_perf_baseline.json"
 POLL_INTERVAL_S = 0.25
 BOOT_TIMEOUT_S = 60
+BOOT_DIAGNOSTICS_INIT_JS = """
+(() => {
+  const entries = [];
+  let count = 0;
+  const record = batch => {
+    for (const entry of batch) {
+      count++;
+      if (entries.length < 20) entries.push({
+        startTime: entry.startTime, duration: entry.duration,
+      });
+    }
+  };
+  if (!PerformanceObserver.supportedEntryTypes.includes('longtask')) {
+    window.__plpcgBootDiagnostics = {error: true};
+    return;
+  }
+  const observer = new PerformanceObserver(list => record(list.getEntries()));
+  observer.observe({type: 'longtask', buffered: true});
+  window.__plpcgBootDiagnostics = {
+    entries, record, observer, get count() { return count; },
+  };
+})();
+"""
+BOOT_DIAGNOSTICS_READ_JS = """
+(() => {
+  const state = window.__plpcgBootDiagnostics;
+  if (!state || state.error) throw new Error('boot observer unavailable');
+  const nav = performance.getEntriesByType('navigation')[0];
+  const fcp = performance.getEntriesByName('first-contentful-paint', 'paint')[0];
+  if (!nav || !fcp) throw new Error('boot timing unavailable');
+  const loader = window.__plpcgPerf && window.__plpcgPerf.loaderVisibleMs;
+  if (!Number.isFinite(loader)) throw new Error('loader timing unavailable');
+  state.record(state.observer.takeRecords());
+  state.observer.disconnect();
+  return {
+    navigation: {
+      responseEnd: nav.responseEnd,
+      domInteractive: nav.domInteractive,
+      domContentLoadedEventEnd: nav.domContentLoadedEventEnd,
+    },
+    fcpMs: fcp.startTime,
+    loaderMinusFcpMs: loader - (fcp.startTime - nav.startTime),
+    visibilityState: document.visibilityState,
+    hasFocus: document.hasFocus(),
+    capturedAtMs: performance.now(),
+    longTasks: state.entries,
+    longTaskCount: state.count,
+    longTasksTruncated: state.count > state.entries.length,
+  };
+})();
+"""
 
 
 class CdpError(RuntimeError):
@@ -222,12 +274,26 @@ def wait_for_cdp(port: int, timeout_s: float = 15) -> None:
     raise CdpError(f"CDP não respondeu na porta {port}")
 
 
+def collect_boot_diagnostics(ws: SimpleWebSocket) -> dict[str, Any]:
+    result = ws.call(
+        "Runtime.evaluate",
+        {"expression": BOOT_DIAGNOSTICS_READ_JS, "returnByValue": True},
+        timeout=5,
+    )
+    if "exceptionDetails" in result:
+        raise CdpError("diagnóstico de boot: falha JavaScript ao ler observer/timings")
+    value = result.get("result", {}).get("value")
+    if not isinstance(value, dict) or not value:
+        raise CdpError("diagnóstico de boot: resultado ausente")
+    return value
+
+
 def measure_once(
     chrome: str,
     app_url: str,
     cdp_port: int,
 ) -> dict[str, Any]:
-    user_data = Path("/tmp") / f"plpcg-measure-{os.getpid()}-{time.time_ns()}"
+    user_data = ROOT / "build" / f"plpcg-measure-{os.getpid()}-{time.time_ns()}"
     user_data.mkdir(parents=True, exist_ok=True)
 
     proc = subprocess.Popen(
@@ -248,6 +314,7 @@ def measure_once(
         ],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        start_new_session=True,
     )
 
     ws: SimpleWebSocket | None = None
@@ -257,6 +324,10 @@ def measure_once(
         ws = SimpleWebSocket.connect(target["webSocketDebuggerUrl"])
         ws.call("Page.enable")
         ws.call("Runtime.enable")
+        ws.call(
+            "Page.addScriptToEvaluateOnNewDocument",
+            {"source": BOOT_DIAGNOSTICS_INIT_JS},
+        )
         ws.call("Page.navigate", {"url": app_url})
 
         deadline = time.monotonic() + BOOT_TIMEOUT_S
@@ -280,16 +351,37 @@ def measure_once(
             raise CdpError(
                 f"timeout ({BOOT_TIMEOUT_S}s): window.__plpcgPerf.firstFrameMs ausente"
             )
+        perf["diagnostics"] = collect_boot_diagnostics(ws)
         return perf
     finally:
-        if ws is not None:
-            ws.close()
-        proc.terminate()
         try:
-            proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-        shutil.rmtree(user_data, ignore_errors=True)
+            if ws is not None and proc.poll() is None:
+                try:
+                    ws.send_json({"method": "Browser.close"})
+                except OSError as err:
+                    print(f"Chrome: falha no encerramento via CDP: {err}", file=sys.stderr)
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(proc.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    proc.wait(timeout=5)
+        finally:
+            if ws is not None:
+                ws.close()
+            try:
+                shutil.rmtree(user_data)
+            except OSError as err:
+                raise CdpError(f"Chrome: falha ao remover perfil isolado: {err}") from err
 
 
 def median_run(
@@ -402,9 +494,13 @@ def main() -> int:
         print(f"Erro: {err}", file=sys.stderr)
         return 1
 
-    with serve_frontend(web_dir=web_dir) as (_httpd, port):
-        app_url = f"http://127.0.0.1:{port}/"
-        metrics = median_run(chrome, app_url, max(1, args.runs))
+    try:
+        with serve_frontend(web_dir=web_dir) as (_httpd, port):
+            app_url = f"http://127.0.0.1:{port}/"
+            metrics = median_run(chrome, app_url, max(1, args.runs))
+    except CdpError as err:
+        print(f"Erro: {err}", file=sys.stderr)
+        return 1
 
     output = json.dumps(metrics, indent=2, ensure_ascii=False)
     print(output)

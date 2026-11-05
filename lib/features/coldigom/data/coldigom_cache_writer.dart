@@ -6,6 +6,7 @@ import '../../catalog/domain/entities/louvor.dart';
 import '../../catalog/domain/entities/youtube_material.dart';
 import '../../chords/domain/entities/chord_material.dart';
 import '../../gestures/domain/entities/gesture_material.dart';
+import '../../score_reader/domain/entities/score_material.dart';
 import '../domain/entities/coldigom_praise_metadata.dart';
 import '../domain/repositories/coldigom_search_repository.dart';
 import 'adapters/coldigom_louvor_adapter.dart';
@@ -31,6 +32,7 @@ class ColdigomCacheWriter {
       audioTracks: result.audioTracks,
       chordMaterials: result.chordMaterials,
       gestureMaterials: result.gestureMaterials,
+      scoreMaterials: result.scoreMaterials,
       youtubeMaterials: result.youtubeMaterials,
       metaByGroupId: result.praiseMetaByGroupId,
     );
@@ -48,6 +50,12 @@ class ColdigomCacheWriter {
         .mergeGestures(gestures);
   }
 
+  /// Funde só partituras — o sheet e o desvio de `/partitura` já têm o
+  /// objeto pronto.
+  void mergeScores(Iterable<ScoreMaterial> scores) {
+    _ref.read(coldigomScoreMaterialsCacheProvider.notifier).mergeScores(scores);
+  }
+
   /// Funde o detalhe completo de um praise (warmup e abertura do leitor).
   void mergePraiseDetail(String praiseId, PraiseDetailDto detail) {
     _merge(
@@ -55,6 +63,7 @@ class ColdigomCacheWriter {
       audioTracks: ColdigomLouvorAdapter.toAudioTracks(detail),
       chordMaterials: ColdigomLouvorAdapter.toChordMaterials(detail),
       gestureMaterials: ColdigomLouvorAdapter.toGestureMaterials(detail),
+      scoreMaterials: ColdigomLouvorAdapter.toScoreMaterials(detail),
       youtubeMaterials: ColdigomLouvorAdapter.toYoutubeMaterials(detail),
       metaByGroupId: {praiseId: ColdigomLouvorAdapter.toMetadata(detail)},
     );
@@ -73,6 +82,7 @@ class ColdigomCacheWriter {
     required List<AudioTrack> audioTracks,
     required List<ChordMaterial> chordMaterials,
     required List<GestureMaterial> gestureMaterials,
+    required List<ScoreMaterial> scoreMaterials,
     required List<YoutubeMaterial> youtubeMaterials,
     required List<LyricsMaterial> lyrics,
     required Map<String, ColdigomPraiseMetadata> metaByGroupId,
@@ -82,6 +92,7 @@ class ColdigomCacheWriter {
       audioTracks: audioTracks,
       chordMaterials: chordMaterials,
       gestureMaterials: gestureMaterials,
+      scoreMaterials: scoreMaterials,
       youtubeMaterials: youtubeMaterials,
       metaByGroupId: metaByGroupId,
     );
@@ -93,6 +104,7 @@ class ColdigomCacheWriter {
     required List<AudioTrack> audioTracks,
     required List<ChordMaterial> chordMaterials,
     required List<GestureMaterial> gestureMaterials,
+    required List<ScoreMaterial> scoreMaterials,
     required List<YoutubeMaterial> youtubeMaterials,
     required Map<String, ColdigomPraiseMetadata> metaByGroupId,
   }) {
@@ -107,6 +119,9 @@ class ColdigomCacheWriter {
     _ref
         .read(coldigomGestureMaterialsCacheProvider.notifier)
         .mergeGestures(gestureMaterials);
+    _ref
+        .read(coldigomScoreMaterialsCacheProvider.notifier)
+        .mergeScores(scoreMaterials);
     _ref
         .read(coldigomYoutubeCacheProvider.notifier)
         .mergeYoutube(youtubeMaterials);

@@ -208,6 +208,7 @@ class _MaterialKindFilterSectionState
         MaterialKind.audio => l10n.materialTypeAudio,
         MaterialKind.youtube => l10n.materialTypeYoutube,
         MaterialKind.gesture => l10n.materialTypeGesture,
+        MaterialKind.score => l10n.scoreMaterialLabel,
         MaterialKind.lyrics || MaterialKind.unknown => type.name,
       };
 }

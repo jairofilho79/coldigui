@@ -167,6 +167,7 @@ class AppShortcuts extends ConsumerWidget {
       path == RoutePaths.reader ||
       path == RoutePaths.chords ||
       path == RoutePaths.gestos ||
+      path == RoutePaths.partitura ||
       path == RoutePaths.lyrics;
 
   void _focusSearch(BuildContext context, WidgetRef ref) {

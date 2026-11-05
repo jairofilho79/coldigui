@@ -12,6 +12,7 @@ import '../../../gestures/data/providers/gesture_providers.dart';
 import '../../data/providers/offline_audio_providers.dart';
 import '../../data/providers/offline_repository_providers.dart';
 import '../../domain/entities/coldigom_download_target.dart';
+import '../../../score_reader/data/providers/score_providers.dart';
 
 /// Revisão dos caches de cifra/gestos — os datasources de texto não têm
 /// callback de escrita, então quem grava em lote (o download Coldigom) sobe
@@ -176,6 +177,10 @@ final offlineColdigomStatsProvider = FutureProvider<OfflineColdigomStats>((
   final rows = ref.read(coldigomCatalogLocalDatasourceProvider).findAllSync();
   if (rows.isEmpty) return OfflineColdigomStats.empty;
 
+  final scoreIsLocal = await ref
+      .read(scoreFileRepositoryProvider)
+      .localPresence();
+
   final pdfs = ref.read(offlinePdfLocalDatasourceProvider).findAllSync();
   final present = <String>{
     for (final p in pdfs)
@@ -231,7 +236,8 @@ final offlineColdigomStatsProvider = FutureProvider<OfflineColdigomStats>((
         estimated.update(kindId, (v) => v + bytes, ifAbsent: () => bytes);
         typeEstimated.update(pair, (v) => v + bytes, ifAbsent: () => bytes);
       }
-      if (present.contains(encodePdfId(r2Key))) {
+      if (present.contains(encodePdfId(r2Key)) ||
+          (matKind == MaterialKind.score && scoreIsLocal(r2Key))) {
         downloaded.update(kindId, (v) => v + 1, ifAbsent: () => 1);
         typeDownloaded.update(pair, (v) => v + 1, ifAbsent: () => 1);
       } else {
@@ -259,6 +265,7 @@ final offlineColdigomStatsProvider = FutureProvider<OfflineColdigomStats>((
             MaterialKind.pdf,
             MaterialKind.chord,
             MaterialKind.gesture,
+            MaterialKind.score,
             MaterialKind.audio,
           ])
             if (typeTotal.containsKey((kindId, mk)))

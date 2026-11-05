@@ -13,6 +13,7 @@ final coldigomCatalogSourceProvider = Provider<ColdigomCatalogSource>((ref) {
     audioTracks: ref.watch(coldigomAudioTracksCacheProvider),
     chords: ref.watch(coldigomChordMaterialsCacheProvider),
     gestures: ref.watch(coldigomGestureMaterialsCacheProvider),
+    scores: ref.watch(coldigomScoreMaterialsCacheProvider),
     praiseMeta: ref.watch(coldigomPraiseMetaCacheProvider),
     youtube: ref.watch(coldigomYoutubeCacheProvider),
     lyrics: ref.watch(coldigomLyricsCacheProvider),

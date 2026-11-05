@@ -41,19 +41,16 @@ jobs:
         with:
           chrome-version: stable
 
-      - name: Delivery regressions
+      - name: Delivery and boot runner regressions
         env:
+          CHROME_EXECUTABLE: ${{ steps.setup-chrome.outputs.chrome-path }}
           PYTHONPATH: scripts
-        run: python3 -B -m unittest test_task_delivery
+        run: python3 -B -m unittest test_task_delivery test_measure_web_boot
 
       - name: Chrome smoke tests
         env:
           CHROME_EXECUTABLE: ${{ steps.setup-chrome.outputs.chrome-path }}
-        run: |
-          flutter test \
-            --platform chrome \
-            --dart-define-from-file=dart_defines/plpcjf.json \
-            test/web/
+        run: python3 scripts/test_score_audio_web.py test/web/
 
       - name: Build web (WASM)
         run: |

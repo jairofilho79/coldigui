@@ -177,13 +177,14 @@ Future<void> openMaterialForGroupInReader({
   ref.read(carouselFocusedIndexProvider.notifier).focusKey(items[index].key);
 }
 
-/// `true` em `/leitor`, `/cifra` ou `/gestos`; `false` sem GoRouter (testes de
+/// `true` em `/leitor`, `/cifra`, `/gestos` ou `/partitura`; `false` sem GoRouter (testes de
 /// widget).
 bool isReaderRoute(BuildContext context) {
   final path = currentRoutePath(context);
   return path == RoutePaths.reader ||
       path == RoutePaths.chords ||
-      path == RoutePaths.gestos;
+      path == RoutePaths.gestos ||
+      path == RoutePaths.partitura;
 }
 
 /// Path da rota atual, ou `null` quando não há GoRouter no contexto.

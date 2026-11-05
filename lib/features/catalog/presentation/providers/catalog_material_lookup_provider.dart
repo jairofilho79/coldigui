@@ -5,6 +5,7 @@ import '../../../chords/domain/entities/chord_material.dart';
 import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
+import '../../../score_reader/domain/entities/score_material.dart';
 import '../../domain/entities/louvor.dart';
 import '../../domain/entities/catalog_material.dart';
 import '../../domain/entities/louvor_group.dart';
@@ -25,6 +26,7 @@ final class CatalogMaterialLookup {
     this.audioTracksById = const {},
     this.chordsById = const {},
     this.gesturesById = const {},
+    this.scoresById = const {},
     this.praiseMetaByGroupId = const {},
     this.youtubeByGroupId = const {},
     this.lyricsByGroupId = const {},
@@ -41,6 +43,9 @@ final class CatalogMaterialLookup {
 
   /// Documentos de gestos Coldigom em cache, por `gestureId`.
   final Map<String, GestureMaterial> gesturesById;
+
+  /// Partituras editáveis Coldigom em cache, por `scoreId`.
+  final Map<String, ScoreMaterial> scoresById;
 
   /// Metadados do praise em cache, por `groupId`.
   final Map<String, ColdigomPraiseMetadata> praiseMetaByGroupId;
@@ -62,6 +67,9 @@ final class CatalogMaterialLookup {
 
   /// Documento de gestos em cache, ou `null`.
   GestureMaterial? gesture(String gestureId) => gesturesById[gestureId];
+
+  /// Partitura editável em cache, ou `null`.
+  ScoreMaterial? score(String scoreId) => scoresById[scoreId];
 
   /// Letra sintética em cache, pelo id `lyrics:<praiseId>`.
   LyricsMaterial? lyrics(String materialId) => materialId.startsWith('lyrics:')
@@ -121,6 +129,7 @@ final catalogMaterialLookupProvider = Provider<CatalogMaterialLookup>((ref) {
     audioTracksById: ref.watch(coldigomAudioTracksCacheProvider),
     chordsById: ref.watch(coldigomChordMaterialsCacheProvider),
     gesturesById: ref.watch(coldigomGestureMaterialsCacheProvider),
+    scoresById: ref.watch(coldigomScoreMaterialsCacheProvider),
     praiseMetaByGroupId: ref.watch(coldigomPraiseMetaCacheProvider),
     youtubeByGroupId: ref.watch(coldigomYoutubeCacheProvider),
     lyricsByGroupId: ref.watch(coldigomLyricsCacheProvider),
