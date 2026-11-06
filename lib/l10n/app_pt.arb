@@ -1928,17 +1928,141 @@
   "scoreReaderLoopHint": "Toque numa nota e marque o início; depois o fim. Segurar um compasso também marca.",
   "scoreReaderMixer": "Vozes e volume",
   "scoreReaderInstrument": "Instrumento GM",
-  "scoreReaderBasicInstruments": "Som básico: apenas piano. A seleção será usada com os timbres reais.",
+  "scoreReaderBasicInstruments": "Som básico: só piano. Baixe o banco GM completo para outros timbres.",
   "scoreReaderInstrumentFailed": "Não foi possível trocar o instrumento. Selecione novamente para tentar de novo.",
   "scoreReaderMute": "Silenciar",
   "scoreReaderSolo": "Solo",
+  "scoreReaderChordAccompaniment": "Acompanhamento de acordes",
+  "scoreReaderChordSource": "Pauta de origem das cifras",
+  "scoreReaderChordVolume": "Volume dos acordes",
+  "scoreReaderChordMute": "Silenciar acompanhamento de acordes",
+  "scoreReaderChordSolo": "Solo no acompanhamento de acordes",
+  "scoreReaderChordInstrument": "Instrumento GM dos acordes",
+  "scoreReaderChordInstrumentFailed": "Não foi possível trocar o instrumento dos acordes. Selecione novamente para tentar de novo.",
+  "scoreReaderPlayStaff": "Tocar {staff}",
+  "@scoreReaderPlayStaff": {
+    "placeholders": {
+      "staff": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderStaffCapacityWarning": "Esta partitura tem mais pautas do que podem tocar ao mesmo tempo. Escolha quais pautas tocar; todas continuarão visíveis.",
+  "scoreReaderStaffCapacityLimit": "Selecione no máximo {maximum} pautas para tocar. Todas as pautas continuarão visíveis na partitura.",
+  "@scoreReaderStaffCapacityLimit": {
+    "placeholders": {
+      "maximum": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreReaderSelectedStaffCount": "{selected} de {total} pautas selecionadas para tocar",
+  "@scoreReaderSelectedStaffCount": {
+    "placeholders": {
+      "selected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreReaderDiagnosticsTitle": "Diagnósticos da reprodução",
+  "scoreReaderDiagnosticStaff": "Pauta: {staff}",
+  "@scoreReaderDiagnosticStaff": {
+    "placeholders": {
+      "staff": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticMeasure": "Compasso {measure}",
+  "@scoreReaderDiagnosticMeasure": {
+    "placeholders": {
+      "measure": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreReaderDiagnosticUnsupportedArticulation": "A articulação “{signal}” não é realizada na reprodução.",
+  "@scoreReaderDiagnosticUnsupportedArticulation": {
+    "placeholders": {
+      "signal": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticBreathMark": "marca de respiração",
+  "scoreReaderDiagnosticBowingMark": "marcação de arcada",
+  "scoreReaderDiagnosticOtherArticulation": "marcação de articulação não compatível",
+  "scoreReaderDiagnosticUnsupportedTremoloStrokes": "O tremolo com {strokes} golpes está fora do intervalo compatível (1–5) e não será reproduzido.",
+  "@scoreReaderDiagnosticUnsupportedTremoloStrokes": {
+    "placeholders": {
+      "strokes": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreReaderDiagnosticInvalidTremoloStrokes": "Não foi possível ler a quantidade de golpes do tremolo; ele não será reproduzido.",
+  "scoreReaderDiagnosticUnsupportedTremoloType": "O tipo de tremolo “{type}” não é realizado na reprodução.",
+  "@scoreReaderDiagnosticUnsupportedTremoloType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticUnsupportedOrnament": "O ornamento “{name}” não é realizado na reprodução.",
+  "@scoreReaderDiagnosticUnsupportedOrnament": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticUnrecognizedDynamic": "A indicação de dinâmica “{name}” não é realizada na reprodução.",
+  "@scoreReaderDiagnosticUnrecognizedDynamic": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticInvalidTempo": "O valor de andamento “{value}” é inválido e não pôde ser usado.",
+  "@scoreReaderDiagnosticInvalidTempo": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticUnsupportedTempo": "O andamento do elemento sound no MusicXML (“{value}”) não é aplicado na reprodução.",
+  "@scoreReaderDiagnosticUnsupportedTempo": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticIncompleteHairpin": "A indicação de crescendo ou decrescendo não tem um ponto final correspondente; a curva não será aplicada.",
+  "scoreReaderDiagnosticIncompletePedal": "A indicação de pedal não tem início e soltura válidos; não será aplicada.",
+  "scoreReaderDiagnosticInvalidNavigation": "Os dados de navegação da reprodução são inválidos; não é possível reproduzi-la.",
+  "scoreReaderDiagnosticConflictingNavigation": "As instruções de navegação da reprodução entram em conflito; não é possível reproduzi-la.",
+  "scoreReaderDiagnosticUnresolvedNavigation": "Não foi possível localizar um destino de navegação da reprodução; não é possível reproduzi-la.",
+  "scoreReaderDiagnosticCyclicNavigation": "A navegação da reprodução contém um ciclo; não é possível reproduzi-la.",
+  "scoreReaderDiagnosticMeasureOccurrenceLimitExceeded": "A reprodução excede o limite seguro de 10.000 ocorrências de compasso; não é possível reproduzi-la.",
+  "scoreReaderDiagnosticAudioUnavailable": "O mecanismo de áudio não conseguiu carregar ou controlar a reprodução.",
+  "scoreReaderDiagnosticSoundFontUnavailable": "Não foi possível baixar o banco GM completo.",
+  "scoreReaderDiagnosticStaffInstrumentUnavailable": "Não foi possível carregar o timbre GM selecionado para esta pauta.",
+  "scoreReaderDiagnosticChordInstrumentUnavailable": "Não foi possível carregar o timbre GM selecionado para o acompanhamento de acordes.",
+  "scoreReaderChooseStaves": "Escolher pautas",
   "scoreReaderZoomIn": "Aumentar partitura",
   "scoreReaderZoomOut": "Diminuir partitura",
   "scoreReaderModePages": "Ver em páginas",
   "scoreReaderModeContinuous": "Ver em rolagem contínua",
-  "scoreReaderSoundMinimal": "Som básico · baixar timbres reais",
-  "scoreReaderSoundDownloading": "Baixando timbres reais…",
-  "scoreReaderSoundDownloadingPercent": "Baixando timbres reais… {percent}%",
+  "scoreReaderSoundMinimal": "Som básico · baixar banco GM completo",
+  "scoreReaderSoundDownloading": "Baixando banco GM completo…",
+  "scoreReaderSoundDownloadingPercent": "Baixando banco GM completo… {percent}%",
   "@scoreReaderSoundDownloadingPercent": {
     "placeholders": {
       "percent": {
@@ -1946,7 +2070,7 @@
       }
     }
   },
-  "scoreReaderSoundFull": "Timbres reais",
-  "scoreReaderSoundFailed": "Não foi possível baixar os timbres reais · tentar de novo",
+  "scoreReaderSoundFull": "Banco GM completo",
+  "scoreReaderSoundFailed": "Não foi possível baixar o banco GM completo · tentar de novo",
   "scoreReaderAudioUnavailable": "Áudio indisponível neste dispositivo"
 }

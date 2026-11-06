@@ -17,6 +17,8 @@ import '../../data/providers/score_providers.dart';
 import '../../domain/entities/score_document.dart';
 import '../providers/score_music_font_provider.dart';
 import '../providers/score_reader_controller.dart';
+import '../widgets/score_mixer_sheet.dart';
+import '../widgets/score_playback_diagnostic_notice.dart';
 import '../widgets/score_sheet_view.dart';
 import '../widgets/score_transport_bar.dart';
 
@@ -224,6 +226,10 @@ class _ScoreReaderBodyState extends ConsumerState<_ScoreReaderBody> {
           playing: s.playing,
           loopStart: s.loopStart,
           loopEnd: s.loopEnd,
+          selectedStaves: s.selectedStaffIndices,
+          maximumStaves: s.maximumPlayableStaffCount,
+          capacityExceeded: s.exceedsPlaybackCapacity,
+          diagnostics: s.diagnostics,
         ),
       ),
     );
@@ -251,6 +257,19 @@ class _ScoreReaderBodyState extends ConsumerState<_ScoreReaderBody> {
               showTempo: _showTempo,
               onToggleTempo: () => setState(() => _showTempo = !_showTempo),
             ),
+            if (document.staves.length > 14)
+              _ScoreCapacityNotice(
+                selected: view.selectedStaves.length,
+                total: document.staves.length,
+                maximum: view.maximumStaves,
+                exceeded: view.capacityExceeded,
+                onChooseStaves: () => showScoreMixerSheet(context, document),
+              ),
+            if (view.diagnostics.isNotEmpty)
+              ScorePlaybackDiagnosticNotice(
+                document: document,
+                diagnostics: view.diagnostics,
+              ),
             if (_showTempo) ScoreTempoBar(document: document),
             const Divider(height: 1),
             Expanded(
@@ -279,6 +298,64 @@ class _ScoreReaderBodyState extends ConsumerState<_ScoreReaderBody> {
           ],
         );
       },
+    );
+  }
+}
+
+class _ScoreCapacityNotice extends StatelessWidget {
+  const _ScoreCapacityNotice({
+    required this.selected,
+    required this.total,
+    required this.maximum,
+    required this.exceeded,
+    required this.onChooseStaves,
+  });
+
+  final int selected;
+  final int total;
+  final int maximum;
+  final bool exceeded;
+  final VoidCallback onChooseStaves;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
+    final message = [
+      l10n.scoreReaderStaffCapacityWarning,
+      l10n.scoreReaderStaffCapacityLimit(maximum),
+      l10n.scoreReaderSelectedStaffCount(selected, total),
+    ].join(' ');
+    return Semantics(
+      key: const ValueKey('score-reader-capacity-notice'),
+      container: true,
+      liveRegion: true,
+      label: message,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        color: exceeded ? colors.errorContainer : colors.surfaceContainerHigh,
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 4,
+          children: [
+            SizedBox(
+              width: 280,
+              child: Text(
+                message,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: exceeded ? colors.onErrorContainer : colors.onSurface,
+                ),
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: onChooseStaves,
+              icon: const Icon(Icons.tune),
+              label: Text(l10n.scoreReaderChooseStaves),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

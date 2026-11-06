@@ -1,5 +1,7 @@
 import 'package:crisp_notation_core/crisp_notation_core.dart';
 
+import 'musescore_performance_metadata.dart';
+
 /// Formato de origem de uma partitura digital.
 enum ScoreSourceFormat { mscz, mscx, mxl, musicXml }
 
@@ -41,11 +43,15 @@ class ScoreDocument {
     required this.score,
     required this.staves,
     required this.format,
+    this.museScorePerformance,
+    this.musicXmlPerformance,
   }) : assert(staves.length == score.parts.length);
 
   final MultiPartScore score;
   final List<ScoreStaff> staves;
   final ScoreSourceFormat format;
+  final MuseScorePerformanceMetadata? museScorePerformance;
+  final MusicXmlPerformanceMetadata? musicXmlPerformance;
 
   /// Tempo inicial (semínima/min). MuseScore e MusicXML gravam o tempo só na
   /// primeira pauta, então ela é a referência para todas.

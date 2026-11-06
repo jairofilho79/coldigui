@@ -3733,7 +3733,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get scoreReaderBasicInstruments =>
-      'Som básico: apenas piano. A seleção será usada com os timbres reais.';
+      'Som básico: só piano. Baixe o banco GM completo para outros timbres.';
 
   @override
   String get scoreReaderInstrumentFailed =>
@@ -3744,6 +3744,156 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get scoreReaderSolo => 'Solo';
+
+  @override
+  String get scoreReaderChordAccompaniment => 'Acompanhamento de acordes';
+
+  @override
+  String get scoreReaderChordSource => 'Pauta de origem das cifras';
+
+  @override
+  String get scoreReaderChordVolume => 'Volume dos acordes';
+
+  @override
+  String get scoreReaderChordMute => 'Silenciar acompanhamento de acordes';
+
+  @override
+  String get scoreReaderChordSolo => 'Solo no acompanhamento de acordes';
+
+  @override
+  String get scoreReaderChordInstrument => 'Instrumento GM dos acordes';
+
+  @override
+  String get scoreReaderChordInstrumentFailed =>
+      'Não foi possível trocar o instrumento dos acordes. Selecione novamente para tentar de novo.';
+
+  @override
+  String scoreReaderPlayStaff(String staff) {
+    return 'Tocar $staff';
+  }
+
+  @override
+  String get scoreReaderStaffCapacityWarning =>
+      'Esta partitura tem mais pautas do que podem tocar ao mesmo tempo. Escolha quais pautas tocar; todas continuarão visíveis.';
+
+  @override
+  String scoreReaderStaffCapacityLimit(int maximum) {
+    return 'Selecione no máximo $maximum pautas para tocar. Todas as pautas continuarão visíveis na partitura.';
+  }
+
+  @override
+  String scoreReaderSelectedStaffCount(int selected, int total) {
+    return '$selected de $total pautas selecionadas para tocar';
+  }
+
+  @override
+  String get scoreReaderDiagnosticsTitle => 'Diagnósticos da reprodução';
+
+  @override
+  String scoreReaderDiagnosticStaff(String staff) {
+    return 'Pauta: $staff';
+  }
+
+  @override
+  String scoreReaderDiagnosticMeasure(int measure) {
+    return 'Compasso $measure';
+  }
+
+  @override
+  String scoreReaderDiagnosticUnsupportedArticulation(String signal) {
+    return 'A articulação “$signal” não é realizada na reprodução.';
+  }
+
+  @override
+  String get scoreReaderDiagnosticBreathMark => 'marca de respiração';
+
+  @override
+  String get scoreReaderDiagnosticBowingMark => 'marcação de arcada';
+
+  @override
+  String get scoreReaderDiagnosticOtherArticulation =>
+      'marcação de articulação não compatível';
+
+  @override
+  String scoreReaderDiagnosticUnsupportedTremoloStrokes(int strokes) {
+    return 'O tremolo com $strokes golpes está fora do intervalo compatível (1–5) e não será reproduzido.';
+  }
+
+  @override
+  String get scoreReaderDiagnosticInvalidTremoloStrokes =>
+      'Não foi possível ler a quantidade de golpes do tremolo; ele não será reproduzido.';
+
+  @override
+  String scoreReaderDiagnosticUnsupportedTremoloType(String type) {
+    return 'O tipo de tremolo “$type” não é realizado na reprodução.';
+  }
+
+  @override
+  String scoreReaderDiagnosticUnsupportedOrnament(String name) {
+    return 'O ornamento “$name” não é realizado na reprodução.';
+  }
+
+  @override
+  String scoreReaderDiagnosticUnrecognizedDynamic(String name) {
+    return 'A indicação de dinâmica “$name” não é realizada na reprodução.';
+  }
+
+  @override
+  String scoreReaderDiagnosticInvalidTempo(String value) {
+    return 'O valor de andamento “$value” é inválido e não pôde ser usado.';
+  }
+
+  @override
+  String scoreReaderDiagnosticUnsupportedTempo(String value) {
+    return 'O andamento do elemento sound no MusicXML (“$value”) não é aplicado na reprodução.';
+  }
+
+  @override
+  String get scoreReaderDiagnosticIncompleteHairpin =>
+      'A indicação de crescendo ou decrescendo não tem um ponto final correspondente; a curva não será aplicada.';
+
+  @override
+  String get scoreReaderDiagnosticIncompletePedal =>
+      'A indicação de pedal não tem início e soltura válidos; não será aplicada.';
+
+  @override
+  String get scoreReaderDiagnosticInvalidNavigation =>
+      'Os dados de navegação da reprodução são inválidos; não é possível reproduzi-la.';
+
+  @override
+  String get scoreReaderDiagnosticConflictingNavigation =>
+      'As instruções de navegação da reprodução entram em conflito; não é possível reproduzi-la.';
+
+  @override
+  String get scoreReaderDiagnosticUnresolvedNavigation =>
+      'Não foi possível localizar um destino de navegação da reprodução; não é possível reproduzi-la.';
+
+  @override
+  String get scoreReaderDiagnosticCyclicNavigation =>
+      'A navegação da reprodução contém um ciclo; não é possível reproduzi-la.';
+
+  @override
+  String get scoreReaderDiagnosticMeasureOccurrenceLimitExceeded =>
+      'A reprodução excede o limite seguro de 10.000 ocorrências de compasso; não é possível reproduzi-la.';
+
+  @override
+  String get scoreReaderDiagnosticAudioUnavailable =>
+      'O mecanismo de áudio não conseguiu carregar ou controlar a reprodução.';
+
+  @override
+  String get scoreReaderDiagnosticSoundFontUnavailable =>
+      'Não foi possível baixar o banco GM completo.';
+
+  @override
+  String get scoreReaderDiagnosticStaffInstrumentUnavailable =>
+      'Não foi possível carregar o timbre GM selecionado para esta pauta.';
+
+  @override
+  String get scoreReaderDiagnosticChordInstrumentUnavailable =>
+      'Não foi possível carregar o timbre GM selecionado para o acompanhamento de acordes.';
+
+  @override
+  String get scoreReaderChooseStaves => 'Escolher pautas';
 
   @override
   String get scoreReaderZoomIn => 'Aumentar partitura';
@@ -3758,22 +3908,22 @@ class AppLocalizationsPt extends AppLocalizations {
   String get scoreReaderModeContinuous => 'Ver em rolagem contínua';
 
   @override
-  String get scoreReaderSoundMinimal => 'Som básico · baixar timbres reais';
+  String get scoreReaderSoundMinimal => 'Som básico · baixar banco GM completo';
 
   @override
-  String get scoreReaderSoundDownloading => 'Baixando timbres reais…';
+  String get scoreReaderSoundDownloading => 'Baixando banco GM completo…';
 
   @override
   String scoreReaderSoundDownloadingPercent(int percent) {
-    return 'Baixando timbres reais… $percent%';
+    return 'Baixando banco GM completo… $percent%';
   }
 
   @override
-  String get scoreReaderSoundFull => 'Timbres reais';
+  String get scoreReaderSoundFull => 'Banco GM completo';
 
   @override
   String get scoreReaderSoundFailed =>
-      'Não foi possível baixar os timbres reais · tentar de novo';
+      'Não foi possível baixar o banco GM completo · tentar de novo';
 
   @override
   String get scoreReaderAudioUnavailable =>

@@ -6401,7 +6401,7 @@ abstract class AppLocalizations {
   /// No description provided for @scoreReaderBasicInstruments.
   ///
   /// In pt, this message translates to:
-  /// **'Som básico: apenas piano. A seleção será usada com os timbres reais.'**
+  /// **'Som básico: só piano. Baixe o banco GM completo para outros timbres.'**
   String get scoreReaderBasicInstruments;
 
   /// No description provided for @scoreReaderInstrumentFailed.
@@ -6421,6 +6421,228 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Solo'**
   String get scoreReaderSolo;
+
+  /// No description provided for @scoreReaderChordAccompaniment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acompanhamento de acordes'**
+  String get scoreReaderChordAccompaniment;
+
+  /// No description provided for @scoreReaderChordSource.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pauta de origem das cifras'**
+  String get scoreReaderChordSource;
+
+  /// No description provided for @scoreReaderChordVolume.
+  ///
+  /// In pt, this message translates to:
+  /// **'Volume dos acordes'**
+  String get scoreReaderChordVolume;
+
+  /// No description provided for @scoreReaderChordMute.
+  ///
+  /// In pt, this message translates to:
+  /// **'Silenciar acompanhamento de acordes'**
+  String get scoreReaderChordMute;
+
+  /// No description provided for @scoreReaderChordSolo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Solo no acompanhamento de acordes'**
+  String get scoreReaderChordSolo;
+
+  /// No description provided for @scoreReaderChordInstrument.
+  ///
+  /// In pt, this message translates to:
+  /// **'Instrumento GM dos acordes'**
+  String get scoreReaderChordInstrument;
+
+  /// No description provided for @scoreReaderChordInstrumentFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível trocar o instrumento dos acordes. Selecione novamente para tentar de novo.'**
+  String get scoreReaderChordInstrumentFailed;
+
+  /// No description provided for @scoreReaderPlayStaff.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocar {staff}'**
+  String scoreReaderPlayStaff(String staff);
+
+  /// No description provided for @scoreReaderStaffCapacityWarning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta partitura tem mais pautas do que podem tocar ao mesmo tempo. Escolha quais pautas tocar; todas continuarão visíveis.'**
+  String get scoreReaderStaffCapacityWarning;
+
+  /// No description provided for @scoreReaderStaffCapacityLimit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecione no máximo {maximum} pautas para tocar. Todas as pautas continuarão visíveis na partitura.'**
+  String scoreReaderStaffCapacityLimit(int maximum);
+
+  /// No description provided for @scoreReaderSelectedStaffCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{selected} de {total} pautas selecionadas para tocar'**
+  String scoreReaderSelectedStaffCount(int selected, int total);
+
+  /// No description provided for @scoreReaderDiagnosticsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diagnósticos da reprodução'**
+  String get scoreReaderDiagnosticsTitle;
+
+  /// No description provided for @scoreReaderDiagnosticStaff.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pauta: {staff}'**
+  String scoreReaderDiagnosticStaff(String staff);
+
+  /// No description provided for @scoreReaderDiagnosticMeasure.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compasso {measure}'**
+  String scoreReaderDiagnosticMeasure(int measure);
+
+  /// No description provided for @scoreReaderDiagnosticUnsupportedArticulation.
+  ///
+  /// In pt, this message translates to:
+  /// **'A articulação “{signal}” não é realizada na reprodução.'**
+  String scoreReaderDiagnosticUnsupportedArticulation(String signal);
+
+  /// No description provided for @scoreReaderDiagnosticBreathMark.
+  ///
+  /// In pt, this message translates to:
+  /// **'marca de respiração'**
+  String get scoreReaderDiagnosticBreathMark;
+
+  /// No description provided for @scoreReaderDiagnosticBowingMark.
+  ///
+  /// In pt, this message translates to:
+  /// **'marcação de arcada'**
+  String get scoreReaderDiagnosticBowingMark;
+
+  /// No description provided for @scoreReaderDiagnosticOtherArticulation.
+  ///
+  /// In pt, this message translates to:
+  /// **'marcação de articulação não compatível'**
+  String get scoreReaderDiagnosticOtherArticulation;
+
+  /// No description provided for @scoreReaderDiagnosticUnsupportedTremoloStrokes.
+  ///
+  /// In pt, this message translates to:
+  /// **'O tremolo com {strokes} golpes está fora do intervalo compatível (1–5) e não será reproduzido.'**
+  String scoreReaderDiagnosticUnsupportedTremoloStrokes(int strokes);
+
+  /// No description provided for @scoreReaderDiagnosticInvalidTremoloStrokes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível ler a quantidade de golpes do tremolo; ele não será reproduzido.'**
+  String get scoreReaderDiagnosticInvalidTremoloStrokes;
+
+  /// No description provided for @scoreReaderDiagnosticUnsupportedTremoloType.
+  ///
+  /// In pt, this message translates to:
+  /// **'O tipo de tremolo “{type}” não é realizado na reprodução.'**
+  String scoreReaderDiagnosticUnsupportedTremoloType(String type);
+
+  /// No description provided for @scoreReaderDiagnosticUnsupportedOrnament.
+  ///
+  /// In pt, this message translates to:
+  /// **'O ornamento “{name}” não é realizado na reprodução.'**
+  String scoreReaderDiagnosticUnsupportedOrnament(String name);
+
+  /// No description provided for @scoreReaderDiagnosticUnrecognizedDynamic.
+  ///
+  /// In pt, this message translates to:
+  /// **'A indicação de dinâmica “{name}” não é realizada na reprodução.'**
+  String scoreReaderDiagnosticUnrecognizedDynamic(String name);
+
+  /// No description provided for @scoreReaderDiagnosticInvalidTempo.
+  ///
+  /// In pt, this message translates to:
+  /// **'O valor de andamento “{value}” é inválido e não pôde ser usado.'**
+  String scoreReaderDiagnosticInvalidTempo(String value);
+
+  /// No description provided for @scoreReaderDiagnosticUnsupportedTempo.
+  ///
+  /// In pt, this message translates to:
+  /// **'O andamento do elemento sound no MusicXML (“{value}”) não é aplicado na reprodução.'**
+  String scoreReaderDiagnosticUnsupportedTempo(String value);
+
+  /// No description provided for @scoreReaderDiagnosticIncompleteHairpin.
+  ///
+  /// In pt, this message translates to:
+  /// **'A indicação de crescendo ou decrescendo não tem um ponto final correspondente; a curva não será aplicada.'**
+  String get scoreReaderDiagnosticIncompleteHairpin;
+
+  /// No description provided for @scoreReaderDiagnosticIncompletePedal.
+  ///
+  /// In pt, this message translates to:
+  /// **'A indicação de pedal não tem início e soltura válidos; não será aplicada.'**
+  String get scoreReaderDiagnosticIncompletePedal;
+
+  /// No description provided for @scoreReaderDiagnosticInvalidNavigation.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os dados de navegação da reprodução são inválidos; não é possível reproduzi-la.'**
+  String get scoreReaderDiagnosticInvalidNavigation;
+
+  /// No description provided for @scoreReaderDiagnosticConflictingNavigation.
+  ///
+  /// In pt, this message translates to:
+  /// **'As instruções de navegação da reprodução entram em conflito; não é possível reproduzi-la.'**
+  String get scoreReaderDiagnosticConflictingNavigation;
+
+  /// No description provided for @scoreReaderDiagnosticUnresolvedNavigation.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível localizar um destino de navegação da reprodução; não é possível reproduzi-la.'**
+  String get scoreReaderDiagnosticUnresolvedNavigation;
+
+  /// No description provided for @scoreReaderDiagnosticCyclicNavigation.
+  ///
+  /// In pt, this message translates to:
+  /// **'A navegação da reprodução contém um ciclo; não é possível reproduzi-la.'**
+  String get scoreReaderDiagnosticCyclicNavigation;
+
+  /// No description provided for @scoreReaderDiagnosticMeasureOccurrenceLimitExceeded.
+  ///
+  /// In pt, this message translates to:
+  /// **'A reprodução excede o limite seguro de 10.000 ocorrências de compasso; não é possível reproduzi-la.'**
+  String get scoreReaderDiagnosticMeasureOccurrenceLimitExceeded;
+
+  /// No description provided for @scoreReaderDiagnosticAudioUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'O mecanismo de áudio não conseguiu carregar ou controlar a reprodução.'**
+  String get scoreReaderDiagnosticAudioUnavailable;
+
+  /// No description provided for @scoreReaderDiagnosticSoundFontUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível baixar o banco GM completo.'**
+  String get scoreReaderDiagnosticSoundFontUnavailable;
+
+  /// No description provided for @scoreReaderDiagnosticStaffInstrumentUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar o timbre GM selecionado para esta pauta.'**
+  String get scoreReaderDiagnosticStaffInstrumentUnavailable;
+
+  /// No description provided for @scoreReaderDiagnosticChordInstrumentUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar o timbre GM selecionado para o acompanhamento de acordes.'**
+  String get scoreReaderDiagnosticChordInstrumentUnavailable;
+
+  /// No description provided for @scoreReaderChooseStaves.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolher pautas'**
+  String get scoreReaderChooseStaves;
 
   /// No description provided for @scoreReaderZoomIn.
   ///
@@ -6449,31 +6671,31 @@ abstract class AppLocalizations {
   /// No description provided for @scoreReaderSoundMinimal.
   ///
   /// In pt, this message translates to:
-  /// **'Som básico · baixar timbres reais'**
+  /// **'Som básico · baixar banco GM completo'**
   String get scoreReaderSoundMinimal;
 
   /// No description provided for @scoreReaderSoundDownloading.
   ///
   /// In pt, this message translates to:
-  /// **'Baixando timbres reais…'**
+  /// **'Baixando banco GM completo…'**
   String get scoreReaderSoundDownloading;
 
   /// No description provided for @scoreReaderSoundDownloadingPercent.
   ///
   /// In pt, this message translates to:
-  /// **'Baixando timbres reais… {percent}%'**
+  /// **'Baixando banco GM completo… {percent}%'**
   String scoreReaderSoundDownloadingPercent(int percent);
 
   /// No description provided for @scoreReaderSoundFull.
   ///
   /// In pt, this message translates to:
-  /// **'Timbres reais'**
+  /// **'Banco GM completo'**
   String get scoreReaderSoundFull;
 
   /// No description provided for @scoreReaderSoundFailed.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível baixar os timbres reais · tentar de novo'**
+  /// **'Não foi possível baixar o banco GM completo · tentar de novo'**
   String get scoreReaderSoundFailed;
 
   /// No description provided for @scoreReaderAudioUnavailable.

@@ -28,7 +28,9 @@ Future<void> _selectProgram(WidgetTester tester, int staff, int program) async {
 }
 
 void main() {
-  testWidgets('GM accessibility target excludes the volume row', (tester) async {
+  testWidgets('GM accessibility target excludes the volume row', (
+    tester,
+  ) async {
     final semantics = tester.ensureSemantics();
     try {
       await pumpScoreWidget(
@@ -92,7 +94,11 @@ void main() {
       );
       expect(
         engine.loads.last.midi,
-        buildScoreMidi(document, programOverrides: {1: 40}),
+        buildScoreMidi(
+          document,
+          programOverrides: {1: 40},
+          includeChordAccompaniment: true,
+        ),
       );
       expect(container.read(provider).mix[1].volume, .4);
       expect(container.read(provider).mix[1].muted, isTrue);
@@ -109,7 +115,11 @@ void main() {
       expect(find.text(l10n.scoreReaderBasicInstruments), findsNothing);
       expect(
         engine.loads.last.midi,
-        buildScoreMidi(document, programOverrides: {1: 40}),
+        buildScoreMidi(
+          document,
+          programOverrides: {1: 40},
+          includeChordAccompaniment: true,
+        ),
       );
       final note = controller.playbackMap.timelines[1].firstWhere(
         (note) => !note.isRest,

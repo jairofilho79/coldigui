@@ -10,6 +10,11 @@ import 'package:coldigui/features/score_reader/data/audio/score_audio_engine.dar
 import 'package:coldigui/features/score_reader/data/audio/score_sound_font.dart';
 import 'package:coldigui/features/score_reader/data/audio/soloud_bootstrap.dart';
 import 'package:coldigui/features/score_reader/data/datasources/fallback_sound_font.dart';
+import 'package:coldigui/features/score_reader/domain/entities/score_document.dart';
+import 'package:coldigui/features/score_reader/domain/usecases/build_score_midi.dart';
+import 'package:coldigui/features/score_reader/domain/usecases/parse_score_document.dart';
+import 'package:coldigui/features/score_reader/domain/usecases/score_performance_plan.dart';
+import 'package:crisp_notation_core/crisp_notation_core.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -254,6 +259,27 @@ void main() {
     }, timeout: const Timeout(Duration(seconds: 90)));
   }
 
+  test('499 score playback produces real non-silent WASM PCM', () async {
+    final document = parseScoreDocument(
+      await _fetchBytes(Uri.base.resolve('../fixtures/scores/499.mscz')),
+    );
+    final plan = ScorePerformancePlan.fromDocument(
+      document,
+      includeChordSymbols: true,
+    );
+    expect(
+      plan.events.where((event) => event.chordPitches != null),
+      isNotEmpty,
+    );
+    final midi = buildScoreMidi(
+      document,
+      programOverrides: {for (final staff in document.staves) staff.index: 0},
+      performancePlan: plan,
+      includeChordAccompaniment: true,
+    );
+    await _exerciseFallbackMidi(midi, label: '499');
+  }, timeout: const Timeout(Duration(seconds: 60)));
+
   test('real WASM backend plays fallback SF2 from MIDI, pauses, seeks and disposes', () async {
     final engine = SoundFontScoreAudioEngine();
     final backend = SoLoud.instance;
@@ -409,6 +435,146 @@ void main() {
       }
     }
   }, timeout: const Timeout(Duration(seconds: 60)));
+
+  test(
+    'real MIDI CC64 routing releases on pause, seek, loop, end and dispose',
+    () async {
+      final backend = SoLoud.instance;
+      final midiEvents = <MidiPlaybackEvent>[];
+      MidiPlayer? sequencer;
+      StreamSubscription<MidiPlaybackEvent>? midiSub;
+      final engine = SoundFontScoreAudioEngine.withMidiLoader((
+        player,
+        midi,
+      ) async {
+        await player.load(midi);
+        sequencer = player;
+        midiSub = player.eventStream.listen(midiEvents.add);
+      });
+      var previousPosition = Duration.zero;
+      var loopTransitions = 0;
+      final positionSub = engine.positions.listen((position) {
+        if (previousPosition - position > const Duration(milliseconds: 100)) {
+          loopTransitions++;
+        }
+        previousPosition = position;
+      });
+      addTearDown(() async {
+        await engine.dispose();
+        await midiSub?.cancel();
+        await positionSub.cancel();
+        await _disposeBackend();
+      });
+
+      await engine.load(
+        midi: _sustainPedalMidi(),
+        soundFont: buildFallbackSoundFont(),
+      );
+      final channel = sequencer!.channels[0];
+
+      await engine.play();
+      await _until(
+        () => midiEvents.any(
+          (event) =>
+              event.type == MidiPlaybackEventType.controlChange &&
+              event.controller == 64 &&
+              event.value == 127,
+        ),
+        'the real MIDI player receives CC64 down',
+      );
+      await _until(
+        () => channel.sustainedVoices.isNotEmpty,
+        'a note-off is held by the real sustain pedal',
+      );
+      expect(channel.isSustainPedalOn, isTrue);
+
+      await engine.pause();
+      await _until(
+        () => !channel.isSustainPedalOn,
+        'pause releases and resets the sustain pedal',
+      );
+      expect(channel.sustainedVoices, isEmpty);
+
+      await engine.play();
+      await _until(
+        () => channel.isSustainPedalOn,
+        'resume restores the pedal state at the paused position',
+      );
+      await _until(
+        () => midiEvents.any(
+          (event) =>
+              event.type == MidiPlaybackEventType.controlChange &&
+              event.controller == 64 &&
+              event.value == 0 &&
+              event.timestamp == const Duration(seconds: 1),
+        ),
+        'the real MIDI player receives CC64 up',
+      );
+      await engine.seek(const Duration(milliseconds: 750));
+      await _until(
+        () => engine.position == const Duration(milliseconds: 750),
+        'seek reaches an active pedal span',
+      );
+      expect(channel.isSustainPedalOn, isTrue);
+      expect(channel.activeVoices, isEmpty);
+      expect(channel.sustainedVoices, isEmpty);
+
+      await engine.pause();
+      await _until(
+        () => !channel.isSustainPedalOn,
+        'paused seek leaves no pedal engaged',
+      );
+      await engine.seek(Duration.zero);
+      expect(channel.isSustainPedalOn, isFalse);
+
+      engine.setLoop((
+        start: Duration.zero,
+        end: const Duration(milliseconds: 250),
+      ));
+      await engine.play();
+      await _until(() => loopTransitions >= 2, 'two real loop transitions');
+      expect(channel.sustainedVoices, isEmpty);
+      expect(channel.activeVoices[60]?.length ?? 0, lessThanOrEqualTo(1));
+
+      engine.setLoop(null);
+      await engine.pause();
+      await _until(
+        () => !channel.isSustainPedalOn,
+        'loop stop releases the pedal',
+      );
+      await engine.seek(const Duration(milliseconds: 1200));
+      await engine.play();
+      await _until(() => !engine.isPlaying, 'natural MIDI end');
+      expect(channel.isSustainPedalOn, isFalse);
+      expect(channel.heldNotes, isEmpty);
+      expect(channel.sustainedVoices, isEmpty);
+      expect(channel.activeVoices, isEmpty);
+      expect(
+        midiEvents
+            .where(
+              (event) =>
+                  event.type == MidiPlaybackEventType.controlChange &&
+                  event.controller == 64,
+            )
+            .map((event) => (event.value, event.timestamp)),
+        containsAll([(127, Duration.zero), (0, const Duration(seconds: 1))]),
+      );
+
+      await engine.seek(Duration.zero);
+      await engine.play();
+      await _until(
+        () => channel.activeVoices.isNotEmpty,
+        'active real note before engine disposal',
+      );
+      await engine.dispose();
+      expect(channel.isSustainPedalOn, isFalse);
+      expect(channel.heldNotes, isEmpty);
+      expect(channel.sustainedVoices, isEmpty);
+      expect(channel.activeVoices, isEmpty);
+      expect(backend.getActiveVoiceCount(), 0);
+    },
+    timeout: const Timeout(Duration(seconds: 30)),
+  );
 }
 
 // Authored fixture: 441 Hz sine, mono Vorbis, 17640 PCM frames, serial 79.
@@ -497,6 +663,58 @@ Future<void> _exerciseSf3(
   expect(engine.position, const Duration(seconds: 1));
 }
 
+Future<void> _exerciseFallbackMidi(
+  Uint8List midi, {
+  required String label,
+}) async {
+  final engine = SoundFontScoreAudioEngine();
+  final backend = SoLoud.instance;
+  StreamSubscription<Uint8List>? capture;
+  var peak = 0.0;
+  var sampleCount = 0;
+  addTearDown(() async {
+    await engine.dispose();
+    if (backend.isMixerOutputStreamRunning) backend.stopMixerOutputStream();
+    await capture?.cancel();
+    if (backend.isInitialized) {
+      for (final device in _webAudioDevices.toDart.nonNulls) {
+        final context = device.getProperty<web.AudioContext?>('webaudio'.toJS);
+        if (context != null) {
+          await context.resume().toDart.timeout(const Duration(seconds: 5));
+        }
+      }
+      await backend.deinitAsync();
+    }
+  });
+  await engine
+      .load(midi: midi, soundFont: buildFallbackSoundFont())
+      .timeout(const Duration(seconds: 20));
+  expect(backend.activeSounds, isNotEmpty);
+  capture = backend.startMixerOutputStream().listen((bytes) {
+    final data = ByteData.sublistView(bytes);
+    for (var offset = 0; offset + 4 <= bytes.length; offset += 4) {
+      final sample = data.getFloat32(offset, Endian.little);
+      expect(sample.isFinite, isTrue);
+      if (sample.abs() > peak) peak = sample.abs();
+      sampleCount++;
+    }
+  });
+  await engine.play();
+  await _until(
+    () =>
+        backend.getActiveVoiceCount() > 0 &&
+        engine.position > const Duration(milliseconds: 100) &&
+        peak > 0.001,
+    '$label MIDI must produce real non-silent mixer PCM',
+  );
+  debugPrint(
+    '$label WASM: voices=${backend.getActiveVoiceCount()}, '
+    'pcmSamples=$sampleCount, peak=$peak, position=${engine.position}',
+  );
+  expect(peak, greaterThan(0.001));
+  await engine.pause();
+}
+
 int _chunkOffset(Uint8List bytes, String id) {
   final needle = id.codeUnits;
   for (var i = 12; i + 8 < bytes.length; i++) {
@@ -508,6 +726,35 @@ int _chunkOffset(Uint8List bytes, String id) {
     }
   }
   throw StateError('Missing $id in test fixture');
+}
+
+Uint8List _sustainPedalMidi() {
+  final score = MultiPartScore([
+    Score(
+      clef: Clef.treble,
+      timeSignature: const TimeSignature(4, 4),
+      measures: [
+        Measure([
+          NoteElement.note(Pitch(Step.c), NoteDuration.quarter, id: 'pedal-on'),
+          NoteElement.note(
+            Pitch(Step.d),
+            NoteDuration.quarter,
+            id: 'pedal-off',
+          ),
+          NoteElement.note(Pitch(Step.e), NoteDuration.quarter),
+          NoteElement.note(Pitch(Step.f), NoteDuration.quarter),
+        ]),
+      ],
+      pedals: const [Pedal('pedal-on', 'pedal-off')],
+    ),
+  ]);
+  final document = ScoreDocument(
+    score: score,
+    staves: const [ScoreStaff(index: 0, partName: 'Test')],
+    format: ScoreSourceFormat.musicXml,
+  );
+  final plan = ScorePerformancePlan.fromDocument(document);
+  return buildScoreMidi(document, performancePlan: plan);
 }
 
 Future<void> _until(bool Function() condition, String reason) async {

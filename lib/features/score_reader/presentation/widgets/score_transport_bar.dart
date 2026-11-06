@@ -223,7 +223,7 @@ class ScoreTransportBar extends ConsumerWidget {
   }
 }
 
-/// Estado dos timbres: som básico (toca já) → baixando → timbres reais.
+/// Estado dos timbres: som mínimo → baixando → banco General MIDI completo.
 class _SoundFontButton extends ConsumerWidget {
   const _SoundFontButton({required this.document, required this.style});
 
