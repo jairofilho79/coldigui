@@ -3,10 +3,11 @@
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 import 'native_test_artifact.dart';
 
-const _releaseTag = 'v1.3.7';
+const _releaseTag = 'v${Isar.version}';
 const _baseUrl =
     'https://github.com/ahmtydn/isar_plus/releases/download/$_releaseTag';
 
@@ -21,9 +22,9 @@ Future<String> ensureIsarPlusNativeLibrary(Directory libDir) {
 }
 
 String _libraryFileName() {
-  if (Platform.isMacOS) return 'libisar_plus.dylib';
-  if (Platform.isLinux) return 'libisar_plus.so';
-  if (Platform.isWindows) return 'isar_plus.dll';
+  if (Platform.isMacOS) return 'libisar_plus-${Isar.version}.dylib';
+  if (Platform.isLinux) return 'libisar_plus-${Isar.version}.so';
+  if (Platform.isWindows) return 'isar_plus-${Isar.version}.dll';
   throw UnsupportedError(
     'Testes Isar não suportados em ${Platform.operatingSystem}. '
     'Use macOS, Linux ou Windows.',
@@ -42,10 +43,10 @@ Future<File> _build(Directory libDir, Directory work) async {
 }
 
 Future<File> _buildMacOsDylib(Directory libDir, Directory work) async {
-  // O zip fica em cache em [libDir] (13 MB); entra lá também por rename.
-  final zipFile = File('${libDir.path}/isar_plus_core.xcframework.zip');
+  final zipName = 'isar_plus_core-${Isar.version}.xcframework.zip';
+  final zipFile = File('${libDir.path}/$zipName');
   if (!zipFile.existsSync()) {
-    final partial = File('${work.path}/isar_plus_core.xcframework.zip');
+    final partial = File('${work.path}/$zipName');
     await downloadToFile('$_baseUrl/isar_plus_core.xcframework.zip', partial);
     partial.renameSync(zipFile.path);
   }
@@ -63,32 +64,15 @@ Future<File> _buildMacOsDylib(Directory libDir, Directory work) async {
     }
   }
 
-  final staticLib = File(
-    '${extractDir.path}/isar_plus_core.xcframework/macos-arm64_x86_64/libisar_plus.a',
+  // Usa o binário real, não a entrada ZIP do symlink na raiz do framework.
+  final core = File(
+    '${extractDir.path}/isar_plus_core.xcframework/macos-arm64_x86_64/'
+    'IsarPlusCore.framework/Versions/A/IsarPlusCore',
   );
-  if (!staticLib.existsSync()) {
-    throw StateError('libisar_plus.a ausente após extração do xcframework');
+  if (!core.existsSync()) {
+    throw StateError('IsarPlusCore ausente após extração do xcframework');
   }
-
-  final dylib = File('${work.path}/libisar_plus.dylib');
-  final result = await Process.run('clang', [
-    '-dynamiclib',
-    '-o',
-    dylib.path,
-    '-Wl,-force_load,${staticLib.path}',
-    '-lc++',
-    '-lpthread',
-    '-framework',
-    'Foundation',
-    '-framework',
-    'Security',
-  ]);
-  if (result.exitCode != 0) {
-    throw StateError(
-      'Falha ao gerar libisar_plus.dylib para testes: ${result.stderr}',
-    );
-  }
-  return dylib;
+  return core.copy('${work.path}/${_libraryFileName()}');
 }
 
 /// Ponto de entrada quando executado como processo filho:

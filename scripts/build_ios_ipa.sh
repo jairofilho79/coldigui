@@ -22,6 +22,9 @@ APP_VERSION=$(grep '^version:' "$ROOT_DIR/pubspec.yaml" | sed 's/version:[[:spac
 echo "==> Compilando pacote Release iOS PLPCG v${APP_VERSION}..."
 flutter build ipa --release "${DEFINE_ARGS[@]}"
 
+python3 "$ROOT_DIR/scripts/validate_ios_isar.py" \
+  "$ROOT_DIR/build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app"
+
 echo ""
 echo "================================================================="
 echo "✅ Processo de build iOS v${APP_VERSION} concluído!"
