@@ -4,12 +4,13 @@ library;
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 /// Reproduz a race de `flutter test` em worktree novo: vários processos
 /// `flutter_tester` chamam `ensureIsarPlusTestCore()` ao mesmo tempo sobre um
 /// `.dart_tool/isar_plus_test/` vazio. Aqui são [_processes] processos `dart`
 /// rodando `isar_plus_native_library.dart` contra um diretório temporário
-/// vazio — reproduzia «libisar_plus.a ausente após extração do xcframework».
+/// vazio — reproduzia falha na extração concorrente do xcframework.
 ///
 /// O zip do xcframework já baixado é copiado para o diretório temporário para
 /// não depender de rede aqui (o próprio `flutter_test_config` já o garantiu).
@@ -20,12 +21,12 @@ void main() {
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('isar_plus_race_');
+    final zipName = 'isar_plus_core-${Isar.version}.xcframework.zip';
     final cachedZip = File(
-      '${Directory.current.path}/.dart_tool/isar_plus_test/'
-      'isar_plus_core.xcframework.zip',
+      '${Directory.current.path}/.dart_tool/isar_plus_test/$zipName',
     );
     if (cachedZip.existsSync()) {
-      cachedZip.copySync('${tempDir.path}/isar_plus_core.xcframework.zip');
+      cachedZip.copySync('${tempDir.path}/$zipName');
     }
   });
 

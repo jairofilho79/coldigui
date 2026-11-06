@@ -1,6 +1,6 @@
 # ADR-001 — Isar Plus para storage estruturado
 
-**Status:** Revisado (jun/2026) — migrado de `isar` 3.1 para `isar_plus` 1.3.7  
+**Status:** Revisado (nov/2026) — `isar_plus` 1.3.9 para corrigir o release iOS
 **Data:** junho de 2026
 
 ## Contexto
@@ -22,8 +22,37 @@ Usar **isar_plus** (fork mantido do Isar) para metadados estruturados e índice 
 
 ## Pacotes
 
-- `isar_plus`, `isar_plus_flutter_libs` ^1.3.7 (runtime; codegen embutido no pacote)
+- `isar_plus`, `isar_plus_flutter_libs` ^1.3.9 (runtime; codegen embutido no pacote)
 - `build_runner` (dev)
+
+## Correção do release iOS 1.0.1 (3)
+
+O IPA e o archive dessa versão não exportavam os símbolos `isar_plus_*` no
+executável Runner. O core estático 1.3.7 usava `DynamicLibrary.process()`, então
+não conseguia resolver `isar_plus_version` e abrir o banco. Não era necessário
+solicitar permissão de armazenamento ou apagar os dados do app.
+
+A [correção oficial 1.3.9](https://pub.dev/packages/isar_plus_flutter_libs/changelog#139)
+embute o core dinâmico `IsarPlusCore.framework`, carregado explicitamente por
+`DynamicLibrary.open()`. Atualizamos os dois pacotes juntos, sem alterar nome,
+diretório ou schemas do banco. Os assets JS/WASM também acompanham a versão
+resolvida no lockfile; o download só substitui ambos após sucesso.
+
+O script de geração do IPA verifica o framework embutido e os símbolos de
+versão, conexão Dart e abertura antes de indicar que o pacote pode ser enviado:
+
+```bash
+python3 scripts/validate_ios_isar.py \
+  build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app
+python3 -B -m unittest scripts.test_validate_ios_isar scripts.test_fetch_isar_web_assets
+```
+
+Essa inspeção não substitui testar uma atualização no aparelho sem desinstalar
+o app. O teste VM cobre reabertura com listas, índice offline e arquivo baixado;
+os testes de widget verificam recuperação pelos dois botões.
+Uma fixture compacta e sintética, gravada com o core 1.3.7 e os schemas da tag
+`v1.0.1+3`, também comprova que o novo core abre o banco antigo e preserva a lista
+e o índice offline, inclusive após reabertura.
 
 ## Boot e migração
 
@@ -45,7 +74,10 @@ Usar **isar_plus** (fork mantido do Isar) para metadados estruturados e índice 
 
 - Passo de CI: `dart run build_runner build` (sem `--delete-conflicting-outputs` — removido no build_runner 2.15)
 - `core/database/isar_provider.dart` inicializa Isar no boot
-- Testes: `test/flutter_test_config.dart` baixa/compila binário nativo em `.dart_tool/isar_plus_test/`; rodar `flutter test -j 1`
+- Testes: `test/flutter_test_config.dart` obtém o core da versão Dart em
+  `.dart_tool/isar_plus_test/`, com cache versionado e extração segura sob
+  concorrência. No macOS usa o binário do framework dinâmico, sem recompilar
+  um arquivo estático. Comandos de validação no README.
 - SharedPreferences apenas para flags leves (`OFFLINE_AVAILABLE`, prefs do leitor)
 
 ## Alternativas rejeitadas
