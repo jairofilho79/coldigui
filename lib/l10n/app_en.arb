@@ -1627,18 +1627,142 @@
   "scoreReaderLoopHint": "Tap a note and set the start, then the end. Long-pressing a bar also sets it.",
   "scoreReaderMixer": "Voices and volume",
   "scoreReaderInstrument": "GM instrument",
-  "scoreReaderBasicInstruments": "Basic sound: piano only. Your selection will be used with the real instruments.",
+  "scoreReaderBasicInstruments": "Basic sound: piano only. Download the full GM bank for other instruments.",
   "scoreReaderInstrumentFailed": "Could not change the instrument. Select it again to retry.",
   "scoreReaderMute": "Mute",
   "scoreReaderSolo": "Solo",
+  "scoreReaderChordAccompaniment": "Chord accompaniment",
+  "scoreReaderChordSource": "Chord source",
+  "scoreReaderChordVolume": "Chord volume",
+  "scoreReaderChordMute": "Mute chord accompaniment",
+  "scoreReaderChordSolo": "Solo chord accompaniment",
+  "scoreReaderChordInstrument": "Chord GM instrument",
+  "scoreReaderChordInstrumentFailed": "Could not change the chord instrument. Select it again to retry.",
+  "scoreReaderPlayStaff": "Play {staff}",
+  "@scoreReaderPlayStaff": {
+    "placeholders": {
+      "staff": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderStaffCapacityWarning": "This score has more staves than can be played at once. Choose which staves to play; every staff remains visible.",
+  "scoreReaderStaffCapacityLimit": "Select at most {maximum} staves for playback. The score will still show all staves.",
+  "@scoreReaderStaffCapacityLimit": {
+    "placeholders": {
+      "maximum": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreReaderSelectedStaffCount": "{selected} of {total} staves selected for playback",
+  "@scoreReaderSelectedStaffCount": {
+    "placeholders": {
+      "selected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreReaderDiagnosticsTitle": "Playback diagnostics",
+  "scoreReaderDiagnosticStaff": "Staff: {staff}",
+  "@scoreReaderDiagnosticStaff": {
+    "placeholders": {
+      "staff": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticMeasure": "Measure {measure}",
+  "@scoreReaderDiagnosticMeasure": {
+    "placeholders": {
+      "measure": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreReaderDiagnosticUnsupportedArticulation": "The {signal} articulation is not realized in playback.",
+  "@scoreReaderDiagnosticUnsupportedArticulation": {
+    "placeholders": {
+      "signal": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticBreathMark": "breath mark",
+  "scoreReaderDiagnosticBowingMark": "bow-direction mark",
+  "scoreReaderDiagnosticOtherArticulation": "unsupported articulation mark",
+  "scoreReaderDiagnosticUnsupportedTremoloStrokes": "A tremolo with {strokes} strokes is outside the supported range (1–5) and will not be played.",
+  "@scoreReaderDiagnosticUnsupportedTremoloStrokes": {
+    "placeholders": {
+      "strokes": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreReaderDiagnosticInvalidTremoloStrokes": "The tremolo stroke count could not be read; the tremolo will not be played.",
+  "scoreReaderDiagnosticUnsupportedTremoloType": "Tremolo type “{type}” is not realized in playback.",
+  "@scoreReaderDiagnosticUnsupportedTremoloType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticUnsupportedOrnament": "Ornament “{name}” is not realized in playback.",
+  "@scoreReaderDiagnosticUnsupportedOrnament": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticUnrecognizedDynamic": "Dynamic marking “{name}” is not realized in playback.",
+  "@scoreReaderDiagnosticUnrecognizedDynamic": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticInvalidTempo": "Tempo value “{value}” is invalid and could not be used.",
+  "@scoreReaderDiagnosticInvalidTempo": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticUnsupportedTempo": "MusicXML sound tempo “{value}” is not applied in playback.",
+  "@scoreReaderDiagnosticUnsupportedTempo": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreReaderDiagnosticIncompleteHairpin": "The crescendo or diminuendo has no matching endpoint; its curve is omitted.",
+  "scoreReaderDiagnosticIncompletePedal": "The pedal marking has no valid start-and-release pair; it is not applied.",
+  "scoreReaderDiagnosticInvalidNavigation": "Playback navigation data is invalid; playback is unavailable.",
+  "scoreReaderDiagnosticConflictingNavigation": "Playback navigation instructions conflict; playback is unavailable.",
+  "scoreReaderDiagnosticUnresolvedNavigation": "A playback destination could not be found; playback is unavailable.",
+  "scoreReaderDiagnosticCyclicNavigation": "Playback navigation contains a cycle; playback is unavailable.",
+  "scoreReaderDiagnosticMeasureOccurrenceLimitExceeded": "Playback exceeds the safe limit of 10,000 measure occurrences; playback is unavailable.",
+  "scoreReaderDiagnosticAudioUnavailable": "The audio engine could not load or control playback.",
+  "scoreReaderDiagnosticSoundFontUnavailable": "The full GM sound bank could not be downloaded.",
+  "scoreReaderDiagnosticStaffInstrumentUnavailable": "The selected GM instrument for this staff could not be loaded.",
+  "scoreReaderDiagnosticChordInstrumentUnavailable": "The selected GM instrument for chord accompaniment could not be loaded.",
+  "scoreReaderChooseStaves": "Choose staves",
   "scoreReaderZoomIn": "Enlarge sheet music",
   "scoreReaderZoomOut": "Shrink sheet music",
   "scoreReaderModePages": "Page view",
   "scoreReaderModeContinuous": "Continuous scroll",
-  "scoreReaderSoundMinimal": "Basic sound · download real instruments",
-  "scoreReaderSoundDownloading": "Downloading real instruments…",
-  "scoreReaderSoundDownloadingPercent": "Downloading real instruments… {percent}%",
-  "scoreReaderSoundFull": "Real instruments",
-  "scoreReaderSoundFailed": "Could not download the real instruments · try again",
+  "scoreReaderSoundMinimal": "Basic sound · download full GM sound bank",
+  "scoreReaderSoundDownloading": "Downloading full GM sound bank…",
+  "scoreReaderSoundDownloadingPercent": "Downloading full GM sound bank… {percent}%",
+  "scoreReaderSoundFull": "Full GM sound bank",
+  "scoreReaderSoundFailed": "Could not download the full GM sound bank · try again",
   "scoreReaderAudioUnavailable": "Audio unavailable on this device"
 }

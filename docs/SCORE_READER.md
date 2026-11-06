@@ -23,6 +23,9 @@ razao maxima 200. Metadados sao percorridos sem inflar o conteudo; CRC e
 tamanho efetivo sao verificados pelo `archive >=4.6`, inclusive quando
 os cabecalhos declaram um tamanho falso. Caminhos inseguros e duplicados
 sao rejeitados.
+O plano de playback limita a ordem a 10.000 ocorrencias de compasso; acima
+disso, a reproducao e bloqueada com diagnostico explicito, sem truncar a
+navegacao silenciosamente.
 
 ## Demo sem cadastro
 
@@ -80,11 +83,64 @@ zoom por botoes ou pinch. A rolagem automatica respeita a interacao manual
 e retoma depois de tres segundos. Nas repeticoes, os limites A-B usam
 inicio e fim da mesma primeira passagem do compasso.
 
-O mixer oferece GM001-GM128, volume, mute e solo por pauta, preservados ao
-trocar o banco ou reposicionar a execucao. Com o banco minimo, apenas o
-piano esta disponivel; o mixer informa essa limitacao. Ha 15 canais MIDI
-melodicos distintos: acima de 15 pautas, canais sao reutilizados e o timbre
-e o volume ficam compartilhados entre as pautas do mesmo canal.
+O mixer oferece GM001-GM128, volume, mute e solo por pauta. O programa do
+arquivo e usado quando presente; caso contrario, o padrao e GM001
+(programa MIDI 0). Volume inicial e 100%. Com o banco minimo gerado pelo app,
+apenas o piano esta disponivel. Se nao houver banco completo em cache, a
+primeira reproducao solicita o SoundFont GM completo; uma falha mantem o banco
+minimo e aparece como diagnostico. O SoundFont completo padrao e o
+FluidR3Mono_GM.sf3 descrito abaixo.
+
+Ha 15 canais MIDI melodicos (o canal de percussao GM e pulado). Sem
+acompanhamento de acordes, uma selecao de ate 15 pautas pode ser tocada; com
+acompanhamento, ate 14 pautas mais o canal separado de acordes. Quando a
+partitura excede esse limite, e preciso escolher as pautas; todas continuam
+visiveis. Em partituras com mais de 15 pautas, indices diferentes podem
+reutilizar um canal: timbre/programa e volume desse canal ficam compartilhados,
+embora mute e solo continuem aplicados por faixa.
+
+## Matriz de sinais e fidelidade do playback
+
+A tabela descreve a conversao MIDI implementada pelo leitor, nao uma promessa
+de interpretacao equivalente ao MuseScore ou ao MuseSounds.
+
+| Sinal | Realizacao automatizada | Limites e diagnosticos |
+|---|---|---|
+| Notas, pausas, vozes e repeticoes | Eventos MIDI por pauta; ligaduras, ordem de repeticoes e navegacao importada de MuseScore/MusicXML alimentam o mesmo plano de tempo. | Destinos nao resolvidos, navegacao conflitante/invalida ou ciclos bloqueiam o playback e geram diagnostico. |
+| Andamento | Andamento em seminuas por minuto e mudancas representadas no modelo da partitura. Sem andamento valido, usa-se seminuas = 120 BPM; multiplicador inicial e 1,0 (intervalo 0,25–2). | Valores MusicXML `<sound tempo>` nao sao convertidos para o andamento do plano; se diferirem do andamento ativo, geram diagnostico. Valores invalidos tambem sao diagnosticados. |
+| Dinamica | `pppp`, `ppp`, `pp`, `p`, `mp`, `mf`, `f`, `ff`, `fff`, `ffff`, `sf`, `sfz`, `sffz`, `fz`, `rf` e `fp` sao convertidos em velocidade MIDI; sem indicacao, usa-se mf = 80. Velocidade explicita da nota prevalece sobre a velocidade de ataque calculada. Crescendos/decrescendos completos geram uma curva linear de expressao MIDI. | Nomes de dinamica desconhecidos sao informados. Curvas sem nota inicial/final correspondente sao omitidas e diagnosticadas; a curva linear e uma aproximacao, nao uma interpretacao expressiva. |
+| Articulacao e fermata | Staccatissimo usa 1/4 da duracao escrita; staccato, 1/2; tenuto, 19/20. Acento soma 15 e marcato 20 a velocidade, limitada a 1–127. Fermata em nota ou pausa reconhecida acrescenta uma duracao escrita ao evento e desloca os eventos seguintes. | Marcacoes de respiracao e direcao de arcada nao sao realizadas e geram diagnostico. As proporcoes sao regras fixas, sem variacao de estilo ou instrumento. |
+| Gracas e ornamentos | Gracas acciaccaturas/appoggiaturas, trinados, mordentes e voltas usam os padroes de tempo e altura descritos na secao seguinte. | Nomes de ornamento nao realizados sao diagnosticados e nao recebem um substituto automatico. |
+| Arpejo e tremolo | Arpejos ascendentes/descendentes escalonam os ataques dentro da duracao da nota. Tremolos de nota unica com 1–5 golpes subdividem a duracao; MusicXML `single` sem contagem declarada usa 3 golpes. | Tipos MusicXML nao suportados e contagens invalidas ou fora de 1–5 nao sao tocados como tremolo e geram diagnostico. |
+| Pedal e acompanhamentos de acordes | Pedal sustentado completo gera CC64 ligado/desligado. O acompanhamento de acordes gera notas simultaneas a partir das cifras parseadas, em faixa/canal separado. | Pares de pedal incompletos sao omitidos e diagnosticados. O acompanhamento nao modela dedilhado, voicing interpretativo ou articulacao de instrumento acustico. |
+| Mixer e timbres | Programas GM001–GM128, mute/solo por faixa e volume por canal; a troca de programa atualiza o MIDI da pauta e preserva o estado do transporte. | O som depende do SoundFont GM, do sintetizador/plataforma e do roteamento de canais. Isso nao equivale aos patches, articulacoes, efeitos ou regras de interpretacao do MuseSounds. |
+
+O SoundFont minimo e um piano sintetico gerado pelo app; nao e um conjunto de
+instrumentos acusticos. O banco FluidR3Mono GM oferece os programas General
+MIDI disponiveis no arquivo, mas nao implementa o motor, os samples nem a
+interpretacao do MuseSounds.
+
+Os testes automatizados verificam planos de eventos, temporizacao, mensagens
+MIDI/control changes, roteamento e diagnosticos para os sinais cobertos. Eles
+nao comparam a saida com o MuseScore/MuseSounds, nao medem fidelidade timbral e
+nao substituem audicao ou avaliacao interpretativa humana.
+
+## Ornamentos e gracas
+
+A reproducao realiza trinado, trinado curto, mordente e volta (incluindo a
+volta invertida) em alturas diatonicas da tonalidade e dos acidentes ativos no
+compasso. Um acidente explicito do ornamento tem prioridade. O trinado alterna
+principal e auxiliar em fusas e termina na principal; os outros padroes usam
+no maximo a primeira metade da duracao da nota, deixando o restante na
+principal sem aumentar o compasso.
+
+Gracas acciaccaturas usam no maximo uma semicolcheia e um quarto da duracao da
+nota principal; appoggiaturas usam metade. Multiplas gracas dividem esse tempo
+igualmente. Ties de graca a nota principal evitam novo ataque. Parametros
+MusicXML `make-time`, `steal-time-following` e `steal-time-previous`, quando
+presentes, substituem esses padroes de tempo; `make-time` desloca todas as
+pautas e aumenta a duracao do compasso pelo tempo declarado. A reproducao e o
+destaque visual continuam associados ao elemento original da partitura.
 
 ## Offline
 

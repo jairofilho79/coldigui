@@ -154,6 +154,7 @@ class SoundFontScoreAudioEngine implements ScoreAudioEngine {
         _checkLoad(generation);
       }
       if (wasPlaying) {
+        await _syncSustainPedals(sequencer, restoreAtPosition: true);
         await sequencer.play();
         _checkLoad(generation);
       }
@@ -165,7 +166,9 @@ class SoundFontScoreAudioEngine implements ScoreAudioEngine {
           await _teardown();
         }
       } on Object catch (cleanupError) {
-        debugPrint('[partitura] falha ao liberar carga de áudio: $cleanupError');
+        debugPrint(
+          '[partitura] falha ao liberar carga de áudio: $cleanupError',
+        );
       }
       Error.throwWithStackTrace(error, stack);
     }
@@ -176,9 +179,22 @@ class SoundFontScoreAudioEngine implements ScoreAudioEngine {
       case MidiPlaybackEventType.seek:
         // `seek` reaplica o snapshot do MIDI e apaga o volume da mesa.
         _applyVolumes();
+        final sequencer = _sequencer;
+        if (sequencer != null) {
+          _applySustainPedalSnapshot(
+            sequencer,
+            restoreAtPosition: sequencer.isPlaying,
+          );
+        }
       case MidiPlaybackEventType.stateChange:
         _applyVolumes();
         final playing = isPlaying;
+        if (!playing) {
+          final sequencer = _sequencer;
+          if (sequencer != null) {
+            _applySustainPedalSnapshot(sequencer, restoreAtPosition: false);
+          }
+        }
         if (playing != _lastPlaying) {
           _lastPlaying = playing;
           _playing.add(playing);
@@ -186,6 +202,34 @@ class SoundFontScoreAudioEngine implements ScoreAudioEngine {
       default:
         break;
     }
+  }
+
+  void _applySustainPedalSnapshot(
+    MidiPlayer sequencer, {
+    required bool restoreAtPosition,
+  }) {
+    final snapshots = restoreAtPosition
+        ? sequencer.timeline?.getSnapshotAt(sequencer.position).$1
+        : null;
+    for (final (channel, state) in sequencer.channels.indexed) {
+      state.isSustainPedalOn = snapshots?[channel]?.isSustainPedalOn ?? false;
+    }
+  }
+
+  Future<void> _syncSustainPedals(
+    MidiPlayer sequencer, {
+    required bool restoreAtPosition,
+  }) async {
+    final snapshots = restoreAtPosition
+        ? sequencer.timeline?.getSnapshotAt(sequencer.position).$1
+        : null;
+    await Future.wait<void>([
+      for (final (channel, state) in sequencer.channels.indexed)
+        state.setSustainPedal(
+          snapshots?[channel]?.isSustainPedalOn ?? false,
+          releaseDuration: Duration.zero,
+        ),
+    ]);
   }
 
   void _applySettings() {
@@ -228,13 +272,28 @@ class SoundFontScoreAudioEngine implements ScoreAudioEngine {
   }
 
   @override
-  Future<void> play() async => _sequencer?.play();
+  Future<void> play() async {
+    final sequencer = _sequencer;
+    if (sequencer == null) return;
+    await _syncSustainPedals(sequencer, restoreAtPosition: true);
+    await sequencer.play();
+  }
 
   @override
-  Future<void> pause() async => _sequencer?.pause();
+  Future<void> pause() async {
+    final sequencer = _sequencer;
+    if (sequencer == null) return;
+    await sequencer.pause();
+    await _syncSustainPedals(sequencer, restoreAtPosition: false);
+  }
 
   @override
-  Future<void> seek(Duration position) async => _sequencer?.seek(position);
+  Future<void> seek(Duration position) async {
+    final sequencer = _sequencer;
+    if (sequencer == null) return;
+    await sequencer.seek(position);
+    await _syncSustainPedals(sequencer, restoreAtPosition: sequencer.isPlaying);
+  }
 
   @override
   set speed(double multiplier) {
@@ -315,7 +374,13 @@ class SoundFontScoreAudioEngine implements ScoreAudioEngine {
     try {
       await sequencer?.dispose();
     } finally {
-      await synth?.dispose();
+      try {
+        if (sequencer != null) {
+          await _syncSustainPedals(sequencer, restoreAtPosition: false);
+        }
+      } finally {
+        await synth?.dispose();
+      }
     }
   }
 

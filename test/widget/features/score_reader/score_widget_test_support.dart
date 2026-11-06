@@ -84,7 +84,7 @@ class WidgetScoreEngine implements ScoreAudioEngine {
   }
 }
 
-class _WidgetSounds implements ScoreSoundFontRepository {
+class WidgetSounds implements ScoreSoundFontRepository {
   @override
   String get key => 'widget-test.sf2';
   @override
@@ -113,6 +113,8 @@ Future<ProviderContainer> pumpScoreWidget(
   required WidgetScoreEngine engine,
   required Widget child,
   Size size = const Size(800, 600),
+  Locale locale = const Locale('pt'),
+  bool settle = true,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
@@ -121,17 +123,17 @@ Future<ProviderContainer> pumpScoreWidget(
     ProviderScope(
       overrides: [
         scoreAudioEngineFactoryProvider.overrideWithValue(() => engine),
-        scoreSoundFontRepositoryProvider.overrideWithValue(_WidgetSounds()),
+        scoreSoundFontRepositoryProvider.overrideWithValue(WidgetSounds()),
       ],
       child: MaterialApp(
-        locale: const Locale('pt'),
+        locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(body: child),
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) await tester.pumpAndSettle();
   return ProviderScope.containerOf(tester.element(find.byType(Scaffold)));
 }
 

@@ -29,7 +29,7 @@ Chrome ou Chromium instalado. No CI, `CHROME_EXECUTABLE` é definido pelo workfl
 ## Medição automatizada
 
 ```bash
-# Mede e imprime JSON (mediana de 2 execuções)
+# Mede e imprime JSON (mediana de 5 execuções)
 ./scripts/measure_web_boot.sh
 
 # Mede e valida contra baseline (falha se regressão)
@@ -159,7 +159,7 @@ Step **Web boot performance gate** em [`.github/workflows/web.yml`](../.github/w
 ./scripts/measure_web_boot.sh --check
 ```
 
-Executa após `flutter build web`, com mediana de 2 runs e threshold do baseline.
+Executa após `flutter build web`, com mediana de 5 runs e threshold do baseline.
 
 ## Testes estáticos
 

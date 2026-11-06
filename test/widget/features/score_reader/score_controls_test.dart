@@ -48,6 +48,9 @@ class _ControlsState extends State<_Controls> {
 Finder _slider(Type parent) =>
     find.descendant(of: find.byType(parent), matching: find.byType(Slider));
 
+Finder _staffVolumeSlider(int staff) =>
+    find.byKey(ValueKey('score-reader-staff-volume-$staff'));
+
 Future<void> _tapSlider(
   WidgetTester tester,
   Finder slider,
@@ -265,7 +268,7 @@ void main() {
     final l10n = AppLocalizations.of(
       tester.element(find.byType(ScoreMixerSheet)),
     )!;
-    await _tapSlider(tester, _slider(ScoreMixerSheet).at(1), .2);
+    await _tapSlider(tester, _staffVolumeSlider(1), .2);
     final volume = container.read(provider).mix[1].volume;
     expect(volume, inExclusiveRange(0, 1));
     expect(engine.volumes[midiChannelForStaff(1)], volume);
@@ -304,6 +307,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(mixerButton);
     await tester.pumpAndSettle();
-    expect(tester.widget<Slider>(_slider(ScoreMixerSheet).at(1)).value, volume);
+    expect(tester.widget<Slider>(_staffVolumeSlider(1)).value, volume);
   });
 }

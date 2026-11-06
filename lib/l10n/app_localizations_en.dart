@@ -3697,7 +3697,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scoreReaderBasicInstruments =>
-      'Basic sound: piano only. Your selection will be used with the real instruments.';
+      'Basic sound: piano only. Download the full GM bank for other instruments.';
 
   @override
   String get scoreReaderInstrumentFailed =>
@@ -3708,6 +3708,156 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scoreReaderSolo => 'Solo';
+
+  @override
+  String get scoreReaderChordAccompaniment => 'Chord accompaniment';
+
+  @override
+  String get scoreReaderChordSource => 'Chord source';
+
+  @override
+  String get scoreReaderChordVolume => 'Chord volume';
+
+  @override
+  String get scoreReaderChordMute => 'Mute chord accompaniment';
+
+  @override
+  String get scoreReaderChordSolo => 'Solo chord accompaniment';
+
+  @override
+  String get scoreReaderChordInstrument => 'Chord GM instrument';
+
+  @override
+  String get scoreReaderChordInstrumentFailed =>
+      'Could not change the chord instrument. Select it again to retry.';
+
+  @override
+  String scoreReaderPlayStaff(String staff) {
+    return 'Play $staff';
+  }
+
+  @override
+  String get scoreReaderStaffCapacityWarning =>
+      'This score has more staves than can be played at once. Choose which staves to play; every staff remains visible.';
+
+  @override
+  String scoreReaderStaffCapacityLimit(int maximum) {
+    return 'Select at most $maximum staves for playback. The score will still show all staves.';
+  }
+
+  @override
+  String scoreReaderSelectedStaffCount(int selected, int total) {
+    return '$selected of $total staves selected for playback';
+  }
+
+  @override
+  String get scoreReaderDiagnosticsTitle => 'Playback diagnostics';
+
+  @override
+  String scoreReaderDiagnosticStaff(String staff) {
+    return 'Staff: $staff';
+  }
+
+  @override
+  String scoreReaderDiagnosticMeasure(int measure) {
+    return 'Measure $measure';
+  }
+
+  @override
+  String scoreReaderDiagnosticUnsupportedArticulation(String signal) {
+    return 'The $signal articulation is not realized in playback.';
+  }
+
+  @override
+  String get scoreReaderDiagnosticBreathMark => 'breath mark';
+
+  @override
+  String get scoreReaderDiagnosticBowingMark => 'bow-direction mark';
+
+  @override
+  String get scoreReaderDiagnosticOtherArticulation =>
+      'unsupported articulation mark';
+
+  @override
+  String scoreReaderDiagnosticUnsupportedTremoloStrokes(int strokes) {
+    return 'A tremolo with $strokes strokes is outside the supported range (1–5) and will not be played.';
+  }
+
+  @override
+  String get scoreReaderDiagnosticInvalidTremoloStrokes =>
+      'The tremolo stroke count could not be read; the tremolo will not be played.';
+
+  @override
+  String scoreReaderDiagnosticUnsupportedTremoloType(String type) {
+    return 'Tremolo type “$type” is not realized in playback.';
+  }
+
+  @override
+  String scoreReaderDiagnosticUnsupportedOrnament(String name) {
+    return 'Ornament “$name” is not realized in playback.';
+  }
+
+  @override
+  String scoreReaderDiagnosticUnrecognizedDynamic(String name) {
+    return 'Dynamic marking “$name” is not realized in playback.';
+  }
+
+  @override
+  String scoreReaderDiagnosticInvalidTempo(String value) {
+    return 'Tempo value “$value” is invalid and could not be used.';
+  }
+
+  @override
+  String scoreReaderDiagnosticUnsupportedTempo(String value) {
+    return 'MusicXML sound tempo “$value” is not applied in playback.';
+  }
+
+  @override
+  String get scoreReaderDiagnosticIncompleteHairpin =>
+      'The crescendo or diminuendo has no matching endpoint; its curve is omitted.';
+
+  @override
+  String get scoreReaderDiagnosticIncompletePedal =>
+      'The pedal marking has no valid start-and-release pair; it is not applied.';
+
+  @override
+  String get scoreReaderDiagnosticInvalidNavigation =>
+      'Playback navigation data is invalid; playback is unavailable.';
+
+  @override
+  String get scoreReaderDiagnosticConflictingNavigation =>
+      'Playback navigation instructions conflict; playback is unavailable.';
+
+  @override
+  String get scoreReaderDiagnosticUnresolvedNavigation =>
+      'A playback destination could not be found; playback is unavailable.';
+
+  @override
+  String get scoreReaderDiagnosticCyclicNavigation =>
+      'Playback navigation contains a cycle; playback is unavailable.';
+
+  @override
+  String get scoreReaderDiagnosticMeasureOccurrenceLimitExceeded =>
+      'Playback exceeds the safe limit of 10,000 measure occurrences; playback is unavailable.';
+
+  @override
+  String get scoreReaderDiagnosticAudioUnavailable =>
+      'The audio engine could not load or control playback.';
+
+  @override
+  String get scoreReaderDiagnosticSoundFontUnavailable =>
+      'The full GM sound bank could not be downloaded.';
+
+  @override
+  String get scoreReaderDiagnosticStaffInstrumentUnavailable =>
+      'The selected GM instrument for this staff could not be loaded.';
+
+  @override
+  String get scoreReaderDiagnosticChordInstrumentUnavailable =>
+      'The selected GM instrument for chord accompaniment could not be loaded.';
+
+  @override
+  String get scoreReaderChooseStaves => 'Choose staves';
 
   @override
   String get scoreReaderZoomIn => 'Enlarge sheet music';
@@ -3723,22 +3873,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scoreReaderSoundMinimal =>
-      'Basic sound · download real instruments';
+      'Basic sound · download full GM sound bank';
 
   @override
-  String get scoreReaderSoundDownloading => 'Downloading real instruments…';
+  String get scoreReaderSoundDownloading => 'Downloading full GM sound bank…';
 
   @override
   String scoreReaderSoundDownloadingPercent(int percent) {
-    return 'Downloading real instruments… $percent%';
+    return 'Downloading full GM sound bank… $percent%';
   }
 
   @override
-  String get scoreReaderSoundFull => 'Real instruments';
+  String get scoreReaderSoundFull => 'Full GM sound bank';
 
   @override
   String get scoreReaderSoundFailed =>
-      'Could not download the real instruments · try again';
+      'Could not download the full GM sound bank · try again';
 
   @override
   String get scoreReaderAudioUnavailable => 'Audio unavailable on this device';

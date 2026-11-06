@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="4.20">
+  <Score>
+    <Division>480</Division>
+    <Part id="1">
+      <trackName>Original Regression Study</trackName>
+      <Instrument>
+        <trackName>Acoustic Grand Piano</trackName>
+        <longName>Acoustic Grand Piano</longName>
+        <shortName>Pno.</shortName>
+        <midiProgram>0</midiProgram>
+      </Instrument>
+      <Staff id="1"/>
+    </Part>
+    <Staff id="1">
+      <Measure>
+        <voice>
+          <TimeSig>
+            <sigN>4</sigN>
+            <sigD>4</sigD>
+          </TimeSig>
+          <Harmony>
+            <root>14</root>
+            <name></name>
+          </Harmony>
+          <Chord>
+            <durationType>whole</durationType>
+            <Note>
+              <pitch>69</pitch>
+              <tpc>17</tpc>
+            </Note>
+          </Chord>
+        </voice>
+      </Measure>
+    </Staff>
+  </Score>
+</museScore>

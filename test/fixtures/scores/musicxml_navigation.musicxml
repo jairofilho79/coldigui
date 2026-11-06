@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Top staff</part-name></score-part>
+    <score-part id="P2"><part-name>Lower staff</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <barline location="left"><repeat direction="forward"/></barline>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+    </measure>
+    <measure number="2">
+      <barline location="left"><ending number="1" type="start"/></barline>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+      <barline location="right"><ending number="1" type="stop"/><repeat direction="backward" times="2"/></barline>
+    </measure>
+    <measure number="3">
+      <barline location="left"><ending number="2" type="start"/></barline>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+      <barline location="right"><ending number="2" type="stop"/></barline>
+    </measure>
+    <measure number="4">
+      <direction><sound segno="Segno"/></direction>
+      <note><pitch><step>F</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+    </measure>
+    <measure number="5">
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+      <direction><sound tocoda="Coda"/></direction>
+    </measure>
+    <measure number="6">
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+      <direction><sound dalsegno="Segno"/></direction>
+    </measure>
+    <measure number="7">
+      <direction><sound coda="Coda"/></direction>
+      <note><pitch><step>B</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="1">
+      <attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><pitch><step>C</step><octave>3</octave></pitch><duration>4</duration><type>whole</type></note>
+    </measure>
+    <measure number="2"><note><pitch><step>D</step><octave>3</octave></pitch><duration>4</duration><type>whole</type></note></measure>
+    <measure number="3"><note><pitch><step>E</step><octave>3</octave></pitch><duration>4</duration><type>whole</type></note></measure>
+    <measure number="4"><note><pitch><step>F</step><octave>3</octave></pitch><duration>4</duration><type>whole</type></note></measure>
+    <measure number="5"><note><pitch><step>G</step><octave>3</octave></pitch><duration>4</duration><type>whole</type></note></measure>
+    <measure number="6"><note><pitch><step>A</step><octave>3</octave></pitch><duration>4</duration><type>whole</type></note></measure>
+    <measure number="7"><note><pitch><step>B</step><octave>3</octave></pitch><duration>4</duration><type>whole</type></note></measure>
+  </part>
+</score-partwise>

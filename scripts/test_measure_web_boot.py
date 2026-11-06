@@ -36,6 +36,26 @@ class GateTests(unittest.TestCase):
             ["loaderVisibleMs: 151ms > limite 150ms (baseline 50 + 100)"],
         )
 
+    def test_gate_uses_five_samples_to_resist_startup_outliers(self):
+        with unittest.mock.patch("sys.argv", ["measure_web_boot.py", "--check"]):
+            self.assertEqual(boot.parse_args().runs, 5)
+
+        samples = [
+            {"loaderVisibleMs": 168, "firstFrameMs": 614},
+            {"loaderVisibleMs": 153, "firstFrameMs": 601},
+            {"loaderVisibleMs": 149, "firstFrameMs": 590},
+            {"loaderVisibleMs": 130, "firstFrameMs": 550},
+            {"loaderVisibleMs": 113, "firstFrameMs": 520},
+        ]
+        with unittest.mock.patch.object(boot, "measure_once", side_effect=samples):
+            metrics = boot.median_run("chrome", "http://127.0.0.1/", 5)
+        self.assertEqual(metrics["loaderVisibleMs"], 149)
+        self.assertEqual(metrics["samples"], samples)
+        self.assertEqual(
+            boot.check_against_baseline(metrics, boot.load_baseline(boot.DEFAULT_BASELINE)),
+            [],
+        )
+
     def test_diagnostics_do_not_change_median_or_gate(self):
         samples = [
             {"loaderVisibleMs": 149, "firstFrameMs": 4999,

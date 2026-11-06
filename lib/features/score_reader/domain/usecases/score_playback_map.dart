@@ -1,13 +1,14 @@
 import 'package:crisp_notation_core/crisp_notation_core.dart';
 
+import '../entities/score_document.dart';
+import 'score_performance_plan.dart';
+
 /// Linha do tempo de execução de todas as pautas, no mesmo tempo musical do
 /// MIDI gerado por `buildScoreMidi` (repetições expandidas, andamento da
 /// pauta 0).
 class ScorePlaybackMap {
   ScorePlaybackMap._(
-    this.timelines,
-    this.tempoMap,
-    this.totalWholeNotes,
+    this.performancePlan,
     this._elementStart,
     this._elementMeasure,
     this._elementStaff,
@@ -15,14 +16,18 @@ class ScorePlaybackMap {
     this._measureEnd,
     this._spans,
     this._longest,
+    this._occurrences,
   );
 
-  factory ScorePlaybackMap.of(MultiPartScore score, {double? quarterBpm}) {
-    final timelines = [for (final part in score.parts) playbackTimeline(part)];
-    final chordAnchors = {
-      for (final part in score.parts)
-        for (final symbol in part.chordSymbols) symbol.elementId,
-    };
+  factory ScorePlaybackMap.of(MultiPartScore score, {double? quarterBpm}) =>
+      ScorePlaybackMap.fromPlan(
+        ScorePerformancePlan.of(score, quarterBpm: quarterBpm),
+      );
+
+  factory ScorePlaybackMap.fromDocument(ScoreDocument document) =>
+      ScorePlaybackMap.fromPlan(ScorePerformancePlan.fromDocument(document));
+
+  factory ScorePlaybackMap.fromPlan(ScorePerformancePlan plan) {
     final elementStart = <String, Fraction>{};
     final elementMeasure = <String, int>{};
     final elementStaff = <String, int>{};
@@ -30,41 +35,26 @@ class ScorePlaybackMap {
     final measureEnd = <int, Fraction>{};
     final spans = <_Span>[];
     var longest = Fraction.zero;
-    var total = Fraction.zero;
-    for (final (staff, timeline) in timelines.indexed) {
-      final visitedElements = <(int, String)>{};
-      for (final note in timeline) {
-        elementStaff.putIfAbsent(note.elementId, () => staff);
-        elementStart.putIfAbsent(note.elementId, () => note.start);
-        elementMeasure.putIfAbsent(note.elementId, () => note.measureIndex);
-        // A-B usa início e fim da mesma passagem, não toda a repetição.
-        if (visitedElements.add((note.measureIndex, note.elementId))) {
-          final start = measureStart[note.measureIndex];
-          if (start == null || note.start < start) {
-            measureStart[note.measureIndex] = note.start;
-          }
-          final end = measureEnd[note.measureIndex];
-          if (end == null || note.end > end) {
-            measureEnd[note.measureIndex] = note.end;
-          }
-        }
-        if (note.end > total) total = note.end;
-        // Pausa só acende quando carrega cifra: assim a cifra sobre a pausa
-        // também acompanha a execução.
-        if (note.isRest && !chordAnchors.contains(note.elementId)) continue;
-        spans.add(_Span(note.start, note.end, note.elementId));
-        if (note.duration > longest) longest = note.duration;
-      }
+    for (final event in plan.events) {
+      final id = event.origin.elementId;
+      if (id == null) continue;
+      elementStaff.putIfAbsent(id, () => event.origin.staffIndex);
+      elementStart.putIfAbsent(id, () => event.highlightStart);
+      elementMeasure.putIfAbsent(id, () => event.origin.measureIndex);
+      if (event.isRest && event.chordPitches == null) continue;
+      final soundingEnd = event.highlightEnd;
+      final soundingStart = event.highlightStart;
+      spans.add(_Span(soundingStart, soundingEnd, id));
+      final soundingDuration = soundingEnd - soundingStart;
+      if (soundingDuration > longest) longest = soundingDuration;
+    }
+    for (final occurrence in plan.measureOccurrences) {
+      measureStart.putIfAbsent(occurrence.measureIndex, () => occurrence.start);
+      measureEnd.putIfAbsent(occurrence.measureIndex, () => occurrence.end);
     }
     spans.sort((a, b) => a.start.compareTo(b.start));
     return ScorePlaybackMap._(
-      timelines,
-      _unfoldedTempoMap(
-        score.parts.first,
-        timelines.first,
-        quarterBpm ?? score.parts.first.tempo?.quarterBpm ?? 120,
-      ),
-      total,
+      plan,
       elementStart,
       elementMeasure,
       elementStaff,
@@ -72,13 +62,16 @@ class ScorePlaybackMap {
       measureEnd,
       spans,
       longest,
+      plan.measureOccurrences,
     );
   }
 
   /// Uma linha do tempo por pauta (mesma ordem de `MultiPartScore.parts`).
-  final List<List<PlaybackNote>> timelines;
-  final TempoMap tempoMap;
-  final Fraction totalWholeNotes;
+  List<List<PlaybackNote>> get timelines => performancePlan.timelines;
+
+  final ScorePerformancePlan performancePlan;
+  TempoMap get tempoMap => performancePlan.tempoMap;
+  Fraction get totalWholeNotes => performancePlan.totalWholeNotes;
   final Map<String, Fraction> _elementStart;
   final Map<String, int> _elementMeasure;
   final Map<String, int> _elementStaff;
@@ -86,6 +79,7 @@ class ScorePlaybackMap {
   final Map<int, Fraction> _measureEnd;
   final List<_Span> _spans;
   final Fraction _longest;
+  final List<ScorePerformanceMeasureOccurrence> _occurrences;
 
   Duration get duration => durationAt(totalWholeNotes);
 
@@ -120,23 +114,19 @@ class ScorePlaybackMap {
   /// fora da música.
   int? measureAt(Duration position) {
     final time = timeAt(position);
-    final first = timelines.first;
     var lo = 0;
-    var hi = first.length;
+    var hi = _occurrences.length;
     while (lo < hi) {
       final mid = (lo + hi) >> 1;
-      if (first[mid].start <= time) {
+      if (_occurrences[mid].start <= time) {
         lo = mid + 1;
       } else {
         hi = mid;
       }
     }
-    for (var i = lo - 1; i >= 0; i--) {
-      final note = first[i];
-      if (time < note.end) return note.measureIndex;
-      if (note.start < time - _longest) break;
-    }
-    return null;
+    if (lo == 0) return null;
+    final occurrence = _occurrences[lo - 1];
+    return time < occurrence.end ? occurrence.measureIndex : null;
   }
 
   /// Início (primeira passagem) do elemento — para posicionar o cursor no
@@ -182,28 +172,4 @@ int _firstStartAfter(List<_Span> spans, Fraction time) {
     }
   }
   return lo;
-}
-
-TempoMap _unfoldedTempoMap(
-  Score first,
-  List<PlaybackNote> timeline,
-  double initialBpm,
-) {
-  final spans = <TempoSpan>[TempoSpan(Fraction.zero, initialBpm)];
-  var current = initialBpm;
-  var lastMeasure = -1;
-  for (final note in timeline) {
-    if (note.measureIndex == lastMeasure) continue;
-    lastMeasure = note.measureIndex;
-    if (note.measureIndex >= first.measures.length) continue;
-    final change = first.measures[note.measureIndex].tempoChange;
-    if (change == null || change.quarterBpm == current) continue;
-    current = change.quarterBpm;
-    if (note.start == Fraction.zero) {
-      spans[0] = TempoSpan(Fraction.zero, current);
-    } else {
-      spans.add(TempoSpan(note.start, current));
-    }
-  }
-  return TempoMap(spans);
 }
