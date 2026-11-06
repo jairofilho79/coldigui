@@ -406,7 +406,7 @@ DevTools → Network: reload normal deve mostrar `(disk cache)` ou `(memory cach
 
 - [x] Script ou doc com passos reproduzíveis de medição — [web_phase_h_measurement.md](web_phase_h_measurement.md), `scripts/measure_web_boot.sh`.
 - [x] Teste estático (`test/web/web_index_perf_test.dart`) asserta splash + `__plpcgPerf` + preload em `index.html`.
-- [x] Baseline versionado em [web_perf_baseline.json](web_perf_baseline.json); gate CI `--check` compara mediana de 2 runs.
+- [x] Baseline versionado em [web_perf_baseline.json](web_perf_baseline.json); gate CI `--check` compara mediana de 5 runs.
 
 ---
 

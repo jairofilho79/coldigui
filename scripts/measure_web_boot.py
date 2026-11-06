@@ -469,8 +469,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--runs",
         type=int,
-        default=2,
-        help="Execuções para mediana (gate CI)",
+        default=5,
+        help="Execuções para mediana (gate CI; padrão: 5)",
     )
     parser.add_argument(
         "--check",
