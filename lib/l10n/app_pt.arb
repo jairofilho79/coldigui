@@ -1,6 +1,10 @@
 {
   "@@locale": "pt",
   "appTitle": "PLPCG",
+  "openInAppTitle": "Abrir este link no app?",
+  "openInAppMessage": "Escolha como deseja abrir este conteúdo.",
+  "openInAppAction": "Abrir no app",
+  "continueOnWebAction": "Continuar na web",
   "browserTitleLouvor": "{numero} — {nome} · PLPCG",
   "@browserTitleLouvor": {
     "description": "Título da aba do navegador no leitor/cifra com número (C14)",

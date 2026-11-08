@@ -1,6 +1,10 @@
 {
   "@@locale": "en",
   "appTitle": "PLPCG",
+  "openInAppTitle": "Open this link in the app?",
+  "openInAppMessage": "Choose how you would like to open this content.",
+  "openInAppAction": "Open in app",
+  "continueOnWebAction": "Continue on web",
   "browserTitleLouvor": "{numero} — {nome} · PLPCG",
   "@browserTitleLouvor": {
     "description": "Browser tab title in the reader/chords view with a number (C14)",

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/isar_provider.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
+import '../../../../core/platform/browser_navigation.dart';
 import '../../../../core/platform/platform_capabilities_provider.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/routing/route_paths.dart';
@@ -19,6 +20,7 @@ import '../../../live/domain/live_room_link.dart';
 import '../../../playlists/presentation/providers/playlists_provider.dart';
 import '../../data/providers/app_shell_providers.dart';
 import '../../domain/usecases/sync_deep_link_state.dart';
+import '../utils/app_link_uri.dart';
 import '../utils/deep_link_initial_uri.dart';
 
 /// Janela de dedupe do fingerprint de deep link (Tarefa 8, spec C.4).
@@ -29,12 +31,20 @@ const _dedupeWindow = Duration(seconds: 3);
 /// Montado em [ColdiguiApp] — subscription `app_links` (initial + stream),
 /// dedupe por fingerprint, snackbar e navegação pós-import.
 class DeepLinkListener extends ConsumerStatefulWidget {
-  const DeepLinkListener({required this.child, super.key, this.now});
+  const DeepLinkListener({
+    required this.child,
+    super.key,
+    this.now,
+    this.onOpenApp,
+  });
 
   final Widget child;
 
   /// Relógio injetável — exposto só para teste (dedupe de 3s, Tarefa 8).
   final DateTime Function()? now;
+
+  /// Redirecionamento injetável para testes.
+  final void Function(Uri uri)? onOpenApp;
 
   @override
   ConsumerState<DeepLinkListener> createState() => DeepLinkListenerState();
@@ -45,6 +55,7 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
   String? _lastProcessedKey;
   DateTime? _lastProcessedAt;
   var _handling = false;
+  var _prompting = false;
 
   DateTime _now() => (widget.now ?? DateTime.now)();
 
@@ -84,7 +95,9 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
   Future<void> handleUriForTest(Uri uri) => _handleUri(uri);
 
   Future<void> _handleUri(Uri uri) async {
-    if (_handling || !ref.read(deepLinkHandlingEnabledProvider)) return;
+    if (_handling || _prompting || !ref.read(deepLinkHandlingEnabledProvider)) {
+      return;
+    }
 
     // Sala ao vivo: sem import, só navegar (spec lista-ao-vivo D6).
     final liveCode = parseLiveRoomCode(uri);
@@ -101,7 +114,13 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
     if (praiseId != null) {
       final fingerprint = 'praise:$praiseId';
       if (_isRecentlyProcessed(fingerprint)) return;
+      final appUri = await _promptToOpenApp(uri);
+      if (!mounted) return;
       _markProcessed(fingerprint);
+      if (appUri != null) {
+        (widget.onOpenApp ?? navigateBrowserTo)(appUri);
+        return;
+      }
       ref.read(appRouterProvider).go(RoutePaths.praiseFor(praiseId));
       return;
     }
@@ -112,6 +131,13 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
 
     final fingerprint = uri.query;
     if (_isRecentlyProcessed(fingerprint)) return;
+    final appUri = await _promptToOpenApp(uri);
+    if (!mounted) return;
+    if (appUri != null) {
+      _markProcessed(fingerprint);
+      (widget.onOpenApp ?? navigateBrowserTo)(appUri);
+      return;
+    }
 
     _handling = true;
     try {
@@ -173,6 +199,47 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
       _showSnackbar((l10n) => l10n.deepLinkImportFailed);
     } finally {
       _handling = false;
+    }
+  }
+
+  Future<Uri?> _promptToOpenApp(Uri uri) async {
+    if (!ref.read(platformCapabilitiesProvider).isWeb) return null;
+    final appUri = appLinkUriForV2WebDeepLink(uri);
+    if (appUri == null) return null;
+
+    final context = rootNavigatorKey.currentContext;
+    if (context == null) {
+      debugPrint('[deep-link] navegador raiz indisponível para o diálogo.');
+      return null;
+    }
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) {
+      debugPrint('[deep-link] localização indisponível para o diálogo.');
+      return null;
+    }
+
+    _prompting = true;
+    try {
+      final openInApp = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l10n.openInAppTitle),
+          content: Text(l10n.openInAppMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.continueOnWebAction),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.openInAppAction),
+            ),
+          ],
+        ),
+      );
+      return openInApp == true ? appUri : null;
+    } finally {
+      _prompting = false;
     }
   }
 
