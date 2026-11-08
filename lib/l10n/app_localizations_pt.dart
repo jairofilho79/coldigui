@@ -13,6 +13,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get appTitle => 'PLPCG';
 
   @override
+  String get openInAppTitle => 'Abrir este link no app?';
+
+  @override
+  String get openInAppMessage => 'Escolha como deseja abrir este conteúdo.';
+
+  @override
+  String get openInAppAction => 'Abrir no app';
+
+  @override
+  String get continueOnWebAction => 'Continuar na web';
+
+  @override
   String browserTitleLouvor(String numero, String nome) {
     return '$numero — $nome · PLPCG';
   }

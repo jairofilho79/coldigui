@@ -7,6 +7,8 @@ import 'dart:async';
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
+import 'package:coldigui/core/platform/platform_capabilities.dart';
+import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
 import 'package:coldigui/core/routing/app_router.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/app_shell/data/providers/app_shell_providers.dart';
@@ -667,9 +669,62 @@ void main() {
     expect(fakePlaylists.activatedImportId, 'playlist-id');
   });
 
-  testWidgets('deep link /louvor/:id navega diretamente para a tela do louvor', (
-    tester,
-  ) async {
+  testWidgets(
+    'deep link /louvor/:id navega diretamente para a tela do louvor',
+    (tester) async {
+      final router = GoRouter(
+        navigatorKey: rootNavigatorKey,
+        initialLocation: RoutePaths.home,
+        routes: [
+          GoRoute(
+            path: RoutePaths.home,
+            builder: (_, _) => const Scaffold(body: Text('Home Screen')),
+          ),
+          GoRoute(
+            path: RoutePaths.praise,
+            builder: (_, state) => Scaffold(
+              body: Text('Praise Screen: ${state.pathParameters['id']}'),
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appRouterProvider.overrideWithValue(router),
+            deepLinkHandlingEnabledProvider.overrideWithValue(true),
+            platformCapabilitiesProvider.overrideWithValue(
+              PlatformCapabilities.web,
+            ),
+          ],
+          child: DeepLinkListener(
+            child: MaterialApp.router(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              locale: const Locale('pt'),
+              routerConfig: router,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final state = tester.state<DeepLinkListenerState>(
+        find.byType(DeepLinkListener),
+      );
+      await state.handleUriForTest(
+        Uri.parse('https://plpcg.com/louvor/abc123'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Praise Screen: abc123'), findsOneWidget);
+      expect(find.byType(AlertDialog), findsNothing);
+    },
+  );
+
+  testWidgets('link de louvor do v2 permite abrir no app', (tester) async {
+    Uri? openedAppUri;
     final router = GoRouter(
       navigatorKey: rootNavigatorKey,
       initialLocation: RoutePaths.home,
@@ -692,8 +747,12 @@ void main() {
         overrides: [
           appRouterProvider.overrideWithValue(router),
           deepLinkHandlingEnabledProvider.overrideWithValue(true),
+          platformCapabilitiesProvider.overrideWithValue(
+            PlatformCapabilities.web,
+          ),
         ],
         child: DeepLinkListener(
+          onOpenApp: (uri) => openedAppUri = uri,
           child: MaterialApp.router(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
@@ -708,9 +767,82 @@ void main() {
     final state = tester.state<DeepLinkListenerState>(
       find.byType(DeepLinkListener),
     );
-    await state.handleUriForTest(Uri.parse('https://plpcg.com/louvor/abc123'));
+    final handling = state.handleUriForTest(
+      Uri.parse('https://v2.plpcg.com/louvor/abc123?source=a%2Fb#details'),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.text('Praise Screen: abc123'), findsOneWidget);
+    expect(find.text('Abrir no app'), findsOneWidget);
+    expect(find.text('Continuar na web'), findsOneWidget);
+    await tester.tap(find.text('Abrir no app'));
+    await tester.pumpAndSettle();
+    await handling;
+
+    expect(openedAppUri?.origin, 'https://plpcg.com');
+    expect(openedAppUri?.path, '/louvor/abc123');
+    expect(openedAppUri?.query, 'source=a%2Fb');
+    expect(openedAppUri?.fragment, 'details');
+    expect(find.text('Home Screen'), findsOneWidget);
+  });
+
+  testWidgets('link de lista do v2 permite continuar na web', (tester) async {
+    final fakePlaylists = FakePlaylistsNotifier();
+    final sync = _CountingSyncDeepLinkState(importUseCase);
+    final router = GoRouter(
+      navigatorKey: rootNavigatorKey,
+      initialLocation: RoutePaths.playlists,
+      routes: [
+        GoRoute(
+          path: RoutePaths.home,
+          builder: (_, _) => const Scaffold(body: Text('Home Screen')),
+        ),
+        GoRoute(
+          path: RoutePaths.playlists,
+          builder: (_, _) => const Scaffold(body: Text('Listas Screen')),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appRouterProvider.overrideWithValue(router),
+          deepLinkHandlingEnabledProvider.overrideWithValue(true),
+          platformCapabilitiesProvider.overrideWithValue(
+            PlatformCapabilities.web,
+          ),
+          isarStatusProvider.overrideWithValue(IsarStatus.available),
+          syncDeepLinkStateProvider.overrideWithValue(sync),
+          playlistsProvider.overrideWith(() => fakePlaylists),
+        ],
+        child: DeepLinkListener(
+          child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            routerConfig: router,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final state = tester.state<DeepLinkListenerState>(
+      find.byType(DeepLinkListener),
+    );
+    final handling = state.handleUriForTest(
+      Uri.parse('https://v2.plpcg.com/?p=0a1-fff&n=Ensaio'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Abrir no app'), findsOneWidget);
+    expect(sync.callCount, 0);
+    await tester.tap(find.text('Continuar na web'));
+    await tester.pumpAndSettle();
+    await handling;
+
+    expect(sync.callCount, 1);
+    expect(find.text('Home Screen'), findsOneWidget);
+    expect(fakePlaylists.activatedImportId, 'playlist-1');
   });
 }

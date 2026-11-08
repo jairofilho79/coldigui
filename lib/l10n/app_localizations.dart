@@ -104,6 +104,30 @@ abstract class AppLocalizations {
   /// **'PLPCG'**
   String get appTitle;
 
+  /// No description provided for @openInAppTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir este link no app?'**
+  String get openInAppTitle;
+
+  /// No description provided for @openInAppMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha como deseja abrir este conteúdo.'**
+  String get openInAppMessage;
+
+  /// No description provided for @openInAppAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir no app'**
+  String get openInAppAction;
+
+  /// No description provided for @continueOnWebAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Continuar na web'**
+  String get continueOnWebAction;
+
   /// Título da aba do navegador no leitor/cifra com número (C14)
   ///
   /// In pt, this message translates to:
