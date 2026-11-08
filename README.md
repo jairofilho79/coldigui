@@ -15,6 +15,13 @@ Um louvor = um praise do coldigom: as entradas legadas do manifest (`pdfId`,
 `shortId`) e os materiais Coldigom (áudio, cifra, letra, gestos) aparecem no
 mesmo card. Ver `docs/superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md`.
 
+## Planejamento
+
+[Busca assistida e importação de listas](docs/superpowers/plans/2026-11-08-busca-assistida-e-importacao-de-listas.md):
+fases de busca tolerante e importação por texto, microfone próprio, câmera/galeria,
+recebimento de compartilhamentos e evolução futura opcional. Documento de
+planejamento; as funcionalidades ainda não foram implementadas por essa entrega.
+
 ## Testes
 
 Verificação local completa, igual às etapas de teste do CI (`.github/workflows/web.yml`):
