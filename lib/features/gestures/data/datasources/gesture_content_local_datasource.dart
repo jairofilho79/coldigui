@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:isar_plus/isar_plus.dart';
 
 import '../../../../core/database/collections/gesture_document_cache.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
 
 /// Entrada do cache: o JSON cru e quando ele foi buscado.
 ///
@@ -24,9 +25,28 @@ const kGestureCacheTtl = Duration(hours: 24);
 /// Best-effort como o de cifras: sem Isar (web degradada) `read` devolve
 /// `null` e `write` vira no-op registrado.
 class GestureContentLocalDatasource {
-  const GestureContentLocalDatasource(this._isar);
+  const GestureContentLocalDatasource(this._isar, {this.skipAutomaticWrite});
 
   final Isar? _isar;
+  final bool Function(String key)? skipAutomaticWrite;
+
+  bool writeOnRead(String key, String content) {
+    if (skipAutomaticWrite?.call(key) == true) return false;
+    write(key, content);
+    return true;
+  }
+
+  void remove(String key) {
+    final isar = _isar;
+    if (isar == null) {
+      throw const StorageUnavailableException('offline.gesture');
+    }
+    isar.write((isar) {
+      final coll = isar.gestureDocumentCaches;
+      final row = coll.where().r2KeyEqualTo(key).findFirst();
+      if (row != null) coll.delete(row.id);
+    });
+  }
 
   GestureCacheEntry? read(String r2Key) {
     final isar = _isar;

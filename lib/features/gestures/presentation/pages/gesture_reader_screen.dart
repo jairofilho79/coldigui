@@ -9,6 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/material_id_kind.dart';
+import '../../../../core/utils/pdf_id_codec.dart';
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../../core/widgets/app_snackbar.dart';
@@ -22,6 +24,8 @@ import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import '../../../contributions/domain/entities/contribution_kind.dart';
 import '../../../contributions/domain/entities/contribution_target.dart';
 import '../../../contributions/presentation/utils/open_contribute.dart';
+import '../../../offline/presentation/providers/reader_offline_provider.dart';
+import '../../../offline/presentation/widgets/reader_offline_button.dart';
 import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
 import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
@@ -266,10 +270,30 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
   void _maybePrefetch(GestureDocument document, GestureDictionary dictionary) {
     if (_prefetched) return;
     _prefetched = true;
-    prefetchGestureFigures(
-      ref.read(gestureFigureRepositoryProvider),
-      document,
-      dictionary,
+    unawaited(_prefetchAndRefreshAvailability(document, dictionary, _r2Key));
+  }
+
+  Future<void> _prefetchAndRefreshAvailability(
+    GestureDocument document,
+    GestureDictionary dictionary,
+    String key,
+  ) async {
+    try {
+      await prefetchGestureFigures(
+        ref.read(gestureFigureRepositoryProvider),
+        document,
+        dictionary,
+      );
+    } on Exception catch (error) {
+      debugPrint('[gestos] prefetch de figuras para $key falhou: $error');
+    }
+    if (!mounted || key != _r2Key || key.isEmpty) return;
+    ref.invalidate(
+      readerOfflineAvailableProvider((
+        kind: MaterialKind.gesture,
+        id: encodePdfId(key),
+        key: key,
+      )),
     );
   }
 
@@ -464,6 +488,7 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
                         setState(() => _showSpeedSlider = !_showSpeedSlider),
                     l10n: l10n,
                     gestureId: widget.queryParams[UrlSyncParams.pdfId] ?? '',
+                    assetKey: _r2Key,
                     praiseId: _currentPraiseId,
                   ),
                   if (_showSpeedSlider)
@@ -608,6 +633,7 @@ class _GestureReaderToolbar extends ConsumerWidget {
     required this.onToggleSpeedSlider,
     required this.l10n,
     required this.gestureId,
+    required this.assetKey,
     this.praiseId,
   });
 
@@ -622,6 +648,7 @@ class _GestureReaderToolbar extends ConsumerWidget {
   final VoidCallback onToggleSpeedSlider;
   final AppLocalizations l10n;
   final String gestureId;
+  final String assetKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -630,8 +657,9 @@ class _GestureReaderToolbar extends ConsumerWidget {
     final style = _toolbarButtonStyle(palette.toolbarIcon);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: _toolbarGroupGap),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+      child: Wrap(
+        alignment: WrapAlignment.end,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           SpotlightGuideTarget(
             id: 'gestures-font-size-controls',
@@ -750,6 +778,15 @@ class _GestureReaderToolbar extends ConsumerWidget {
             ),
           ),
           _ToolbarSeparator(color: palette.divider),
+          if (assetKey.isNotEmpty)
+            ReaderOfflineButton(
+              material: (
+                kind: MaterialKind.gesture,
+                id: encodePdfId(assetKey),
+                key: assetKey,
+              ),
+              style: style,
+            ),
           IconButton(
             style: style,
             tooltip: l10n.contributeReportTooltip,

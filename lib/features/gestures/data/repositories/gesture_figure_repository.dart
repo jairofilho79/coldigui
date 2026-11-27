@@ -25,6 +25,9 @@ class GestureFigureRepository {
   /// requisição própria.
   final _inFlight = <String, Future<Uint8List?>>{};
 
+  Future<bool> hasLocal(String r2Key) async =>
+      (await _store.read(r2Key.trim()))?.isNotEmpty ?? false;
+
   /// Bytes da figura, do store ou da rede; `null` se não deu.
   Future<Uint8List?> get(String r2Key) async {
     final key = r2Key.trim();

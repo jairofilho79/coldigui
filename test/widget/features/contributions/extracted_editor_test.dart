@@ -26,8 +26,8 @@ import '../../../support/fakes/fake_auth_notifier.dart';
 import '../../../support/fakes/fake_device_snapshot_port.dart';
 import '../../../support/pump_app.dart';
 
-class _FakeChordLocal implements ChordContentLocalDatasource {
-  _FakeChordLocal(this.key, this.content);
+class _FakeChordLocal extends ChordContentLocalDatasource {
+  _FakeChordLocal(this.key, this.content) : super(null);
   final String key;
   final String content;
 

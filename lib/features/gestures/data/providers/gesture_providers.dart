@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_config.dart';
 import '../../../../core/database/isar_provider.dart';
 import '../../../../core/providers/device_connectivity_provider.dart';
+import '../../../../core/utils/material_id_kind.dart';
 import '../../../coldigom/data/providers/coldigom_dio_provider.dart';
+import '../../../offline/data/providers/reader_offline_exclusions_provider.dart';
 import '../../domain/entities/gesture_dictionary.dart';
 import '../../domain/entities/gesture_document.dart';
 import '../../domain/usecases/parse_gesture_dictionary.dart';
@@ -30,7 +32,12 @@ final gestureContentDatasourceProvider = Provider<GestureContentDatasource>((ref
 /// Cache Isar do documento; `null` de Isar = modo degradado.
 final gestureContentLocalDatasourceProvider =
     Provider<GestureContentLocalDatasource>((ref) {
-      return GestureContentLocalDatasource(ref.watch(optionalIsarProvider));
+      return GestureContentLocalDatasource(
+        ref.watch(optionalIsarProvider),
+        skipAutomaticWrite: (key) => ref
+            .read(readerOfflineExclusionsProvider)
+            .contains(readerOfflineExclusion(MaterialKind.gesture, key)),
+      );
     });
 
 final gestureDictionaryDatasourceProvider =
@@ -97,13 +104,11 @@ final gestureDocumentProvider = FutureProvider.autoDispose
       final remote = ref.watch(gestureContentDatasourceProvider);
       final content = await remote.fetchContent(key);
       if (content == null) {
-        ref.keepAlive();
-        local.write(key, '');
+        if (local.writeOnRead(key, '')) ref.keepAlive();
         return null;
       }
       final doc = parseGestureDocument(content);
-      ref.keepAlive();
-      local.write(key, content);
+      if (local.writeOnRead(key, content)) ref.keepAlive();
       return doc;
     });
 
@@ -119,15 +124,13 @@ Future<void> _revalidateDocument(
     if (fresh == null) {
       // 404 também é resposta conclusiva: grava o marcador negativo (mirror
       // `_revalidate` de `chord_providers.dart`).
-      local.write(key, '');
-      if (cached.isNotEmpty) ref.invalidateSelf();
+      if (local.writeOnRead(key, '') && cached.isNotEmpty) ref.invalidateSelf();
       return;
     }
     if (fresh == cached) return;
     // Nunca persiste corpo que não parseia — só loga e mantém o cache antigo.
     parseGestureDocument(fresh);
-    local.write(key, fresh);
-    ref.invalidateSelf();
+    if (local.writeOnRead(key, fresh)) ref.invalidateSelf();
   } on Object catch (error) {
     debugPrint('[gestos] revalidação de $key falhou: $error');
   }
@@ -230,12 +233,21 @@ final gestureFigureProvider = FutureProvider.autoDispose.family<Uint8List?, Stri
 );
 
 /// Aquece o store com as figuras (PNG e GIF) dos ids de [document]
-/// resolvidos por [dictionary]. Best-effort, dispara e esquece.
+/// resolvidos por [dictionary].
 ///
 /// Recebe o repositório (não um `Ref`) para servir tanto a providers quanto
 /// a widgets (`WidgetRef` não é `Ref`).
-void prefetchGestureFigures(
+Future<void> prefetchGestureFigures(
   GestureFigureRepository repository,
+  GestureDocument document,
+  GestureDictionary dictionary,
+) async {
+  final keys = gestureFigureKeysForDocument(document, dictionary);
+  if (keys.isEmpty) return;
+  await repository.prefetch(keys);
+}
+
+Set<String> gestureFigureKeysForDocument(
   GestureDocument document,
   GestureDictionary dictionary,
 ) {
@@ -247,6 +259,5 @@ void prefetchGestureFigures(
     final gif = entry.gif;
     if (gif != null) keys.add(gif);
   }
-  if (keys.isEmpty) return;
-  unawaited(repository.prefetch(keys));
+  return keys;
 }

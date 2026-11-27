@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:coldigui/core/failures/app_failure.dart';
 import 'package:coldigui/core/l10n/failure_message.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/core/utils/pdf_path_normalizer.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
@@ -16,8 +19,10 @@ import 'package:coldigui/core/routing/reading_navigation.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/shell_navigation.dart';
 import 'package:coldigui/core/tutorial/presentation/providers/tutorial_provider.dart';
+import 'package:coldigui/features/offline/domain/entities/offline_reader_material.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
+import 'package:coldigui/features/offline/presentation/widgets/reader_offline_button.dart';
 import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_providers.dart';
 import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
 import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';
@@ -333,6 +338,13 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       titulo: titulo,
       showTitle: sessionLoading && carouselEmpty,
       isFullscreen: isFullscreen,
+      offlineMaterial: isColdigomPdfId(pdfId)
+          ? (
+              kind: MaterialKind.pdf,
+              id: pdfId,
+              key: PdfPathNormalizer.getPdfRelPath(pdfId),
+            )
+          : null,
       filePath: sessionLoaded ? filePath : null,
       onToggleFullscreen: () => ref.read(toggleReaderFullscreenProvider).call(),
       onToggleFitMode: () =>
@@ -424,6 +436,7 @@ class _ReaderScaffold extends StatelessWidget {
     this.filePath,
     this.onToggleFullscreen,
     this.onToggleFitMode,
+    this.offlineMaterial,
     this.fitModeIsPageWidth = false,
     this.onShare,
     this.shareLoading = false,
@@ -441,6 +454,7 @@ class _ReaderScaffold extends StatelessWidget {
 
   final Widget body;
   final String? filePath;
+  final OfflineReaderMaterial? offlineMaterial;
   final VoidCallback? onToggleFullscreen;
 
   /// UC-11 — Ajustar à largura/página (spec A.3 C8, `Icons.fit_screen`).
@@ -494,6 +508,8 @@ class _ReaderScaffold extends StatelessWidget {
                   ? Text(titulo, overflow: TextOverflow.ellipsis)
                   : null,
               actions: [
+                if (offlineMaterial case final material?)
+                  ReaderOfflineButton(material: material),
                 if (onReport != null)
                   IconButton(
                     tooltip: reportTooltip,

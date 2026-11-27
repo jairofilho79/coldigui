@@ -257,6 +257,45 @@ class AppLocalizationsPt extends AppLocalizations {
   String get offlineTitle => 'Offline';
 
   @override
+  String get readerOfflineDownload => 'Baixar offline';
+
+  @override
+  String get readerOfflineSaved => 'Disponível offline · toque para remover';
+
+  @override
+  String get readerOfflineWorking => 'Preparando material offline…';
+
+  @override
+  String get readerOfflineCheckError =>
+      'Não foi possível verificar. Toque para tentar de novo.';
+
+  @override
+  String get readerOfflineRemove => 'Remover do offline?';
+
+  @override
+  String get readerOfflineRemoveBody =>
+      'Só a cópia offline deste material será removida.';
+
+  @override
+  String get readerOfflineRemoveLyrics =>
+      'Esta letra deixará de abrir sem internet. Ela continuará aparecendo nas buscas.';
+
+  @override
+  String get readerOfflineConfirmRemove => 'Remover';
+
+  @override
+  String get readerOfflineDownloadError =>
+      'Não foi possível baixar este material offline. Tente de novo.';
+
+  @override
+  String get readerOfflineRemoveError =>
+      'Não foi possível remover este material offline. Tente de novo.';
+
+  @override
+  String get lyricsReaderOfflineExcluded =>
+      'A leitura offline desta letra está desativada. Use o botão de download para reativar.';
+
+  @override
   String get offlineStoppingDownload => 'Parando...';
 
   @override

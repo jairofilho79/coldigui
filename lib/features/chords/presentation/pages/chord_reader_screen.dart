@@ -7,6 +7,8 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/layout/breakpoints.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/material_id_kind.dart';
+import '../../../../core/utils/pdf_id_codec.dart';
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../../core/widgets/app_snackbar.dart';
@@ -20,6 +22,7 @@ import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import '../../../contributions/domain/entities/contribution_kind.dart';
 import '../../../contributions/domain/entities/contribution_target.dart';
 import '../../../contributions/presentation/utils/open_contribute.dart';
+import '../../../offline/presentation/widgets/reader_offline_button.dart';
 import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
@@ -743,6 +746,15 @@ class _ChordReaderToolbar extends ConsumerWidget {
                 ),
               ),
           _ToolbarSeparator(color: palette.comment),
+          if (chordId.isNotEmpty)
+            ReaderOfflineButton(
+              material: (
+                kind: MaterialKind.chord,
+                id: encodePdfId(chordId),
+                key: chordId,
+              ),
+              style: style,
+            ),
           IconButton(
             style: style,
             tooltip: l10n.contributeReportTooltip,

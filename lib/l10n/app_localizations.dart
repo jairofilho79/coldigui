@@ -500,6 +500,72 @@ abstract class AppLocalizations {
   /// **'Offline'**
   String get offlineTitle;
 
+  /// No description provided for @readerOfflineDownload.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar offline'**
+  String get readerOfflineDownload;
+
+  /// No description provided for @readerOfflineSaved.
+  ///
+  /// In pt, this message translates to:
+  /// **'Disponível offline · toque para remover'**
+  String get readerOfflineSaved;
+
+  /// No description provided for @readerOfflineWorking.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preparando material offline…'**
+  String get readerOfflineWorking;
+
+  /// No description provided for @readerOfflineCheckError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível verificar. Toque para tentar de novo.'**
+  String get readerOfflineCheckError;
+
+  /// No description provided for @readerOfflineRemove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover do offline?'**
+  String get readerOfflineRemove;
+
+  /// No description provided for @readerOfflineRemoveBody.
+  ///
+  /// In pt, this message translates to:
+  /// **'Só a cópia offline deste material será removida.'**
+  String get readerOfflineRemoveBody;
+
+  /// No description provided for @readerOfflineRemoveLyrics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta letra deixará de abrir sem internet. Ela continuará aparecendo nas buscas.'**
+  String get readerOfflineRemoveLyrics;
+
+  /// No description provided for @readerOfflineConfirmRemove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover'**
+  String get readerOfflineConfirmRemove;
+
+  /// No description provided for @readerOfflineDownloadError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível baixar este material offline. Tente de novo.'**
+  String get readerOfflineDownloadError;
+
+  /// No description provided for @readerOfflineRemoveError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível remover este material offline. Tente de novo.'**
+  String get readerOfflineRemoveError;
+
+  /// No description provided for @lyricsReaderOfflineExcluded.
+  ///
+  /// In pt, this message translates to:
+  /// **'A leitura offline desta letra está desativada. Use o botão de download para reativar.'**
+  String get lyricsReaderOfflineExcluded;
+
   /// No description provided for @offlineStoppingDownload.
   ///
   /// In pt, this message translates to:

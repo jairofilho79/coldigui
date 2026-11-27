@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Quem pode segurar o lock de manutenção offline (spec C.1 / B14).
 ///
 /// `normalize` é a troca de ids legados do índice (spec fim-fonte-plpcg §6.2).
-enum OfflineMaintenanceOwner { reconcile, coldigom, normalize }
+enum OfflineMaintenanceOwner { reconcile, coldigom, normalize, reader }
 
 /// Lock cooperativo de manutenção offline (spec C.1 / B14).
 ///

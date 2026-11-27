@@ -1,6 +1,7 @@
 import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
 import 'package:coldigui/features/audio_flags/presentation/widgets/add_audio_flag_dialog.dart';
@@ -18,6 +19,7 @@ import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dar
 import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_target.dart';
 import 'package:coldigui/features/contributions/presentation/utils/open_contribute.dart';
+import 'package:coldigui/features/offline/presentation/widgets/reader_offline_button.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -116,8 +118,9 @@ class AudioPlayerScreen extends ConsumerWidget {
                   ),
                   SpotlightGuideTarget(
                     id: 'audio-quick-actions',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         if (track != null && materialPdfId != null)
                           IconButton(
@@ -159,6 +162,15 @@ class AudioPlayerScreen extends ConsumerWidget {
                                 : AppColors.textLight.withValues(alpha: 0.55),
                           ),
                         ),
+                        if (track != null && track.r2Key.isNotEmpty)
+                          ReaderOfflineButton(
+                            material: (
+                              kind: MaterialKind.audio,
+                              id: track.audioId,
+                              key: track.r2Key,
+                            ),
+                            color: AppColors.textLight,
+                          ),
                         if (track != null)
                           PopupMenuButton<double>(
                             tooltip: l10n.audioSpeed,
@@ -180,6 +192,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 8),
                               child: Center(
+                                widthFactor: 1,
                                 child: Text(
                                   l10n.audioSpeedValue(
                                     formatAudioSpeed(session.speed),

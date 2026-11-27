@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/data/datasources/audio_bytes_datasource.dart';
 import 'package:coldigui/features/chords/data/datasources/chord_content_datasource.dart';
@@ -64,7 +65,8 @@ class _Catalog extends ColdigomCatalogLocalDatasource {
 // ------------------------------------------------------------------ PDF
 
 class _PdfRepo implements OfflinePdfRepository {
-  _PdfRepo({this.present = const {}, this.persistent = const {}});
+  _PdfRepo({this.present = const {}, Set<String> persistent = const {}})
+    : persistent = {...persistent};
   final Set<String> present;
   final Set<String> persistent;
 
@@ -86,16 +88,22 @@ class _PdfRepo implements OfflinePdfRepository {
       pdfIds.intersection(present);
 
   @override
+  Future<OfflinePdfEntry?> lookup(String pdfId) async =>
+      (await listAll()).where((entry) => entry.pdfId == pdfId).firstOrNull;
+
+  @override
   dynamic noSuchMethod(Invocation i) =>
       throw UnimplementedError('${i.memberName}');
 }
 
 class _PdfLocal extends OfflinePdfLocalDatasource {
-  const _PdfLocal(this.marked) : super(null);
+  const _PdfLocal(this.marked, this.repo) : super(null);
   final Set<String> marked;
+  final _PdfRepo? repo;
   @override
   Future<int> markPersistent(Set<String> pdfIds) async {
     marked.addAll(pdfIds);
+    repo?.persistent.addAll(pdfIds);
     return pdfIds.length;
   }
 }
@@ -114,7 +122,8 @@ class _AudioBytes extends AudioBytesDatasource {
 }
 
 class _AudioRepo implements OfflineAudioRepository {
-  _AudioRepo({this.present = const {}, this.upsertThrows});
+  _AudioRepo({Set<String> present = const {}, this.upsertThrows})
+    : present = {...present};
   final Set<String> present;
   final Object? upsertThrows;
   final upserted = <String>[];
@@ -131,6 +140,7 @@ class _AudioRepo implements OfflineAudioRepository {
   }) async {
     if (upsertThrows != null) throw upsertThrows!;
     upserted.add(audioId);
+    present.add(audioId);
     return OfflineAudioEntry(
       audioId: audioId,
       r2Key: r2Key,
@@ -142,6 +152,9 @@ class _AudioRepo implements OfflineAudioRepository {
 
   @override
   Future<LocalAudioSource?> lookup(String audioId) async => null;
+
+  @override
+  Future<void> remove(String audioId) async => present.remove(audioId);
 
   @override
   dynamic noSuchMethod(Invocation i) =>
@@ -170,6 +183,9 @@ class _ChordLocal extends ChordContentLocalDatasource {
 
   @override
   void write(String r2Key, String content) => store[r2Key] = content;
+
+  @override
+  void remove(String key) => store.remove(key);
 }
 
 class _GestureRemote extends GestureContentDatasource {
@@ -197,6 +213,12 @@ class _GestureLocal extends GestureContentLocalDatasource {
 class _Figures extends GestureFigureRepository {
   _Figures() : super(_NoStore(), Dio(), apiBase: '');
   final prefetched = <Set<String>>[];
+  bool failToPersist = false;
+
+  @override
+  Future<bool> hasLocal(String r2Key) async =>
+      !failToPersist && prefetched.any((keys) => keys.contains(r2Key));
+
   @override
   Future<void> prefetch(Iterable<String> r2Keys) async =>
       prefetched.add(r2Keys.toSet());
@@ -258,6 +280,7 @@ void main() {
     Future<String?> Function(String)? gesture,
     Map<String, String>? gestureStore,
     ScoreFileRepository? scoreFiles,
+    Future<void> Function(Set<String>)? restoreLyrics,
     int concurrency = 2,
   }) {
     marked = {};
@@ -266,7 +289,7 @@ void main() {
     return DownloadColdigomMaterials(
       catalog: _Catalog(rows),
       pdfRepository: pdfRepo ?? _PdfRepo(),
-      pdfLocal: _PdfLocal(marked),
+      pdfLocal: _PdfLocal(marked, pdfRepo),
       fetchPdf:
           fetchPdf ??
           (id, _, {cancelToken}) async {
@@ -282,6 +305,7 @@ void main() {
       figureKeysFor: (_) async => {'fig/a.png', 'fig/b.png'},
       concurrency: concurrency,
       scoreFiles: scoreFiles,
+      restoreLyrics: restoreLyrics,
     );
   }
 
@@ -308,6 +332,104 @@ void main() {
     addTearDown(dio.close);
     return ScoreFileRepository(store, dio, apiBase: 'https://example.test');
   }
+
+  test(
+    'promove a cópia PDF existente sem buscar o arquivo novamente',
+    () async {
+      final key = _r2('a', 'pdf');
+      final id = encodePdfId(key);
+      final repo = _PdfRepo(present: {id}, persistent: {});
+      final usecase = build(
+        rows: [],
+        pdfRepo: repo,
+        fetchPdf: (_, _, {cancelToken}) async => fail('PDF já está no cache'),
+      );
+      final material = (kind: MaterialKind.pdf, id: id, key: key);
+
+      expect(await usecase.isMaterialAvailable(material), isFalse);
+      await usecase.downloadMaterial(material);
+      expect(await usecase.isMaterialAvailable(material), isTrue);
+    },
+  );
+
+  test(
+    'remove só a cifra escolhida mesmo quando foi baixada em lote',
+    () async {
+      final key = _r2('a', 'chord');
+      final otherKey = _r2('b', 'chord');
+      final store = <String, String>{};
+      final usecase = build(
+        rows: [
+          _row('p1', '001', [_m('a', 'k', 'chord'), _m('b', 'k', 'chord')]),
+        ],
+        chord: (_) async => '{t: Teste}\n[C]Linha exemplar',
+        chordStore: store,
+      );
+      final material = (
+        kind: MaterialKind.chord,
+        id: encodePdfId(key),
+        key: key,
+      );
+
+      await usecase(kindIds: {'k'});
+      expect(await usecase.isMaterialAvailable(material), isTrue);
+      await usecase.removeMaterial(material);
+      expect(await usecase.isMaterialAvailable(material), isFalse);
+      expect(store.keys, [otherKey]);
+    },
+  );
+
+  test('não confirma download de gesto sem todas as figuras locais', () async {
+    final key = _r2('a', 'gestures');
+    final store = <String, String>{};
+    final usecase = build(rows: [], gestureStore: store);
+    figures.failToPersist = true;
+    final material = (
+      kind: MaterialKind.gesture,
+      id: encodePdfId(key),
+      key: key,
+    );
+
+    await expectLater(usecase.downloadMaterial(material), throwsStateError);
+    expect(store, isEmpty);
+    expect(await usecase.isMaterialAvailable(material), isFalse);
+  });
+
+  test(
+    'salva e remove só a faixa solicitada no armazenamento do lote',
+    () async {
+      final key = _r2('a', 'mp3');
+      final id = encodePdfId(key);
+      final other = encodePdfId(_r2('b', 'mp3'));
+      final repo = _AudioRepo(present: {other});
+      final bytes = _AudioBytes((_) async => Uint8List.fromList([1, 2, 3]));
+      final first = build(rows: [], audioRepo: repo, audioBytes: bytes);
+      final material = (kind: MaterialKind.audio, id: id, key: key);
+
+      await first.downloadMaterial(material);
+      expect(bytes.calls, [key]);
+
+      final reopened = build(rows: [], audioRepo: repo, audioBytes: bytes);
+      expect(await reopened.isMaterialAvailable(material), isTrue);
+      await reopened.removeMaterial(material);
+      expect(await reopened.isMaterialAvailable(material), isFalse);
+      expect(repo.present, {other});
+    },
+  );
+
+  test('lote concluído reativa letras só dos louvores selecionados', () async {
+    final restored = <String>{};
+    final usecase = build(
+      rows: [
+        _row('p1', '001', [_m('a', 'k', 'pdf')]),
+        _row('p2', '002', [_m('b', 'outro', 'pdf')]),
+      ],
+      restoreLyrics: (ids) async => restored.addAll(ids),
+    );
+
+    await usecase(kindIds: {'k'});
+    expect(restored, {'p1'});
+  });
 
   test('partitura persiste e uma segunda chamada salta o download', () async {
     final store = _ScoreStore();
