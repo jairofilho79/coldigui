@@ -135,7 +135,7 @@ void main() {
       expect(a2.dx - sus2.dx, greaterThan(a1.dx - sus1.dx + 30.0));
 
       // Drena o relayout agendado por FontLoader antes do teardown do teste.
-      await tester.pump();
+      await tester.pumpAndSettle();
     },
   );
 
