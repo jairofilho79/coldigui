@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'package:flutter/services.dart';
 import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
 import 'package:coldigui/features/chords/presentation/theme/chord_reader_theme.dart';
 import 'package:coldigui/features/chords/presentation/widgets/chordpro_view.dart';
@@ -70,16 +68,8 @@ void main() {
   testWidgets(
     'respeita espacamento entre acordes quando ha espacos apos a letra',
     (tester) async {
-      final fontData = File('assets/fonts/OpenSans[wght].ttf').readAsBytesSync();
-      final fontLoader = FontLoader('OpenSans');
-      fontLoader.addFont(Future.value(ByteData.view(fontData.buffer)));
-      await fontLoader.load();
-      // Drena a notificacao da fonte antes de montar os widgets de texto.
-      await tester.pumpAndSettle();
-
       await tester.pumpWidget(
         MaterialApp(
-          theme: ThemeData(fontFamily: 'OpenSans'),
           home: Scaffold(
             body: Center(
               child: SizedBox(
@@ -108,7 +98,6 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          theme: ThemeData(fontFamily: 'OpenSans'),
           home: Scaffold(
             body: Center(
               child: SizedBox(
