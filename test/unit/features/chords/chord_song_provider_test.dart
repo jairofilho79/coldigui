@@ -35,7 +35,8 @@ class _FakeRemote implements ChordContentDatasource {
 }
 
 /// Cache em memória com a mesma superfície do datasource Isar.
-class _FakeLocal implements ChordContentLocalDatasource {
+class _FakeLocal extends ChordContentLocalDatasource {
+  _FakeLocal() : super(null);
   final rows = <String, ChordCacheEntry>{};
   int writes = 0;
 

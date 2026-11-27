@@ -5,8 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
+import '../../../../core/network/connectivity_stream_provider.dart';
+import '../../../../core/providers/device_connectivity_provider.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/utils/material_id_kind.dart';
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -18,6 +21,8 @@ import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart
 import '../../../contributions/domain/entities/contribution_kind.dart';
 import '../../../contributions/domain/entities/contribution_target.dart';
 import '../../../contributions/presentation/utils/open_contribute.dart';
+import '../../../offline/data/providers/reader_offline_exclusions_provider.dart';
+import '../../../offline/presentation/widgets/reader_offline_button.dart';
 import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import '../../domain/entities/lyrics_reader_font_size.dart';
@@ -28,11 +33,16 @@ const Key lyricsReaderAutoscrollKey = Key('lyricsReaderAutoscroll');
 const Key lyricsReaderSpeedKey = Key('lyricsReaderSpeed');
 const Key lyricsReaderFullscreenKey = Key('lyricsReaderFullscreen');
 
+final _lyricsReaderConnectedProvider = FutureProvider.autoDispose<bool>((ref) {
+  return ref.watch(connectivityStreamProvider).value ??
+      ref.watch(deviceConnectivityProvider).hasConnection();
+});
+
 /// Leitor de letra Coldigom (`/letra?praiseId=`) — O6.
 ///
 /// Lê o texto da linha do catálogo ([coldigomCatalogRowProvider]: Isar, ou
 /// as linhas em memória sem Isar), nunca da rede: a letra vem inteira no
-/// dump do catálogo e está sempre offline.
+/// dump do catálogo. O uso offline pode ser desativado sem alterar a busca.
 /// Conta com player e controle magnético de autoscroll unificado.
 class LyricsReaderScreen extends ConsumerStatefulWidget {
   const LyricsReaderScreen({required this.queryParams, super.key});
@@ -84,7 +94,9 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen>
     final praiseId = _praiseId;
     if (praiseId.isNotEmpty) {
       final fontSize = ref.read(lyricsReaderFontSizeProvider);
-      ref.read(autoscrollTelemetryDatasourceProvider).recordAdjustment(
+      ref
+          .read(autoscrollTelemetryDatasourceProvider)
+          .recordAdjustment(
             AutoscrollAdjustment(
               praiseId: praiseId,
               materialKind: 'lyrics',
@@ -229,8 +241,22 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen>
     final title = widget.queryParams[UrlSyncParams.titulo] ?? row?.name ?? '';
     final text = row?.lyrics.trim() ?? '';
     final biblicalSummary = row?.biblicalSummary?.trim() ?? '';
+    final excluded =
+        text.isNotEmpty &&
+        ref.watch(
+          readerOfflineExclusionsProvider.select(
+            (keys) => keys.contains(
+              readerOfflineExclusion(MaterialKind.lyrics, _praiseId),
+            ),
+          ),
+        );
+    final hiddenOffline =
+        excluded && ref.watch(_lyricsReaderConnectedProvider).value != true;
 
-    ref.listen<LyricsAutoscrollState>(lyricsAutoscrollProvider, (previous, next) {
+    ref.listen<LyricsAutoscrollState>(lyricsAutoscrollProvider, (
+      previous,
+      next,
+    ) {
       if (next.running) {
         _ensureAutoscrollTicker();
       } else {
@@ -275,6 +301,7 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen>
                       setState(() => _showSpeedSlider = !_showSpeedSlider),
                   l10n: l10n,
                   praiseId: _praiseId,
+                  hasLyrics: text.isNotEmpty,
                 ),
                 if (_showSpeedSlider)
                   AutoscrollSpeedSliderBar(
@@ -291,25 +318,43 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen>
                 Expanded(
                   child: SpotlightGuideTarget(
                     id: 'lyrics-content-view',
-                    child: text.isEmpty
+                    child: text.isEmpty || hiddenOffline
                         ? Center(
-                            child: Text(
-                              l10n.lyricsReaderEmpty,
-                              style: AppTypography.body.copyWith(
-                                color: AppColors.textDark.withValues(alpha: 0.7),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              child: Text(
+                                hiddenOffline
+                                    ? l10n.lyricsReaderOfflineExcluded
+                                    : l10n.lyricsReaderEmpty,
+                                textAlign: TextAlign.center,
+                                style: AppTypography.body.copyWith(
+                                  color: AppColors.textDark.withValues(
+                                    alpha: 0.7,
+                                  ),
+                                ),
                               ),
                             ),
                           )
                         : NotificationListener<UserScrollNotification>(
                             onNotification: (notification) {
-                              if (notification.direction != ScrollDirection.idle) {
-                                ref.read(lyricsAutoscrollProvider.notifier).stop();
+                              if (notification.direction !=
+                                  ScrollDirection.idle) {
+                                ref
+                                    .read(lyricsAutoscrollProvider.notifier)
+                                    .stop();
                               }
                               return false;
                             },
                             child: SingleChildScrollView(
                               controller: _scrollController,
-                              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                16,
+                                20,
+                                32,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
@@ -321,10 +366,14 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen>
                                       ),
                                       margin: const EdgeInsets.only(bottom: 16),
                                       decoration: BoxDecoration(
-                                        color: AppColors.gold.withValues(alpha: 0.15),
+                                        color: AppColors.gold.withValues(
+                                          alpha: 0.15,
+                                        ),
                                         borderRadius: BorderRadius.circular(6),
                                         border: Border.all(
-                                          color: AppColors.gold.withValues(alpha: 0.3),
+                                          color: AppColors.gold.withValues(
+                                            alpha: 0.3,
+                                          ),
                                         ),
                                       ),
                                       child: Text(
@@ -372,6 +421,7 @@ class _LyricsToolbar extends ConsumerWidget {
     required this.onToggleSpeedSlider,
     required this.l10n,
     required this.praiseId,
+    required this.hasLyrics,
   });
 
   final String title;
@@ -381,111 +431,136 @@ class _LyricsToolbar extends ConsumerWidget {
   final VoidCallback onToggleSpeedSlider;
   final AppLocalizations l10n;
   final String praiseId;
+  final bool hasLyrics;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final size = ref.read(lyricsReaderFontSizeProvider.notifier);
     final autoscrollNotifier = ref.read(lyricsAutoscrollProvider.notifier);
 
+    final titleText = Text(
+      title.isEmpty ? l10n.lyricsTitle : title,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: AppTypography.headline.copyWith(
+        color: AppColors.title,
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+    final actions = <Widget>[
+      SpotlightGuideTarget(
+        id: 'lyrics-font-size-controls',
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: l10n.lyricsReaderDecreaseFont,
+              icon: const Icon(Icons.text_decrease, color: AppColors.title),
+              onPressed: LyricsReaderFontSize.canDecrease(fontSize)
+                  ? size.decrease
+                  : null,
+            ),
+            IconButton(
+              tooltip: l10n.lyricsReaderIncreaseFont,
+              icon: const Icon(Icons.text_increase, color: AppColors.title),
+              onPressed: LyricsReaderFontSize.canIncrease(fontSize)
+                  ? size.increase
+                  : null,
+            ),
+          ],
+        ),
+      ),
+      SpotlightGuideTarget(
+        id: 'lyrics-autoscroll-controls',
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              key: lyricsReaderAutoscrollKey,
+              tooltip: autoscroll.running
+                  ? l10n.lyricsAutoscrollPause
+                  : l10n.lyricsAutoscrollPlay,
+              icon: Icon(
+                autoscroll.running
+                    ? Icons.pause_circle_outline
+                    : Icons.play_circle_outline,
+                color: AppColors.title,
+              ),
+              onPressed: autoscrollNotifier.toggle,
+            ),
+            IconButton(
+              key: lyricsReaderSpeedKey,
+              tooltip: l10n.autoscrollSpeedTooltip,
+              icon: Icon(
+                Icons.speed,
+                color: showSpeedSlider ? AppColors.gold : AppColors.title,
+              ),
+              onPressed: onToggleSpeedSlider,
+            ),
+          ],
+        ),
+      ),
+      SpotlightGuideTarget(
+        id: 'lyrics-fullscreen-button',
+        child: IconButton(
+          key: lyricsReaderFullscreenKey,
+          tooltip: ref.watch(readerFullscreenProvider)
+              ? l10n.readerExitFullscreenTooltip
+              : l10n.readerFullscreenTooltip,
+          icon: Icon(
+            ref.watch(readerFullscreenProvider)
+                ? Icons.fullscreen_exit
+                : Icons.fullscreen,
+            color: AppColors.title,
+          ),
+          onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
+        ),
+      ),
+      if (hasLyrics && praiseId.isNotEmpty)
+        ReaderOfflineButton(
+          material: (kind: MaterialKind.lyrics, id: praiseId, key: praiseId),
+          color: AppColors.title,
+        ),
+      IconButton(
+        tooltip: l10n.contributeReportTooltip,
+        icon: const Icon(Icons.handshake_outlined, color: AppColors.title),
+        onPressed: praiseId.isEmpty
+            ? null
+            : () => openContribute(
+                context,
+                target: ContributionTarget(
+                  source: ContributionSource.coldigom,
+                  praiseId: praiseId,
+                  materialId: 'lyrics:$praiseId',
+                ),
+              ),
+      ),
+    ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title.isEmpty ? l10n.lyricsTitle : title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.headline.copyWith(
-                color: AppColors.title,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          SpotlightGuideTarget(
-            id: 'lyrics-font-size-controls',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= 7 * kMinInteractiveDimension + 80) {
+            return Row(
               children: [
-                IconButton(
-                  tooltip: l10n.lyricsReaderDecreaseFont,
-                  icon: const Icon(Icons.text_decrease, color: AppColors.title),
-                  onPressed: LyricsReaderFontSize.canDecrease(fontSize)
-                      ? size.decrease
-                      : null,
-                ),
-                IconButton(
-                  tooltip: l10n.lyricsReaderIncreaseFont,
-                  icon: const Icon(Icons.text_increase, color: AppColors.title),
-                  onPressed: LyricsReaderFontSize.canIncrease(fontSize)
-                      ? size.increase
-                      : null,
-                ),
+                Expanded(child: titleText),
+                ...actions,
               ],
-            ),
-          ),
-          SpotlightGuideTarget(
-            id: 'lyrics-autoscroll-controls',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  key: lyricsReaderAutoscrollKey,
-                  tooltip: autoscroll.running
-                      ? l10n.lyricsAutoscrollPause
-                      : l10n.lyricsAutoscrollPlay,
-                  icon: Icon(
-                    autoscroll.running
-                        ? Icons.pause_circle_outline
-                        : Icons.play_circle_outline,
-                    color: AppColors.title,
-                  ),
-                  onPressed: autoscrollNotifier.toggle,
-                ),
-                IconButton(
-                  key: lyricsReaderSpeedKey,
-                  tooltip: l10n.autoscrollSpeedTooltip,
-                  icon: Icon(
-                    Icons.speed,
-                    color: showSpeedSlider ? AppColors.gold : AppColors.title,
-                  ),
-                  onPressed: onToggleSpeedSlider,
-                ),
-              ],
-            ),
-          ),
-          SpotlightGuideTarget(
-            id: 'lyrics-fullscreen-button',
-            child: IconButton(
-              key: lyricsReaderFullscreenKey,
-              tooltip: ref.watch(readerFullscreenProvider)
-                  ? l10n.readerExitFullscreenTooltip
-                  : l10n.readerFullscreenTooltip,
-              icon: Icon(
-                ref.watch(readerFullscreenProvider)
-                    ? Icons.fullscreen_exit
-                    : Icons.fullscreen,
-                color: AppColors.title,
+            );
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              titleText,
+              Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: actions,
               ),
-              onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
-            ),
-          ),
-          IconButton(
-            tooltip: l10n.contributeReportTooltip,
-            icon: const Icon(Icons.handshake_outlined, color: AppColors.title),
-            onPressed: praiseId.isEmpty
-                ? null
-                : () => openContribute(
-                    context,
-                    target: ContributionTarget(
-                      source: ContributionSource.coldigom,
-                      praiseId: praiseId,
-                      materialId: 'lyrics:$praiseId',
-                    ),
-                  ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

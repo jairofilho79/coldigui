@@ -1,5 +1,9 @@
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
+import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/network/connectivity_stream_provider.dart';
+import 'package:coldigui/core/network/device_connectivity.dart';
+import 'package:coldigui/core/providers/device_connectivity_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_catalog_local_datasource.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_catalog_data_providers.dart';
@@ -14,6 +18,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../support/pump_app.dart';
+
+class _NoConnection implements DeviceConnectivity {
+  const _NoConnection();
+
+  @override
+  Future<bool> hasConnection() async => false;
+}
 
 /// Datasource só de memória: o leitor lê por `praiseId`, nada mais.
 class _MemoryCatalog extends ColdigomCatalogLocalDatasource {
@@ -72,6 +83,63 @@ Future<SharedPreferences> _pump(
 }
 
 void main() {
+  testWidgets('remove e reativa uma letra sem rede, preservando o catálogo', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues(const {});
+    final prefs = await SharedPreferences.getInstance();
+    const lyrics = 'Texto de teste para leitura sem rede';
+    final catalog = _MemoryCatalog({'p1': _row(lyrics)});
+    Future<void> openReader() async {
+      await pumpApp(
+        tester,
+        const LyricsReaderScreen(queryParams: {'praiseId': 'p1'}),
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          isarAvailableProvider.overrideWithValue(true),
+          coldigomCatalogLocalDatasourceProvider.overrideWithValue(catalog),
+          connectivityStreamProvider.overrideWith((ref) => Stream.value(false)),
+          deviceConnectivityProvider.overrideWithValue(const _NoConnection()),
+        ],
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await openReader();
+    final saved = find.byTooltip('Disponível offline · toque para remover');
+    final download = find.byTooltip('Baixar offline');
+    expect(saved, findsOneWidget);
+    expect(find.text(lyrics), findsOneWidget);
+
+    await tester.tap(saved);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+    expect(saved, findsOneWidget);
+
+    await tester.tap(saved);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remover'));
+    await tester.pumpAndSettle();
+    expect(download, findsOneWidget);
+    expect(find.text(lyrics), findsNothing);
+    expect(catalog.findByPraiseIdSync('p1')?.lyrics, lyrics);
+
+    await prefs.reload();
+    await openReader();
+    expect(download, findsOneWidget);
+    expect(find.text(lyrics), findsNothing);
+
+    await tester.tap(download);
+    await tester.pumpAndSettle();
+    expect(saved, findsOneWidget);
+    expect(find.text(lyrics), findsOneWidget);
+  });
+
   testWidgets('mostra o texto da letra lido do Isar', (tester) async {
     await _pump(tester, lyrics: 'Ainda há tempo\nde voltar ao Senhor');
 
@@ -170,7 +238,9 @@ void main() {
     expect(sliderWidget.value, 8.0);
   });
 
-  testWidgets('botão de fullscreen alterna entre tela cheia e normal', (tester) async {
+  testWidgets('botão de fullscreen alterna entre tela cheia e normal', (
+    tester,
+  ) async {
     await _pump(tester, lyrics: 'Letra');
     final container = ProviderScope.containerOf(
       tester.element(find.byType(LyricsReaderScreen)),
@@ -224,4 +294,3 @@ void main() {
     expect(textWidget.overflow, TextOverflow.ellipsis);
   });
 }
-

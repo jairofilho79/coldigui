@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:isar_plus/isar_plus.dart';
 
 import '../../../../core/database/collections/chord_content_cache.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
 
 /// Entrada do cache: o corpo cru e quando ele foi buscado.
 ///
@@ -31,9 +32,26 @@ const kChordCacheTtl = Duration(hours: 24);
 /// `null` e a escrita vira no-op registrada — perder o cache degrada a
 /// experiência offline, mas nunca pode derrubar a busca da cifra.
 class ChordContentLocalDatasource {
-  const ChordContentLocalDatasource(this._isar);
+  const ChordContentLocalDatasource(this._isar, {this.skipAutomaticWrite});
 
   final Isar? _isar;
+  final bool Function(String key)? skipAutomaticWrite;
+
+  bool writeOnRead(String key, String content) {
+    if (skipAutomaticWrite?.call(key) == true) return false;
+    write(key, content);
+    return true;
+  }
+
+  void remove(String key) {
+    final isar = _isar;
+    if (isar == null) throw const StorageUnavailableException('offline.chord');
+    isar.write((isar) {
+      final coll = isar.chordContentCaches;
+      final row = coll.where().r2KeyEqualTo(key).findFirst();
+      if (row != null) coll.delete(row.id);
+    });
+  }
 
   /// Entrada guardada para [r2Key], ou `null` quando não há nenhuma.
   ///

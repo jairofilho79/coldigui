@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_config.dart';
 import '../../../../core/database/isar_provider.dart';
 import '../../../../core/providers/device_connectivity_provider.dart';
+import '../../../../core/utils/material_id_kind.dart';
 import '../../../coldigom/data/providers/coldigom_dio_provider.dart';
+import '../../../offline/data/providers/reader_offline_exclusions_provider.dart';
 import '../../domain/entities/chordpro_song.dart';
 import '../datasources/chord_content_datasource.dart';
 import '../datasources/chord_content_local_datasource.dart';
@@ -22,7 +24,12 @@ final chordContentDatasourceProvider = Provider<ChordContentDatasource>((ref) {
 /// Cache Isar do conteúdo de cifra; `null` de Isar = modo degradado.
 final chordContentLocalDatasourceProvider =
     Provider<ChordContentLocalDatasource>((ref) {
-      return ChordContentLocalDatasource(ref.watch(optionalIsarProvider));
+      return ChordContentLocalDatasource(
+        ref.watch(optionalIsarProvider),
+        skipAutomaticWrite: (key) => ref
+            .read(readerOfflineExclusionsProvider)
+            .contains(readerOfflineExclusion(MaterialKind.chord, key)),
+      );
     });
 
 /// Música de um `r2Key`: `null` só quando a cifra não existe.
@@ -63,9 +70,8 @@ final chordSongProvider = FutureProvider.autoDispose
 
       final remote = ref.watch(chordContentDatasourceProvider);
       final content = await remote.fetchContent(key);
-      ref.keepAlive();
       // 404 também é resposta conclusiva: grava o marcador negativo.
-      local.write(key, content ?? '');
+      if (local.writeOnRead(key, content ?? '')) ref.keepAlive();
       return content == null ? null : parseChordSongOrNull(content);
     });
 
@@ -94,13 +100,11 @@ Future<void> _revalidate(
     if (fresh == null) {
       // Reescrever renova o `fetchedAt` mesmo quando o marcador já era
       // negativo; invalidar só faz sentido se havia conteúdo a perder.
-      local.write(key, '');
-      if (cached.isNotEmpty) ref.invalidateSelf();
+      if (local.writeOnRead(key, '') && cached.isNotEmpty) ref.invalidateSelf();
       return;
     }
     if (fresh == cached) return;
-    local.write(key, fresh);
-    ref.invalidateSelf();
+    if (local.writeOnRead(key, fresh)) ref.invalidateSelf();
   } on Object catch (error) {
     debugPrint('[cifras] revalidação de $key falhou: $error');
   }

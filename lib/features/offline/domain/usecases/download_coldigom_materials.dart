@@ -17,6 +17,7 @@ import '../../../score_reader/data/repositories/score_file_repository.dart';
 import '../../data/datasources/offline_pdf_local_datasource.dart';
 import '../entities/coldigom_download_progress.dart';
 import '../entities/coldigom_download_target.dart';
+import '../entities/offline_reader_material.dart';
 import '../exceptions/offline_bulk_exceptions.dart';
 import '../repositories/offline_audio_repository.dart';
 import '../repositories/offline_pdf_repository.dart';
@@ -32,7 +33,7 @@ typedef FetchColdigomPdf = Future<void> Function(
 });
 
 /// `r2Key`s das figuras de um documento `.gestures` (parse + dicionário).
-typedef GestureFigureKeysResolver = Future<Set<String>> Function(
+typedef GestureFigureKeysResolver = Future<Set<String>?> Function(
   String gestureJson,
 );
 
@@ -64,6 +65,8 @@ class DownloadColdigomMaterials {
     required GestureFigureRepository figures,
     required GestureFigureKeysResolver figureKeysFor,
     required int concurrency,
+    GestureFigureKeysResolver? cachedFigureKeysFor,
+    Future<void> Function(Set<String> praiseIds)? restoreLyrics,
     ScoreFileRepository? scoreFiles,
   }) : _catalog = catalog, // ignore: prefer_initializing_formals
        _pdfRepository = pdfRepository, // ignore: prefer_initializing_formals
@@ -78,6 +81,8 @@ class DownloadColdigomMaterials {
        _gestureLocal = gestureLocal, // ignore: prefer_initializing_formals
        _figures = figures, // ignore: prefer_initializing_formals
        _figureKeysFor = figureKeysFor, // ignore: prefer_initializing_formals
+       _cachedFigureKeysFor = cachedFigureKeysFor ?? figureKeysFor,
+       _restoreLyrics = restoreLyrics, // ignore: prefer_initializing_formals
        _scoreFiles = scoreFiles, // ignore: prefer_initializing_formals
        _concurrency = concurrency < 1 ? 1 : concurrency;
 
@@ -93,10 +98,62 @@ class DownloadColdigomMaterials {
   final GestureContentLocalDatasource _gestureLocal;
   final GestureFigureRepository _figures;
   final GestureFigureKeysResolver _figureKeysFor;
+  final GestureFigureKeysResolver _cachedFigureKeysFor;
+  final Future<void> Function(Set<String> praiseIds)? _restoreLyrics;
 
   /// `null` só em testes que não exercitam partituras.
   final ScoreFileRepository? _scoreFiles;
   final int _concurrency;
+
+  Future<bool> isMaterialAvailable(OfflineReaderMaterial material) async {
+    final (:kind, :id, :key) = material;
+    return switch (kind) {
+      MaterialKind.pdf =>
+        (await _pdfRepository.lookup(id))?.isPersistent ?? false,
+      MaterialKind.audio => (await _audioRepository.lookupBatch({
+        id,
+      })).contains(id),
+      MaterialKind.chord =>
+        parseChordSongOrNull(_chordLocal.read(key)?.content ?? '') != null,
+      MaterialKind.gesture => _gestureAvailable(
+        _gestureLocal.read(key)?.content,
+      ),
+      _ => throw ArgumentError.value(
+        kind,
+        'kind',
+        'Not an offline reader file',
+      ),
+    };
+  }
+
+  Future<void> downloadMaterial(OfflineReaderMaterial material) async {
+    if (await isMaterialAvailable(material)) return;
+    if (material.kind == MaterialKind.pdf &&
+        await _pdfRepository.lookup(material.id) != null) {
+      await _pdfLocal.markPersistent({material.id});
+    } else {
+      await _download(material, null);
+    }
+    if (!await isMaterialAvailable(material)) {
+      throw StateError('Material not available after download: ${material.id}');
+    }
+  }
+
+  Future<void> removeMaterial(OfflineReaderMaterial material) async {
+    final (:kind, :id, :key) = material;
+    switch (kind) {
+      case MaterialKind.pdf:
+        await _pdfRepository.remove(id);
+      case MaterialKind.audio:
+        await _audioRepository.remove(id);
+      case MaterialKind.chord:
+        _chordLocal.remove(key);
+      case MaterialKind.gesture:
+        _gestureLocal.remove(key);
+      default:
+        throw ArgumentError.value(kind, 'kind', 'Not an offline reader file');
+    }
+  }
 
   Future<ColdigomDownloadResult> call({
     required Set<String> kindIds,
@@ -169,7 +226,11 @@ class DownloadColdigomMaterials {
           // `await` suspender — com workers concorrentes, dois deles
           // liam o mesmo valor velho e um incremento se perdia. Separar
           // a leitura do `await` garante que a soma é feita depois dele.
-          final downloaded = await _download(target, cancelToken);
+          final downloaded = await _download((
+            kind: target.kind,
+            id: target.localId,
+            key: target.r2Key,
+          ), cancelToken);
           bytes += downloaded;
           done++;
         } on InsufficientDiskSpaceException catch (error) {
@@ -212,6 +273,12 @@ class DownloadColdigomMaterials {
     if (pending.isNotEmpty) {
       final workers = min(_concurrency, pending.length);
       await Future.wait(List.generate(workers, (_) => worker()));
+    }
+
+    if (!stopped && cancelToken?.isCancelled != true) {
+      await _restoreLyrics?.call({
+        for (final target in targets) target.praiseId,
+      });
     }
 
     return ColdigomDownloadResult(
@@ -257,13 +324,16 @@ class DownloadColdigomMaterials {
         scoreFiles != null && targets.any((t) => t.kind == MaterialKind.score)
         ? await scoreFiles.localPresence()
         : null;
+    final figurePresence = <String, Future<bool>>{};
     for (final t in targets) {
       if (t.kind == MaterialKind.chord && _chordLocal.read(t.r2Key) != null) {
         present.add(t.localId);
       }
-      if (t.kind == MaterialKind.gesture &&
-          _gestureLocal.read(t.r2Key) != null) {
-        present.add(t.localId);
+      if (t.kind == MaterialKind.gesture) {
+        final content = _gestureLocal.read(t.r2Key)?.content;
+        if (content == '' || await _gestureAvailable(content, figurePresence)) {
+          present.add(t.localId);
+        }
       }
       if (t.kind == MaterialKind.score &&
           scoreIsLocal != null &&
@@ -274,19 +344,37 @@ class DownloadColdigomMaterials {
     return present;
   }
 
-  /// Bytes gravados para [target]; lança para o worker classificar.
+  Future<bool> _gestureAvailable(
+    String? content, [
+    Map<String, Future<bool>>? figurePresence,
+  ]) async {
+    if (content == null || content.isEmpty) return false;
+    final keys = await _cachedFigureKeysFor(content);
+    if (keys == null) return false;
+    final present = await Future.wait(
+      keys.map(
+        (key) =>
+            figurePresence?.putIfAbsent(key, () => _figures.hasLocal(key)) ??
+            _figures.hasLocal(key),
+      ),
+    );
+    return present.every((value) => value);
+  }
+
+  /// Bytes gravados para [material]; lança para o worker classificar.
   Future<int> _download(
-    ColdigomDownloadTarget target,
+    OfflineReaderMaterial material,
     CancelToken? cancelToken,
   ) async {
-    switch (target.kind) {
+    final (:kind, :id, :key) = material;
+    switch (kind) {
       case MaterialKind.pdf:
         // `FetchColdigomPdf` (produção: `FetchAndStorePdf`) já tenta até
         // `OfflineConfig.maxRetryAttempts` por conta própria — embrulhar em
         // `_withRetry` aqui multiplicaria as tentativas (até 9× de 120s por
         // PDF morto, como o comentário de `RetryInterceptor.disableKey`
         // adverte). Uma falha aqui já veio depois do retry interno dele.
-        await _fetchPdf(target.localId, target.r2Key, cancelToken: cancelToken);
+        await _fetchPdf(id, key, cancelToken: cancelToken);
         // `FetchColdigomPdf` (void) não devolve o tamanho real — o PDF já
         // fica contabilizado no próprio `OfflinePdfRepository`/índice; o
         // `bytes` deste resultado só soma o que só esta chamada sabe medir
@@ -298,34 +386,37 @@ class DownloadColdigomMaterials {
         // (ver seu doc) para retentar aqui, com o mesmo backoff do PDF —
         // é o único tipo sem retry em outra camada.
         final bytes = await _withRetry(
-          () => _audioBytes.fetch(target.r2Key, cancelToken: cancelToken),
+          () => _audioBytes.fetch(key, cancelToken: cancelToken),
         );
-        await _audioRepository.upsert(
-          audioId: target.localId,
-          r2Key: target.r2Key,
-          bytes: bytes,
-        );
+        await _audioRepository.upsert(audioId: id, r2Key: key, bytes: bytes);
         return bytes.length;
       case MaterialKind.chord:
         // `ChordContentDatasource` usa `coldigomDioProvider`, que já tem
         // `RetryInterceptor` — uma retentativa aqui seria inerte (o erro que
         // chega é `ChordFetchFailedException`, não `DioException`) e a
         // camada certa já cobre rede transitória/5xx.
-        final content = await _chordRemote.fetchContent(target.r2Key);
-        _chordLocal.write(target.r2Key, content ?? '');
+        final content = await _chordRemote.fetchContent(key);
+        _chordLocal.write(key, content ?? '');
         return content?.length ?? 0;
       case MaterialKind.gesture:
         // Mesmo raciocínio do cifra: `RetryInterceptor` de `coldigomDioProvider`
         // já cobre a rede transitória.
-        final content = await _gestureRemote.fetchContent(target.r2Key);
+        final content = await _gestureRemote.fetchContent(key);
         // Figuras antes do documento: se a fila parar (quota/cancelamento)
         // no meio do prefetch, o documento não fica marcado "presente" e a
         // próxima chamada refaz fetch + prefetch — sem isso um documento já
         // gravado seria pulado com figuras nunca baixadas (O12).
         if (content != null) {
-          await _figures.prefetch(await _figureKeysFor(content));
+          final keys = await _figureKeysFor(content);
+          if (keys == null) {
+            throw StateError('Gesture dictionary unavailable for $key');
+          }
+          await _figures.prefetch(keys);
+          if (!await _gestureAvailable(content)) {
+            throw StateError('Gesture figures not persisted for $key');
+          }
         }
-        _gestureLocal.write(target.r2Key, content ?? '');
+        _gestureLocal.write(key, content ?? '');
         return content?.length ?? 0;
       case MaterialKind.score:
         // `ScoreFileRepository` usa `coldigomDioProvider` (com
@@ -333,15 +424,12 @@ class DownloadColdigomMaterials {
         // quando o store confirma a persistência, inclusive na web sem quota.
         final scoreFiles = _scoreFiles;
         if (scoreFiles == null) {
-          throw StateError('partitura sem repositório: ${target.r2Key}');
+          throw StateError('partitura sem repositório: $key');
         }
-        final bytes = await scoreFiles.fetch(
-          target.r2Key,
-          cancelToken: cancelToken,
-        );
-        if (bytes == null || !await scoreFiles.hasLocal(target.r2Key)) {
+        final bytes = await scoreFiles.fetch(key, cancelToken: cancelToken);
+        if (bytes == null || !await scoreFiles.hasLocal(key)) {
           throw ScoreFetchFailedException(
-            target.r2Key,
+            key,
             bytes == null ? 'arquivo não encontrado' : 'persistência falhou',
           );
         }
@@ -350,7 +438,7 @@ class DownloadColdigomMaterials {
       case MaterialKind.lyrics:
       case MaterialKind.unknown:
         // `coldigomDownloadTargetsFrom` nunca emite estes tipos.
-        throw StateError('tipo não baixável: ${target.rawType}');
+        throw StateError('tipo não baixável: $kind');
     }
   }
 

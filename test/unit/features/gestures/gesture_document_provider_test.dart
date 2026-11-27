@@ -28,7 +28,8 @@ class _FakeRemote implements GestureContentDatasource {
   }
 }
 
-class _FakeLocal implements GestureContentLocalDatasource {
+class _FakeLocal extends GestureContentLocalDatasource {
+  _FakeLocal() : super(null);
   final rows = <String, GestureCacheEntry>{};
   int writes = 0;
 

@@ -44,6 +44,9 @@ GestureDocument _fixture(String name) => parseGestureDocument(_read(name));
 /// O prefetch da tela não pode ir à rede no teste.
 class _NoopFigureRepository implements GestureFigureRepository {
   @override
+  Future<bool> hasLocal(String r2Key) async => false;
+
+  @override
   Future<Uint8List?> get(String r2Key) async => null;
 
   @override
@@ -51,11 +54,8 @@ class _NoopFigureRepository implements GestureFigureRepository {
 }
 
 /// Conta quantas vezes o prefetch rodou — pin do reset em troca de louvor.
-class _CountingFigureRepository implements GestureFigureRepository {
+class _CountingFigureRepository extends _NoopFigureRepository {
   var prefetchCalls = 0;
-
-  @override
-  Future<Uint8List?> get(String r2Key) async => null;
 
   @override
   Future<void> prefetch(Iterable<String> r2Keys) async {
