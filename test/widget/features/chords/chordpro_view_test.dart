@@ -134,7 +134,9 @@ void main() {
       // Espaços adicionais aumentam expressivamente a distância entre os acordes
       expect(a2.dx - sus2.dx, greaterThan(a1.dx - sus1.dx + 30.0));
 
-      // Drena o relayout agendado por FontLoader antes do teardown do teste.
+      // FontLoader notifica mudancas de fonte assincronamente; desmonte o texto
+      // antes do teardown para que a notificacao nao agende um relayout tardio.
+      await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
     },
   );
