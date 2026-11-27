@@ -74,6 +74,8 @@ void main() {
       final fontLoader = FontLoader('OpenSans');
       fontLoader.addFont(Future.value(ByteData.view(fontData.buffer)));
       await fontLoader.load();
+      // Drena a notificacao da fonte antes de montar os widgets de texto.
+      await tester.pumpAndSettle();
 
       await tester.pumpWidget(
         MaterialApp(
@@ -133,11 +135,6 @@ void main() {
 
       // Espaços adicionais aumentam expressivamente a distância entre os acordes
       expect(a2.dx - sus2.dx, greaterThan(a1.dx - sus1.dx + 30.0));
-
-      // FontLoader notifica mudancas de fonte assincronamente; desmonte o texto
-      // antes do teardown para que a notificacao nao agende um relayout tardio.
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pumpAndSettle();
     },
   );
 
