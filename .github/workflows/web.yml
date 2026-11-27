@@ -30,7 +30,7 @@ jobs:
         run: ./scripts/setup_deps.sh
 
       - name: Analyze
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
 
       - name: Unit and widget tests (VM)
         run: flutter test

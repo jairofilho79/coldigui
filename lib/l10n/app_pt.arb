@@ -2072,5 +2072,7 @@
   },
   "scoreReaderSoundFull": "Banco GM completo",
   "scoreReaderSoundFailed": "Não foi possível baixar o banco GM completo · tentar de novo",
-  "scoreReaderAudioUnavailable": "Áudio indisponível neste dispositivo"
+  "scoreReaderAudioUnavailable": "Áudio indisponível neste dispositivo",
+  "audioRepeatCurrentTrack": "Repetir áudio atual",
+  "audioStopRepeatingCurrentTrack": "Desativar repetição do áudio atual"
 }

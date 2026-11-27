@@ -36,6 +36,7 @@ class AudioPlayerSessionState {
     this.restoredWithoutPlayback = false,
     this.speed = 1.0,
     this.notDownloaded = false,
+    this.repeatCurrentTrack = false,
   });
 
   final List<AudioTrack> queue;
@@ -61,6 +62,7 @@ class AudioPlayerSessionState {
   /// a ausência de faixa anterior servia de proxy e engolia a **primeira**
   /// faixa de uma sessão nova (A6).
   final bool restoredWithoutPlayback;
+  final bool repeatCurrentTrack;
 
   AudioTrack? get currentTrack {
     if (queue.isEmpty) return null;
@@ -81,6 +83,7 @@ class AudioPlayerSessionState {
     bool? restoredWithoutPlayback,
     double? speed,
     bool? notDownloaded,
+    bool? repeatCurrentTrack,
   }) {
     return AudioPlayerSessionState(
       queue: queue ?? this.queue,
@@ -92,6 +95,7 @@ class AudioPlayerSessionState {
           restoredWithoutPlayback ?? this.restoredWithoutPlayback,
       speed: speed ?? this.speed,
       notDownloaded: clearError ? false : (notDownloaded ?? this.notDownloaded),
+      repeatCurrentTrack: repeatCurrentTrack ?? this.repeatCurrentTrack,
     );
   }
 }
@@ -742,6 +746,16 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     state = state.copyWith(errorMessage: error.toString());
   }
 
+  Future<void> setRepeatCurrentTrack(bool enabled) async {
+    try {
+      final player = _ensurePlayer;
+      await player.setLoopMode(enabled ? LoopMode.one : LoopMode.off);
+      state = state.copyWith(repeatCurrentTrack: enabled);
+    } on Object catch (e) {
+      _reportTransportFailure('setRepeatCurrentTrack', e);
+    }
+  }
+
   Future<void> playPause() async {
     final player = _player;
     if (player == null || state.queue.isEmpty) return;
@@ -876,6 +890,11 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       await _player?.setSpeed(1.0);
     } on Object catch (e) {
       debugPrint('[audio] close falhou ao parar o player: $e');
+    }
+    try {
+      await _player?.setLoopMode(LoopMode.off);
+    } on Object catch (e) {
+      debugPrint('[audio] close falhou ao desativar a repetição: $e');
     }
     _sourceResolver?.revokeAll();
     _mediaSession?.updatePlaybackState(playing: false);

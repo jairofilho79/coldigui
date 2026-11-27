@@ -19,6 +19,10 @@ class AudioTransportControls extends StatelessWidget {
     this.onSeekForward10,
     this.seekBack10Tooltip,
     this.seekForward10Tooltip,
+    this.repeatCurrentTrack = false,
+    this.onRepeatCurrentTrack,
+    this.repeatCurrentTrackTooltip,
+    this.stopRepeatingCurrentTrackTooltip,
     this.onLightBackground = false,
     this.compact = false,
     super.key,
@@ -42,6 +46,10 @@ class AudioTransportControls extends StatelessWidget {
   final VoidCallback? onSeekForward10;
   final String? seekBack10Tooltip;
   final String? seekForward10Tooltip;
+  final bool repeatCurrentTrack;
+  final VoidCallback? onRepeatCurrentTrack;
+  final String? repeatCurrentTrackTooltip;
+  final String? stopRepeatingCurrentTrackTooltip;
 
   /// Fundo creme/card → [AppColors.title]; fundo escuro → [AppColors.textLight].
   final bool onLightBackground;
@@ -151,6 +159,22 @@ class AudioTransportControls extends StatelessWidget {
           if (!compact) const SizedBox(width: 12),
         ],
         next,
+        if (onRepeatCurrentTrack != null) ...[
+          if (!compact) const SizedBox(width: 12),
+          IconButton(
+            tooltip: repeatCurrentTrack
+                ? stopRepeatingCurrentTrackTooltip
+                : repeatCurrentTrackTooltip,
+            isSelected: repeatCurrentTrack,
+            onPressed: onRepeatCurrentTrack,
+            icon: Icon(repeatCurrentTrack ? Icons.repeat_one : Icons.repeat),
+            style: IconButton.styleFrom(
+              foregroundColor: repeatCurrentTrack
+                  ? Theme.of(context).colorScheme.primary
+                  : fg,
+            ),
+          ),
+        ],
       ],
     );
   }
