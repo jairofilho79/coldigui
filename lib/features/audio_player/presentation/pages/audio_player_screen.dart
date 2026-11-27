@@ -233,6 +233,13 @@ class AudioPlayerScreen extends ConsumerWidget {
                     child: AudioTransportControls(
                       playing: session.playing,
                       buffering: session.buffering,
+                      repeatCurrentTrack: session.repeatCurrentTrack,
+                      onRepeatCurrentTrack: () => ref
+                          .read(audioPlayerSessionProvider.notifier)
+                          .setRepeatCurrentTrack(!session.repeatCurrentTrack),
+                      repeatCurrentTrackTooltip: l10n.audioRepeatCurrentTrack,
+                      stopRepeatingCurrentTrackTooltip:
+                          l10n.audioStopRepeatingCurrentTrack,
                       hasPrevious:
                           session.hasPrevious ||
                           positionState.position > Duration.zero,

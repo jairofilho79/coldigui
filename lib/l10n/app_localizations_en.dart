@@ -3892,4 +3892,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scoreReaderAudioUnavailable => 'Audio unavailable on this device';
+
+  @override
+  String get audioRepeatCurrentTrack => 'Repeat current audio';
+
+  @override
+  String get audioStopRepeatingCurrentTrack => 'Stop repeating current audio';
 }

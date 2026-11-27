@@ -3928,4 +3928,11 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get scoreReaderAudioUnavailable =>
       'Áudio indisponível neste dispositivo';
+
+  @override
+  String get audioRepeatCurrentTrack => 'Repetir áudio atual';
+
+  @override
+  String get audioStopRepeatingCurrentTrack =>
+      'Desativar repetição do áudio atual';
 }

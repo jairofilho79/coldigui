@@ -68,6 +68,64 @@ void main() {
     expect(forward, 1);
   });
 
+  testWidgets('controle de repetição indica o estado e aciona o callback', (
+    tester,
+  ) async {
+    var repeatCalls = 0;
+
+    await tester.pumpWidget(
+      wrap(
+        AudioTransportControls(
+          playing: false,
+          buffering: false,
+          hasPrevious: false,
+          hasNext: false,
+          onPrevious: () {},
+          onPlayPause: () {},
+          onNext: () {},
+          playTooltip: 'Play',
+          pauseTooltip: 'Pause',
+          previousTooltip: 'Previous',
+          nextTooltip: 'Next',
+          repeatCurrentTrack: false,
+          onRepeatCurrentTrack: () => repeatCalls++,
+          repeatCurrentTrackTooltip: 'Repeat current audio',
+          stopRepeatingCurrentTrackTooltip: 'Stop repeating current audio',
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.repeat), findsOneWidget);
+    await tester.tap(find.byTooltip('Repeat current audio'));
+    await tester.pump();
+    expect(repeatCalls, 1);
+
+    await tester.pumpWidget(
+      wrap(
+        AudioTransportControls(
+          playing: false,
+          buffering: false,
+          hasPrevious: false,
+          hasNext: false,
+          onPrevious: () {},
+          onPlayPause: () {},
+          onNext: () {},
+          playTooltip: 'Play',
+          pauseTooltip: 'Pause',
+          previousTooltip: 'Previous',
+          nextTooltip: 'Next',
+          repeatCurrentTrack: true,
+          onRepeatCurrentTrack: () => repeatCalls++,
+          repeatCurrentTrackTooltip: 'Repeat current audio',
+          stopRepeatingCurrentTrackTooltip: 'Stop repeating current audio',
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.repeat_one), findsOneWidget);
+    expect(find.byTooltip('Stop repeating current audio'), findsOneWidget);
+  });
+
   testWidgets('tooltips dos botões de ±10 s', (tester) async {
     await tester.pumpWidget(
       wrap(

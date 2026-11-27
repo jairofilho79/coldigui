@@ -6703,6 +6703,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Áudio indisponível neste dispositivo'**
   String get scoreReaderAudioUnavailable;
+
+  /// No description provided for @audioRepeatCurrentTrack.
+  ///
+  /// In pt, this message translates to:
+  /// **'Repetir áudio atual'**
+  String get audioRepeatCurrentTrack;
+
+  /// No description provided for @audioStopRepeatingCurrentTrack.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desativar repetição do áudio atual'**
+  String get audioStopRepeatingCurrentTrack;
 }
 
 class _AppLocalizationsDelegate

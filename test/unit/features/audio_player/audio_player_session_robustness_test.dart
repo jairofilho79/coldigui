@@ -91,9 +91,19 @@ class _ControllablePlayer extends AudioPlayer {
     seekCalls.add(position);
   }
 
+  final loopModes = <LoopMode>[];
+  Object? setSpeedError;
+
+  @override
+  Future<void> setLoopMode(LoopMode loopMode) async {
+    loopModes.add(loopMode);
+  }
+
   @override
   Future<void> setSpeed(double speed) async {
     setSpeedCalls.add(speed);
+    final error = setSpeedError;
+    if (error != null) throw error;
   }
 
   @override
@@ -234,6 +244,63 @@ void main() {
       container.read(audioPlayerSessionProvider).currentIndex,
       1,
       reason: 'a sessão precisa voltar a seguir o currentIndexStream',
+    );
+  });
+
+  test('loop da faixa atual alterna LoopMode.one e LoopMode.off', () async {
+    final container = await makeContainer();
+    final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+    expect(player.loopModes, isEmpty);
+    expect(
+      container.read(audioPlayerSessionProvider).repeatCurrentTrack,
+      isFalse,
+    );
+
+    await notifier.setRepeatCurrentTrack(true);
+
+    expect(player.loopModes, [LoopMode.one]);
+    expect(
+      container.read(audioPlayerSessionProvider).repeatCurrentTrack,
+      isTrue,
+    );
+
+    await notifier.setRepeatCurrentTrack(false);
+
+    expect(player.loopModes, [LoopMode.one, LoopMode.off]);
+    expect(
+      container.read(audioPlayerSessionProvider).repeatCurrentTrack,
+      isFalse,
+    );
+  });
+
+  test('close desativa loop no player reaproveitado', () async {
+    final container = await makeContainer();
+    final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+    await notifier.setRepeatCurrentTrack(true);
+    await notifier.close();
+
+    expect(player.loopModes, [LoopMode.one, LoopMode.off]);
+    expect(
+      container.read(audioPlayerSessionProvider).repeatCurrentTrack,
+      isFalse,
+    );
+  });
+
+  test('close desativa loop mesmo se o reset da velocidade falhar', () async {
+    final container = await makeContainer();
+    final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+    await notifier.setRepeatCurrentTrack(true);
+    player.setSpeedError = StateError('falha ao resetar velocidade');
+
+    await notifier.close();
+
+    expect(player.loopModes, [LoopMode.one, LoopMode.off]);
+    expect(
+      container.read(audioPlayerSessionProvider).repeatCurrentTrack,
+      isFalse,
     );
   });
 

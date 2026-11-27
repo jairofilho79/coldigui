@@ -1764,5 +1764,7 @@
   "scoreReaderSoundDownloadingPercent": "Downloading full GM sound bank… {percent}%",
   "scoreReaderSoundFull": "Full GM sound bank",
   "scoreReaderSoundFailed": "Could not download the full GM sound bank · try again",
-  "scoreReaderAudioUnavailable": "Audio unavailable on this device"
+  "scoreReaderAudioUnavailable": "Audio unavailable on this device",
+  "audioRepeatCurrentTrack": "Repeat current audio",
+  "audioStopRepeatingCurrentTrack": "Stop repeating current audio"
 }
